@@ -10,8 +10,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node scripts/sync-versions.mjs ${nextRelease.version}",
-        "publishCmd": "vp dlx pnpm -r --filter './packages/*' publish --access public --no-git-checks"
+        "prepareCmd": "node scripts/sync-versions.mjs ${nextRelease.version}"
       }
     ],
     "@semantic-release/github"
