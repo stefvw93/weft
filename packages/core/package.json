@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@effect/rpc": "catalog:",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "csstype": "^3.2.3",
     "effect": "catalog:",
     "tsx": "^4.22.3",

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "@weftui/core": "workspace:*",
     "@weftui/dom": "workspace:*",
     "effect": "catalog:"

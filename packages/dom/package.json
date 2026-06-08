@@ -31,7 +31,7 @@
   "devDependencies": {
     "@effect/rpc": "catalog:",
     "@types/jsdom": "^28.0.3",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "effect": "catalog:",
     "jsdom": "^29.1.1",
     "tsx": "^4.22.3",

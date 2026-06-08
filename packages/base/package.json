@@ -21,7 +21,7 @@
     "@weftui/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "effect": "catalog:",
     "typescript": "^6.0.3",
     "vite-plus": "catalog:"
