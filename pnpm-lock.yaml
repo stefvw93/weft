@@ -13,8 +13,8 @@ catalogs:
       specifier: ^0.75.1
       version: 0.75.1
     effect:
-      specifier: ^3.21.2
-      version: 3.21.2
+      specifier: ^3.21.3
+      version: 3.21.3
     vite-plus:
       specifier: latest
       version: 0.1.24
@@ -68,7 +68,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -90,7 +90,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -112,7 +112,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -134,7 +134,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -156,7 +156,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -178,7 +178,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -200,7 +200,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -222,7 +222,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -235,10 +235,10 @@ importers:
     dependencies:
       '@effect/platform':
         specifier: 'catalog:'
-        version: 0.96.1(effect@3.21.2)
+        version: 0.96.1(effect@3.21.3)
       '@effect/rpc':
         specifier: 'catalog:'
-        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
+        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3)
       '@weftui/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -250,7 +250,7 @@ importers:
         version: link:../../packages/router
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       '@types/node':
         specifier: ^25.9.1
@@ -272,7 +272,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       '@types/node':
         specifier: ^25.9.1
@@ -297,7 +297,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
@@ -316,7 +316,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
     devDependencies:
       '@types/node':
         specifier: ^25.9.1
@@ -339,7 +339,7 @@ importers:
         version: 25.9.1
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -351,7 +351,7 @@ importers:
     devDependencies:
       '@effect/rpc':
         specifier: 'catalog:'
-        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
+        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3)
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.1
@@ -360,7 +360,7 @@ importers:
         version: 3.2.3
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
       tsx:
         specifier: ^4.22.4
         version: 4.22.4
@@ -379,7 +379,7 @@ importers:
     devDependencies:
       '@effect/rpc':
         specifier: 'catalog:'
-        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
+        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3)
       '@types/jsdom':
         specifier: ^28.0.3
         version: 28.0.3
@@ -388,7 +388,7 @@ importers:
         version: 25.9.1
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -406,10 +406,10 @@ importers:
     dependencies:
       '@effect/platform':
         specifier: 'catalog:'
-        version: 0.96.1(effect@3.21.2)
+        version: 0.96.1(effect@3.21.3)
       '@effect/rpc':
         specifier: 'catalog:'
-        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
+        version: 0.75.1(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3)
       '@weftui/core':
         specifier: workspace:*
         version: link:../core
@@ -425,7 +425,7 @@ importers:
         version: 25.9.1
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -453,7 +453,7 @@ importers:
         version: link:../core
       effect:
         specifier: 'catalog:'
-        version: 3.21.2
+        version: 3.21.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1829,8 +1829,8 @@ packages:
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
 
-  effect@3.21.2:
-    resolution: {integrity: sha512-rXd2FGDM8KdjSIrc+mqEELo7ScW7xTVxEf1iInmPSpIde9/nyGuFM710cjTo7/EreGXiUX2MOonPpprbz2XHCg==}
+  effect@3.21.3:
+    resolution: {integrity: sha512-RqwU7WnJ6CqYhyjpOVJA5vh1Sgkn6eVECO6mnD0EjlbWcC2M3LJaPglXXr13Rdo/Y+B+wTEPzGRYFNL2xKxNeQ==}
 
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
@@ -3146,17 +3146,17 @@ snapshots:
 
   '@effect/language-service@0.86.2': {}
 
-  '@effect/platform@0.96.1(effect@3.21.2)':
+  '@effect/platform@0.96.1(effect@3.21.3)':
     dependencies:
-      effect: 3.21.2
+      effect: 3.21.3
       find-my-way-ts: 0.1.6
       msgpackr: 1.11.12
       multipasta: 0.2.7
 
-  '@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)':
+  '@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.3))(effect@3.21.3)':
     dependencies:
-      '@effect/platform': 0.96.1(effect@3.21.2)
-      effect: 3.21.2
+      '@effect/platform': 0.96.1(effect@3.21.3)
+      effect: 3.21.3
       msgpackr: 1.11.12
 
   '@esbuild/aix-ppc64@0.27.7':
@@ -4062,7 +4062,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  effect@3.21.2:
+  effect@3.21.3:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 3.23.2
