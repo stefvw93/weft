@@ -120,6 +120,42 @@ response body to disk, mirroring what `server.ts` does per request in prod.
   asserts the SSR handler's status to catch route-enumeration bugs (an
   enumerated path unexpectedly rendering the 404 page).
 
+## Subpath deployment (`SITE_BASE`, added after v0.23.1)
+
+The GitHub Pages project site serves at `stefvw93.github.io/weft/`, but the
+original build emitted root-absolute URLs (`/assets/…`, `/docs/…`), so JS/CSS
+404'd at the subpath. Base-path support:
+
+- **Vite `base`**: both `vite.config.ts` and `vite.ssr.config.ts` set
+  `base: process.env.SITE_BASE || "/"`. CI sets `SITE_BASE=/weft/` for the
+  Pages build; local dev/SSR/static builds stay at `/`.
+- **`src/lib/site-base.ts`**: `SITE_BASE` (Vite's `import.meta.env.BASE_URL`
+  normalized: no trailing slash, `""` for root) and `withBase(path)` for
+  prefixing app-rendered hrefs.
+- **Router**: route matching handles the prefix via the router's `base` option
+  (see `packages/router/src/base.specs.md`) — `entry-client.ts` passes
+  `base: SITE_BASE` to `RouterLive`, `entry-server.ts` to
+  `RouterServer.render`. Route definitions and `prerenderPathsFor` stay
+  canonical (base-less).
+- **DOM hrefs**: every app-rendered internal link goes through `withBase` —
+  nav/prev-next/home links (`docs-shell.ts`), landing-page links (`home.ts`),
+  the 404 page's home link (`app.ts`), and markdown-sourced doc links
+  (`render-hast.ts`, hrefs starting with `/`).
+- **Prerender**: renders `SITE_BASE + path` (so the router base strip
+  round-trips), writes to the **base-less** output file (`outputFileFor`
+  unchanged — the artifact root _is_ the base), and prefixes the client
+  entry/CSS hrefs with `SITE_BASE`.
+
+### Acceptance criteria (subpath)
+
+- [x] `SITE_BASE=/weft/ vp run build:static` yields pages whose script/CSS
+      hrefs start with `/weft/assets/…` and whose internal links start with
+      `/weft/…`.
+- [x] Serving `dist/static` at the `/weft/` prefix yields working hard loads,
+      styled pages, hydration, and SPA navigation.
+- [x] Without `SITE_BASE`, output is byte-identical in intent to the previous
+      root build (all existing acceptance criteria above still hold).
+
 ## Out of scope
 
 - Replacing the SSR server (`server.ts` and `start` stay).

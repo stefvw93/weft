@@ -19,10 +19,16 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { NOT_FOUND_PATH, outputFileFor } from "./src/lib/prerender";
+import { normalizeSiteBase } from "./src/lib/site-base";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const clientDir = join(__dirname, "dist/client");
 const outDir = join(__dirname, "dist/static");
+// Must match the SITE_BASE the client/server bundles were built with (the vite
+// configs read the same variable): "" at root, "/weft" on the Pages subpath.
+// Render urls carry the base; output files stay canonical (the artifact root
+// IS the base). See prerender.specs.md, "Subpath deployment".
+const siteBase = normalizeSiteBase(process.env.SITE_BASE);
 
 /**
  * Renders all enumerated paths and writes the static site to `dist/static`.
@@ -51,8 +57,8 @@ export async function prerender(): Promise<void> {
     prerenderPaths: readonly string[];
   };
   const handler = makeHandler(
-    `/${entry.file}`,
-    (entry.css ?? []).map((file) => `/${file}`),
+    `${siteBase}/${entry.file}`,
+    (entry.css ?? []).map((file) => `${siteBase}/${file}`),
   );
 
   // Fresh output each run so removed docs don't linger as stale pages. The manifest
@@ -64,7 +70,9 @@ export async function prerender(): Promise<void> {
   });
 
   for (const pathname of [...prerenderPaths, NOT_FOUND_PATH]) {
-    const response = await handler(new Request(new URL(pathname, "http://localhost")));
+    const response = await handler(
+      new Request(new URL(`${siteBase}${pathname}`, "http://localhost")),
+    );
     const isNotFoundPage = pathname === NOT_FOUND_PATH;
     if (isNotFoundPage ? response.status !== 404 : response.status >= 400) {
       throw new Error(`prerender failed: ${pathname} rendered with HTTP ${response.status}`);

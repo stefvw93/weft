@@ -20,6 +20,7 @@ import { Stream, SubscriptionRef } from "effect";
 import { Docs, type DocsService } from "../lib/docs-service";
 import type { DocHeading } from "../lib/markdown-loader";
 import type { NavGroup, NavNeighbours } from "../lib/nav";
+import { withBase } from "../lib/site-base";
 
 /** Repo URL for the top-bar GitHub link. */
 const REPO_URL = "https://github.com/stefvw93/weft";
@@ -61,10 +62,10 @@ export function TopBar(nav?: { open: Stream.Stream<boolean>; onToggle: () => voi
           : null,
         h.a(
           {
-            href: "/",
+            href: withBase("/"),
             class: "flex items-center gap-2 text-lg font-bold text-slate-12 no-underline",
           },
-          [h.img({ src: "/logo.svg", alt: "", class: "h-4 w-auto" }), "Weft"],
+          [h.img({ src: withBase("/logo.svg"), alt: "", class: "h-4 w-auto" }), "Weft"],
         ),
         h.div({ class: "flex-1" }),
         h.span({ class: "text-xs tabular-nums text-slate-11" }, VERSION),
@@ -116,7 +117,7 @@ export function renderSidebar(
             return h.li([
               h.a(
                 {
-                  href: link.path,
+                  href: withBase(link.path),
                   class: cls,
                   ...(onClose ? { onclick: onClose } : {}),
                   ...(active ? { "aria-current": "page" as const } : {}),
@@ -171,16 +172,22 @@ export function renderPrevNext(neighbours: NavNeighbours): Renderable {
     [
       prev === undefined
         ? h.span({ class: `${PREVNEXT_SLOT} hidden` })
-        : h.a({ href: prev.path, class: `prevnext-prev ${PREVNEXT_SLOT}` }, [
+        : h.a({ href: withBase(prev.path), class: `prevnext-prev ${PREVNEXT_SLOT}` }, [
             h.span({ class: "text-xs text-slate-11" }, "Previous"),
             h.span({ class: "font-semibold text-indigo-11" }, prev.title),
           ]),
       next === undefined
         ? h.span({ class: PREVNEXT_SLOT })
-        : h.a({ href: next.path, class: `prevnext-next ml-auto text-right ${PREVNEXT_SLOT}` }, [
-            h.span({ class: "text-xs text-slate-11" }, "Next"),
-            h.span({ class: "font-semibold text-indigo-11" }, next.title),
-          ]),
+        : h.a(
+            {
+              href: withBase(next.path),
+              class: `prevnext-next ml-auto text-right ${PREVNEXT_SLOT}`,
+            },
+            [
+              h.span({ class: "text-xs text-slate-11" }, "Next"),
+              h.span({ class: "font-semibold text-indigo-11" }, next.title),
+            ],
+          ),
     ],
   );
 }

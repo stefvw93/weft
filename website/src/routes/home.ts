@@ -14,6 +14,7 @@ import { Router } from "@weftui/router";
 import { tree as snippetTree } from "virtual:weft-home-snippet";
 import { ReactiveCounter } from "../demos/reactive-counter";
 import { renderHast } from "../lib/render-hast";
+import { withBase } from "../lib/site-base";
 
 /** Repo URL for GitHub links. */
 const REPO_URL = "https://github.com/stefvw93/weft";
@@ -50,7 +51,7 @@ function Hero(): Renderable {
     ]),
 
     h.div({ class: "flex justify-center gap-3" }, [
-      h.a({ href: GETTING_STARTED, class: "btn btn-primary" }, "Get started"),
+      h.a({ href: withBase(GETTING_STARTED), class: "btn btn-primary" }, "Get started"),
       h.a(
         { href: REPO_URL, class: "btn btn-outline", target: "_blank", rel: "noreferrer" },
         "GitHub",
@@ -115,8 +116,8 @@ function Footer(): Renderable {
           "mb-3 flex justify-center gap-5 [&_a]:text-[0.9rem] [&_a]:text-indigo-11 [&_a]:no-underline",
       },
       [
-        h.a({ href: GETTING_STARTED }, "Docs"),
-        h.a({ href: "/docs/reference/core" }, "API"),
+        h.a({ href: withBase(GETTING_STARTED) }, "Docs"),
+        h.a({ href: withBase("/docs/reference/core") }, "API"),
         h.a({ href: REPO_URL, target: "_blank", rel: "noreferrer" }, "GitHub"),
       ],
     ),

@@ -186,6 +186,10 @@ jobs:
 
       - name: Build static site
         working-directory: website
+        env:
+          # Project Pages serve at /<repo>/ — bake the base into assets, links,
+          # and route matching (see website/prerender.specs.md).
+          SITE_BASE: /weft/
         run: vp run build:static
 
       - name: Configure Pages

@@ -19,6 +19,9 @@ const weftPacks = ["@weftui/core#pack", "@weftui/dom#pack", "@weftui/router#pack
 const docsRoot = fileURLToPath(new URL("../docs", import.meta.url));
 
 export default defineConfig({
+  // Subpath deployments (GitHub Pages serves at /<repo>/) set SITE_BASE=/weft/;
+  // dev and the root-served SSR flow leave it unset. See prerender.specs.md.
+  base: process.env.SITE_BASE || "/",
   define: {
     __WEFT_VERSION__: JSON.stringify(latestReleaseTag()),
   },
@@ -43,13 +46,19 @@ export default defineConfig({
         command: "tsx server.ts",
         dependsOn: weftPacks,
       },
+      // `env`: vp tasks run in a clean environment, so SITE_BASE (the subpath
+      // deployment base, see prerender.specs.md) must be declared to reach the
+      // task — and declaring it also fingerprints the cache, so a base change
+      // rebuilds instead of reusing stale root-base bundles.
       "build:client": {
         command: "vp build",
         dependsOn: weftPacks,
+        env: ["SITE_BASE"],
       },
       "build:server": {
         command: "vp build --config vite.ssr.config.ts",
         dependsOn: weftPacks,
+        env: ["SITE_BASE"],
       },
       build: {
         command: "echo website built",
@@ -58,6 +67,7 @@ export default defineConfig({
       "build:static": {
         command: "tsx prerender.ts",
         dependsOn: ["build"],
+        env: ["SITE_BASE"],
       },
       start: {
         command: "NODE_ENV=production node server.ts",

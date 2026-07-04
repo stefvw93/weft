@@ -15,6 +15,7 @@ import {
 } from "@effect/platform";
 import { type RpcGroup, RpcSerialization, RpcServer, RpcTest } from "@effect/rpc";
 import { Cause, Effect, Exit, Layer, Option, Schema, Scope, Stream, Subscribable } from "effect";
+import { canonicalize, normalizeBase } from "../base";
 import type { RouterDef } from "../compile";
 import { isRouterNotFound, RouterNotFound } from "../errors";
 import type { RouteMatch } from "../matcher";
@@ -459,17 +460,23 @@ export namespace RouterServer {
    * (S1/S2) by driving the platform {@link webHandler}. Returns `{ html, status }`
    * with `<!DOCTYPE html>` prepended and the status sourced from the platform
    * pipeline (200, or 404 for a no-match / page-raised `RouterNotFound`).
+   *
+   * With `options.base` (a path prefix the app is served under, e.g. `"/weft"`),
+   * the base is stripped from `options.url` before matching, so route
+   * definitions stay canonical; a url outside the base renders the not-found
+   * page at 404. See `base.specs.md`.
    */
   export function render<R>(
     def: RouterDef<any, R>,
-    options: Options & { readonly url: string } & ContextOption<R>,
+    options: Options & { readonly url: string; readonly base?: string } & ContextOption<R>,
   ): Effect.Effect<Rendered, Error> {
     // The public signature discharges the def's residual `R` via `ContextOption`; the
     // conditional shape is erased to the loose `RenderOptions` for the runtime plumbing.
-    const opts = options as RenderOptions & { readonly url: string };
+    const opts = options as RenderOptions & { readonly url: string; readonly base?: string };
+    const url = canonicalize(normalizeBase(opts.base), opts.url);
     return Effect.tryPromise({
       try: async () => {
-        const response = await webHandler(def, opts)(new Request(absoluteUrl(opts.url)));
+        const response = await webHandler(def, opts)(new Request(absoluteUrl(url)));
         return { html: await response.text(), status: response.status };
       },
       catch: (error) => (error instanceof Error ? error : new Error(String(error))),

@@ -1,4 +1,5 @@
 import { Effect, Runtime, type Scope } from "effect";
+import { stripBase } from "../base";
 import type { RouterDef } from "../compile";
 import { match } from "../matcher";
 
@@ -11,12 +12,18 @@ import { match } from "../matcher";
  * browser's native handling — the interceptor leaves `preventDefault` untouched
  * in those cases (L2). The listener is removed on scope teardown (L3).
  *
+ * With a non-empty `base`, hrefs are matched after stripping it — an href
+ * outside the base falls through to the browser (L2), and `navigate` receives
+ * the canonical (base-less) url (see `base.specs.md`).
+ *
  * @param def - The router definition, used to decide whether an href matches a route.
  * @param navigate - The router's `navigate`, run via the captured runtime on a match.
+ * @param base - Normalized path prefix the app is served under (`""` for none).
  */
 export function installLinkInterceptor(
   def: RouterDef,
   navigate: (to: string) => Effect.Effect<void>,
+  base = "",
 ): Effect.Effect<void, never, Scope.Scope> {
   return Effect.gen(function* () {
     const runtime = yield* Effect.runtime<never>();
@@ -69,11 +76,16 @@ export function installLinkInterceptor(
       const current = `${window.location.pathname}${window.location.search}`;
       if (to === current) return;
 
+      // L2: hrefs outside the base trigger a full load; under it, match and
+      // navigate with the canonical (base-less) url.
+      const canonical = stripBase(base, to);
+      if (canonical === null) return;
+
       // L2: only intercept hrefs that resolve to a route; let others load fully.
-      if (match(def, to)._tag !== "Matched") return;
+      if (match(def, canonical)._tag !== "Matched") return;
 
       event.preventDefault();
-      Runtime.runFork(runtime)(navigate(to));
+      Runtime.runFork(runtime)(navigate(canonical));
     };
 
     yield* Effect.acquireRelease(

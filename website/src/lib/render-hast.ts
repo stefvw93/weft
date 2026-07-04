@@ -17,6 +17,7 @@ import type { Renderable } from "@weftui/core";
 import { CodeBlock } from "../components/code-block";
 import { Demo } from "../components/demo";
 import type { HastElement, HastNode, HastProperties } from "./markdown-loader";
+import { withBase } from "./site-base";
 
 /** Element tags the renderer is allowed to emit. Anything else is skipped (children kept). */
 const ALLOWED_TAGS = new Set([
@@ -50,8 +51,8 @@ const ALLOWED_TAGS = new Set([
   "div",
 ]);
 
-/** hast property keys passed straight through to Weft props (value kept as-is). */
-const PASSTHROUGH_PROPS = new Set(["id", "href", "src", "alt", "title", "style"]);
+/** hast property keys passed straight through to Weft props (value kept as-is; `href`/`src` go through `withBase` instead). */
+const PASSTHROUGH_PROPS = new Set(["id", "alt", "title", "style"]);
 
 /** A loosely-typed element builder — `h.*` for an allowlisted tag. */
 type ElementBuilder = (
@@ -81,6 +82,10 @@ function mapProps(properties: HastProperties): Record<string, unknown> {
       out["colspan"] = value;
     } else if (key === "rowSpan") {
       out["rowspan"] = value;
+    } else if (key === "href" || key === "src") {
+      // Root-absolute doc links/assets must carry the site base on a subpath
+      // deployment (prerender.specs.md, "Subpath deployment").
+      out[key] = typeof value === "string" ? withBase(value) : value;
     } else if (PASSTHROUGH_PROPS.has(key)) {
       out[key] = value;
     } else if (key.startsWith("data") && key.length > 4) {

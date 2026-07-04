@@ -18,6 +18,9 @@ import { latestReleaseTag } from "./build-version";
 const docsRoot = fileURLToPath(new URL("../docs", import.meta.url));
 
 export default defineConfig({
+  // Must match the client config's base so the SSR bundle's import.meta.env.BASE_URL
+  // (→ SITE_BASE) agrees with the client build. See prerender.specs.md.
+  base: process.env.SITE_BASE || "/",
   define: {
     __WEFT_VERSION__: JSON.stringify(latestReleaseTag()),
   },

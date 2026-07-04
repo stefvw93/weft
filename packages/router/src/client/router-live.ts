@@ -15,6 +15,7 @@ import {
   Subscribable,
   SubscriptionRef,
 } from "effect";
+import { canonicalize, normalizeBase } from "../base";
 import type { RouterDef } from "../compile";
 import { match, type RouteMatch } from "../matcher";
 import { preRunLeaf, setResolvedCommit } from "../resolved-commit";
@@ -64,6 +65,15 @@ export interface RouterLiveOptions {
    */
   readonly baseUrl?: string | URL;
   /**
+   * Path prefix the app is served under (e.g. `"/weft"` for a GitHub Pages
+   * project site). Stripped from `window.location` before matching and
+   * prepended to History entries on navigation, so route definitions and
+   * `navigate` targets stay canonical (base-less). The app remains responsible
+   * for prefixing the `href` attributes it renders. Default: none.
+   * See `base.specs.md`.
+   */
+  readonly base?: string;
+  /**
    * The app's `Boundary.rpc` foundation: the merged `RpcGroup` contract (shared
    * with the server handler Layer). Backs the {@link AppRpcClientTag} seam so a
    * hydrated boundary refetch — and a client-first SPA mount — resolve over the
@@ -111,9 +121,15 @@ export function RouterLive<R>(
   def: RouterDef<any, R>,
   options: RouterLiveOptions & ContextOption<R> = {} as RouterLiveOptions & ContextOption<R>,
 ): Layer.Layer<Router | AppRpcClientTag | AppServices<R>> {
+  // Canonical-url invariant (base.specs.md): the base is stripped on every
+  // location read and prepended on every History write; everything in between
+  // (urlRef, match.url, navigate targets) is base-less.
+  const base = normalizeBase(options.base);
+  const readLocation = (): string => canonicalize(base, locationUrl());
+
   const core: Layer.Layer<Router | AppRpcClientTag> = Layer.scopedContext(
     Effect.gen(function* () {
-      const urlRef = yield* SubscriptionRef.make(locationUrl());
+      const urlRef = yield* SubscriptionRef.make(readLocation());
       // Reactive navigation state (`pending-navigation.specs.md`): `Navigating{to}`
       // while a deferred-commit navigation resolves its lazy chunk(s), else `Idle`.
       const navRef = yield* SubscriptionRef.make<NavState>({ _tag: "Idle" });
@@ -164,9 +180,9 @@ export function RouterLive<R>(
           // adds one. Neither fires `popstate`, so the url ref is set explicitly to
           // drive the reactive re-render.
           if (replace) {
-            window.history.replaceState(null, "", normalized);
+            window.history.replaceState(null, "", `${base}${normalized}`);
           } else {
-            window.history.pushState(null, "", normalized);
+            window.history.pushState(null, "", `${base}${normalized}`);
           }
         });
 
@@ -274,14 +290,14 @@ export function RouterLive<R>(
       // the ref — but resolve the target branch's lazy chunk(s) first so back-nav is
       // also blank-free (AC-N8).
       const onPopState = (): void => {
-        Runtime.runFork(runtime)(commitTo(locationUrl(), false, false));
+        Runtime.runFork(runtime)(commitTo(readLocation(), false, false));
       };
       yield* Effect.acquireRelease(
         Effect.sync(() => window.addEventListener("popstate", onPopState)),
         () => Effect.sync(() => window.removeEventListener("popstate", onPopState)),
       );
 
-      yield* installLinkInterceptor(def, navigate);
+      yield* installLinkInterceptor(def, navigate, base);
 
       const currentMatch = Subscribable.make({
         get: Effect.map(SubscriptionRef.get(urlRef), (url): RouteMatch => match(def, url)),

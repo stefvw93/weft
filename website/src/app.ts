@@ -17,6 +17,7 @@ import { Component, h } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Stream } from "effect";
 import { DocsShell } from "./layouts/docs-shell";
+import { withBase } from "./lib/site-base";
 import { docsIndexRoute, docsRoute } from "./routes/docs";
 import { Home } from "./routes/home";
 import "./app.css";
@@ -76,7 +77,7 @@ export const App = Router.router(
     notFound: () =>
       h.section({ class: "mx-auto max-w-4xl px-5 py-24 text-center" }, [
         h.h2({ class: "mb-4 text-2xl font-semibold" }, "404 — page not found"),
-        h.p([h.a({ href: "/", class: "text-indigo-11 no-underline" }, "Go home")]),
+        h.p([h.a({ href: withBase("/"), class: "text-indigo-11 no-underline" }, "Go home")]),
       ]),
   },
 );

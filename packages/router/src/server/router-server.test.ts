@@ -433,3 +433,29 @@ describe("RouterServer render-time context seam (AC1)", () => {
     assert.ok((await res.text()).includes("<h1>hello-from-context</h1>"));
   });
 });
+
+describe("RouterServer.render — base path (base.specs.md)", () => {
+  test("AC: a url under the base renders the canonical route at 200", async () => {
+    const { html, status } = await Effect.runPromise(
+      RouterServer.render(def, { document, rpc, url: "/weft/about", base: "/weft" }),
+    );
+    assert.equal(status, 200);
+    assert.ok(html.includes("About page"));
+  });
+
+  test("AC: the bare base url renders the root route", async () => {
+    const { html, status } = await Effect.runPromise(
+      RouterServer.render(def, { document, rpc, url: "/weft", base: "/weft" }),
+    );
+    assert.equal(status, 200);
+    assert.ok(html.includes("Home page"));
+  });
+
+  test("AC: a url outside the base renders the not-found page at 404", async () => {
+    const { html, status } = await Effect.runPromise(
+      RouterServer.render(def, { document, rpc, url: "/outside", base: "/weft" }),
+    );
+    assert.equal(status, 404);
+    assert.ok(html.includes("404 — not found"));
+  });
+});

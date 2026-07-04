@@ -16,6 +16,7 @@ import { Effect } from "effect";
 import { App } from "./app";
 import { DocsLive, liveDocs } from "./lib/docs-live";
 import { prerenderPathsFor } from "./lib/prerender";
+import { SITE_BASE } from "./lib/site-base";
 import { documentShell } from "./layouts/shell";
 
 /**
@@ -35,7 +36,12 @@ export const makeHandler = (
     const url = new URL(request.url);
     return Effect.runPromise(
       Effect.map(
-        RouterServer.render(App, { document, url: url.pathname + url.search, context: DocsLive }),
+        RouterServer.render(App, {
+          document,
+          url: url.pathname + url.search,
+          base: SITE_BASE,
+          context: DocsLive,
+        }),
         ({ html, status }) =>
           new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8" } }),
       ),

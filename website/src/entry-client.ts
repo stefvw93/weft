@@ -18,6 +18,7 @@ import { ManagedRuntime } from "effect";
 import { App } from "./app";
 import { DocsLive } from "./lib/docs-live";
 import { trackPageviews } from "./lib/goatcounter";
+import { SITE_BASE } from "./lib/site-base";
 
 const root = document.getElementById("root");
 if (root === null) {
@@ -27,7 +28,7 @@ if (root === null) {
 // `RouterLive` is a scoped layer (it owns the popstate listener + link click
 // interceptor), so it must outlive `hydrate`. A `ManagedRuntime` keeps it alive
 // for the page's lifetime; `hydrate` captures the `Router` service from it.
-const runtime = ManagedRuntime.make(RouterLive(App, { context: DocsLive }));
+const runtime = ManagedRuntime.make(RouterLive(App, { base: SITE_BASE, context: DocsLive }));
 void runtime.runPromise(hydrate(RouterApp(App), root));
 
 // GoatCounter only counts full page loads; report SPA navigations manually.

@@ -30,8 +30,8 @@ let dom: JSDOM;
 let navigations: string[];
 let scope: Scope.CloseableScope;
 
-/** Sets up a fresh JSDOM at `url`, installs the interceptor, and records navigations. */
-async function install(url = "http://localhost/"): Promise<void> {
+/** Sets up a fresh JSDOM at `url`, installs the interceptor (optionally under `base`), and records navigations. */
+async function install(url = "http://localhost/", base = ""): Promise<void> {
   dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", { url });
   global.window = dom.window as unknown as Window & typeof globalThis;
   global.document = dom.window.document;
@@ -46,7 +46,7 @@ async function install(url = "http://localhost/"): Promise<void> {
     });
 
   scope = await Effect.runPromise(Scope.make());
-  await Effect.runPromise(Scope.extend(installLinkInterceptor(fixture(), navigate), scope));
+  await Effect.runPromise(Scope.extend(installLinkInterceptor(fixture(), navigate, base), scope));
 }
 
 /** Appends an anchor with `attrs`, dispatches a click on it, and returns the event. */
@@ -164,6 +164,22 @@ describe("installLinkInterceptor", () => {
     await install("http://localhost/");
     await Effect.runPromise(Scope.close(scope, Exit.void));
     const event = await clickAnchor({ href: "/about" });
+    assert.equal(event.defaultPrevented, false);
+    assert.deepEqual(navigations, []);
+  });
+});
+
+describe("base path (base.specs.md)", () => {
+  test("AC: an href under the base is intercepted and navigates canonically", async () => {
+    await install("http://localhost/weft/", "/weft");
+    const event = await clickAnchor({ href: "/weft/about" });
+    assert.equal(event.defaultPrevented, true);
+    assert.deepEqual(navigations, ["/about"]);
+  });
+
+  test("AC: a same-origin href outside the base falls through to the browser", async () => {
+    await install("http://localhost/weft/", "/weft");
+    const event = await clickAnchor({ href: "/outside" });
     assert.equal(event.defaultPrevented, false);
     assert.deepEqual(navigations, []);
   });
