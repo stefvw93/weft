@@ -49,3 +49,5 @@ graphify-out/cache/
 
 # effect 4 source reference clone (see CLAUDE.md "Effect 4 Reference")
 effect-src
+# design plans/specs scratch space (local only)
+plans/
