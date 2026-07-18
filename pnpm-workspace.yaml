@@ -21,6 +21,10 @@ catalog:
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
+  # Dedupe @types/node to the catalog version: @types/jsdom pins an older
+  # major (25.x), which otherwise duplicates the copy and skews node:http
+  # types (e.g. IncomingMessage.signal) in website/server.ts.
+  "@types/node": "catalog:"
 peerDependencyRules:
   allowAny:
     - vite
