@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "lsp:patch": "effect-tsgo patch"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.87.0",
+    "@effect/tsgo": "^0.24.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.0.0",
     "@semantic-release/github": "^12.0.9",
