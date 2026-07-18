@@ -47,6 +47,28 @@ jobs:
       - name: Run tests
         run: vp run test
 
+  test-types:
+    name: Type Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      # tstyche can't use the workspace typescript (tsgo has no JS API) and
+      # fetches its own pinned TypeScript into this store on first run.
+      - name: Cache TSTyche TypeScript store
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/share/TSTyche
+          key: tstyche-${{ runner.os }}-${{ hashFiles('tstyche.json') }}
+
+      - name: Run type tests
+        run: vp run test:types
+
   test-browser:
     name: Browser Test
     runs-on: ubuntu-latest
@@ -73,7 +95,7 @@ jobs:
   status:
     name: CI Status
     runs-on: ubuntu-latest
-    needs: [check, test, test-browser]
+    needs: [check, test, test-types, test-browser]
     if: always()
 
     steps:
@@ -81,10 +103,12 @@ jobs:
         run: |
           if [ "${{ needs.check.result }}" != "success" ] || \
              [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.test-types.result }}" != "success" ] || \
              [ "${{ needs.test-browser.result }}" != "success" ]; then
             echo "CI validation failed"
             echo "Lint: ${{ needs.check.result }}"
             echo "Test: ${{ needs.test.result }}"
+            echo "Type Test: ${{ needs.test-types.result }}"
             echo "Browser Test: ${{ needs.test-browser.result }}"
             exit 1
           fi
@@ -93,7 +117,7 @@ jobs:
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
-    needs: [check, test, test-browser]
+    needs: [check, test, test-types, test-browser]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
       released: ${{ steps.semantic-release.outputs.released }}

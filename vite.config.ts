@@ -28,6 +28,10 @@ export default defineConfig({
         command: "vp test --config vitest.browser.config.ts",
         dependsOn: ["pack"],
       },
+      "test:types": {
+        command: "tstyche",
+        dependsOn: ["pack"],
+      },
     },
   },
   // Each Vitest project runs under its own package's vite config, so

@@ -80,7 +80,7 @@ the user `Layer` **there** — alongside the existing `Router`, `Router.Outlet`,
   _(Covered by `server/router-server.test.ts` → "RouterServer render-time context seam (AC1)".)_
 - **AC2** — The def's aggregate `R` is reflected in the entry-point types (not cast to
   `never`), so a missing (or wrong) provide is a compile error.
-  _(Covered by `__type-tests__/router.test-d.ts`.)_
+  _(Covered by `__type-tests__/router.tst.ts`.)_
 - **AC3** — Existing `rpc`-only and no-service apps keep working unchanged (the `context`
   field is optional/absent for them).
   _(Covered by the unchanged existing `router-server` / `router-live` tests.)_

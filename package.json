@@ -15,6 +15,7 @@
     "@vitest/browser-playwright": "catalog:",
     "playwright": "^1.61.1",
     "semantic-release": "^25.0.5",
+    "tstyche": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

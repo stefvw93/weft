@@ -1,21 +1,13 @@
-// oxlint-disable no-unused-vars
 /**
  * Type tests for the `Source` channel accessors — `Source.Success`,
  * `Source.Error`, and `Source.Context` over each `Source` kind (Stream / Effect /
  * Subscribable / static value).
  */
 
+import { expect, test } from "tstyche";
 import { Effect, Stream } from "effect";
 import { Subscribable } from "@weftui/core";
 import { Source } from "../source";
-
-// =============================================================================
-// Type equality helper
-// =============================================================================
-
-type Expect<T extends true> = T;
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 
 // =============================================================================
 // Mock channels and value types
@@ -41,27 +33,33 @@ type SubSource = Subscribable.Subscribable<readonly Person[], LoadError, DataSer
 // Source.Success — emitted value type
 // =============================================================================
 
-// A static value is its own success type.
-type _S1 = Expect<Equal<Source.Success<StaticSource>, readonly Person[]>>;
-// Stream / Effect / Subscribable contribute their value channel.
-type _S2 = Expect<Equal<Source.Success<StreamSource>, readonly Person[]>>;
-type _S3 = Expect<Equal<Source.Success<EffectSource>, readonly Person[]>>;
-type _S4 = Expect<Equal<Source.Success<SubSource>, readonly Person[]>>;
+test("Source.Success — emitted value type", () => {
+  // A static value is its own success type.
+  expect<Source.Success<StaticSource>>().type.toBe<readonly Person[]>();
+  // Stream / Effect / Subscribable contribute their value channel.
+  expect<Source.Success<StreamSource>>().type.toBe<readonly Person[]>();
+  expect<Source.Success<EffectSource>>().type.toBe<readonly Person[]>();
+  expect<Source.Success<SubSource>>().type.toBe<readonly Person[]>();
+});
 
 // =============================================================================
 // Source.Error — error channel (static ⇒ never)
 // =============================================================================
 
-type _E1 = Expect<Equal<Source.Error<StaticSource>, never>>;
-type _E2 = Expect<Equal<Source.Error<StreamSource>, LoadError>>;
-type _E3 = Expect<Equal<Source.Error<EffectSource>, LoadError>>;
-type _E4 = Expect<Equal<Source.Error<SubSource>, LoadError>>;
+test("Source.Error — error channel (static ⇒ never)", () => {
+  expect<Source.Error<StaticSource>>().type.toBe<never>();
+  expect<Source.Error<StreamSource>>().type.toBe<LoadError>();
+  expect<Source.Error<EffectSource>>().type.toBe<LoadError>();
+  expect<Source.Error<SubSource>>().type.toBe<LoadError>();
+});
 
 // =============================================================================
 // Source.Context — requirement channel (static ⇒ never)
 // =============================================================================
 
-type _C1 = Expect<Equal<Source.Context<StaticSource>, never>>;
-type _C2 = Expect<Equal<Source.Context<StreamSource>, DataService>>;
-type _C3 = Expect<Equal<Source.Context<EffectSource>, DataService>>;
-type _C4 = Expect<Equal<Source.Context<SubSource>, DataService>>;
+test("Source.Context — requirement channel (static ⇒ never)", () => {
+  expect<Source.Context<StaticSource>>().type.toBe<never>();
+  expect<Source.Context<StreamSource>>().type.toBe<DataService>();
+  expect<Source.Context<EffectSource>>().type.toBe<DataService>();
+  expect<Source.Context<SubSource>>().type.toBe<DataService>();
+});

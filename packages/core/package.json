@@ -44,6 +44,7 @@
     "@types/node": "catalog:",
     "csstype": "^3.2.3",
     "effect": "catalog:",
+    "tstyche": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

@@ -30,10 +30,10 @@ This is a monorepo: `@weftui/dom` and the `examples/*` consume `@weftui/core`/`@
 
 **Rule: run validation through the `vp run <task>` tasks, never the bare `vp <command>`.** The tasks are declared in the root `vite.config.ts` under `run.tasks` and each one declares `dependsOn: ["pack"]`, so `vp run` always rebuilds the packages first:
 
-- ✅ `vp run check`, `vp run test`, `vp run test:browser` — pack first, then run. Always correct.
+- ✅ `vp run check`, `vp run test`, `vp run test:browser`, `vp run test:types` — pack first, then run. Always correct.
 - ❌ `vp check`, `vp test` directly — skip `pack`, so against stale/missing `dist/` they report **false** cross-package errors (e.g. spurious `implicit any` from unresolved `@weftui/*` types). Only safe right after a pack.
 
-Treat the task list in `vite.config.ts` (`run.tasks`) as the source of truth for how to validate — if a task exists there, invoke it via `vp run <task>`. Current tasks: `dev`, `pack`, `check`, `test`, `test:browser`.
+Treat the task list in `vite.config.ts` (`run.tasks`) as the source of truth for how to validate — if a task exists there, invoke it via `vp run <task>`. Current tasks: `dev`, `pack`, `check`, `test`, `test:browser`, `test:types`.
 
 ### Building
 
@@ -48,10 +48,13 @@ Uses tsdown for fast TypeScript bundling.
 ```bash
 vp run test            # Pack, then run all node/jsdom tests
 vp run test:browser    # Pack, then run real-browser e2e tests (Playwright)
+vp run test:types      # Pack, then run TSTyche type tests (*.tst.ts)
 vp test --watch        # Watch mode (only safe after a pack)
 ```
 
 Uses Vitest (via Vite+). Node test files follow the pattern `**/*.test.{ts,tsx}`; `*.browser.test.{ts,tsx}` are excluded from `vp run test` and run via `vp run test:browser` (see the `pack` step rule above).
+
+Type tests (`src/**/__type-tests__/*.tst.ts`) run via [TSTyche](https://tstyche.org) (`vp run test:types`, config in root `tstyche.json`). **A failed `expect().type` assertion does NOT fail `vp run check`** — TSTyche matchers are language-service comparisons, not compile errors — so `test:types` is a required CI job. Checker note: the workspace `typescript@7` (tsgo) has no JS language-service API, so TSTyche runs against its own pinned TypeScript (`target` in `tstyche.json`); its checker can diverge from `@effect/tsgo` on edge cases — trust `vp run check` for program correctness and TSTyche for the assertion verdicts.
 
 ### Checking (format + lint + typecheck)
 
@@ -175,7 +178,7 @@ Every feature follows this 8-step cycle. Each step is a project skill (detail li
 
 1. `/spec` — interactive Q&A (one question at a time), then co-located `specs.md` (Overview & Purpose + Acceptance Criteria required). User approves before moving on.
 2. `/mock` — `declare`-based full API surface in the real source file, JSDoc included. Refuses to run without `specs.md`.
-3. `/type-tests` — `src/**/__type-tests__/*.test-d.ts` with `@ts-expect-error` assertions, or explicit `type-tests: not applicable — <reason>` recorded in `specs.md`.
+3. `/type-tests` — TSTyche tests at `src/**/__type-tests__/*.tst.ts` (`expect().type` matchers, message-fragment `@ts-expect-error` where no matcher fits) run via `vp run test:types`, or explicit `type-tests: not applicable — <reason>` recorded in `specs.md`.
 4. `/unit-test` — co-located `*.test.ts` covering every acceptance criterion, happy + error paths (full Effect error union), edge cases. **Red phase:** new tests must fail against the mocks before implementation.
 5. `/implement` — replace mocks in-place with signature parity, loop `vp check --fix` → `vp run check` → `vp run test` until green, then `graphify update .`.
 6. `/e2e` — `*.browser.test.ts` via `vp run test:browser`. Mandatory for every touched `examples/*` app; conditional for package features (explicit skip recorded otherwise).

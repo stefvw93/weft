@@ -136,4 +136,4 @@ the success path must reject a failure-marked payload rather than mis-decode it.
 - **Then** it is a compile error: `hydrate`'s return type degrades to the
   `ServerOnlyLeak` sentinel via `AssertNoServerOnly<R>`. Clean nodes (including
   plain client requirements and raw `Renderable` inputs) hydrate normally. Pinned
-  by `src/client/__type-tests__/hydrate.test-d.ts`.
+  by `src/client/__type-tests__/hydrate.tst.ts`.

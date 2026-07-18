@@ -173,7 +173,7 @@ Reconcile per `.changes` emission (`reconcileList`), Vue 3 / Solid `<For>`-style
 - `packages/core/src/combinator/list.ts` _(new)_ — `LIST` symbol, `List.each`, types.
 - `packages/core/src/combinator/index.ts` — export `List`, `LIST`.
 - `packages/core/src/combinator/list.specs.md` _(new)_ — API + E/R typing + identity ACs.
-- `packages/core/src/combinator/__type-tests__/list.test-d.ts` _(new)_ — E/R propagation, `by`/`render` typing.
+- `packages/core/src/combinator/__type-tests__/list.tst.ts` _(new)_ — E/R propagation, `by`/`render` typing.
 
 **DOM (client)**
 

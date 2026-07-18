@@ -44,7 +44,7 @@ Follow CLAUDE.md spec → mock → test → implement for each phase.
       the `of` source; `render` constrained to `Node<CE, CR>` so item E/R propagate)
 - [x] Export `List`, `LIST` from `packages/core/src/combinator/index.ts`
 - [x] `combinator/list.specs.md` (API + E/R typing + identity ACs; render-once footgun)
-- [x] `combinator/__type-tests__/list.test-d.ts` (item inference, E/R propagation, `by` typing)
+- [x] `combinator/__type-tests__/list.tst.ts` (item inference, E/R propagation, `by` typing)
 - [x] `combinator/list.test.ts` (detection / descriptor-shape unit test)
 - [x] `vp check --fix` + `vp test` (284 passing)
 

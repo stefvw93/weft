@@ -57,6 +57,6 @@ export const renderHast: (node: HastNode) => Renderable[];
 - Self-closing elements (`img`, `hr`, `br`) render with no children.
 - Missing/empty `properties` → element rendered with no props.
 
-## Type tests (`__type-tests__/render-hast.test-d.ts`)
+## Type tests (`__type-tests__/render-hast.tst.ts`)
 
 - `renderHast` accepts `HastNode` and returns `Renderable[]`.

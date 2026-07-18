@@ -12,6 +12,9 @@ catalogs:
     effect:
       specifier: 4.0.0-beta.98
       version: 4.0.0-beta.98
+    tstyche:
+      specifier: ^7.2.2
+      version: 7.2.2
     tsx:
       specifier: ^4.23.1
       version: 4.23.1
@@ -55,6 +58,9 @@ importers:
       semantic-release:
         specifier: ^25.0.5
         version: 25.0.5(typescript@7.0.2)
+      tstyche:
+        specifier: 'catalog:'
+        version: 7.2.2(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -421,6 +427,9 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-beta.98
+      tstyche:
+        specifier: 'catalog:'
+        version: 7.2.2(typescript@7.0.2)
       tsx:
         specifier: 'catalog:'
         version: 4.23.1
@@ -452,6 +461,9 @@ importers:
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
+      tstyche:
+        specifier: 'catalog:'
+        version: 7.2.2(typescript@7.0.2)
       tsx:
         specifier: 'catalog:'
         version: 4.23.1
@@ -486,6 +498,9 @@ importers:
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
+      tstyche:
+        specifier: 'catalog:'
+        version: 7.2.2(typescript@7.0.2)
       tsx:
         specifier: 'catalog:'
         version: 4.23.1
@@ -581,6 +596,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.2
         version: 4.3.2
+      tstyche:
+        specifier: 'catalog:'
+        version: 7.2.2(typescript@7.0.2)
       tsx:
         specifier: 'catalog:'
         version: 4.23.1
@@ -3498,6 +3516,16 @@ packages:
 
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
+
+  tstyche@7.2.2:
+    resolution: {integrity: sha512-pd0CZjwjzxCzRiBAH/SEx4IaMS6ti/KA8cWc22Bx1Wa5FF30JeFQa/zAfXpjWkrJNmFqaOJrTaZDF+ji3P2TmA==}
+    engines: {node: '>=22'}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.4'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   tsx@4.23.1:
     resolution: {integrity: sha512-GQHnkIfxyx1wYCOS/wonik5MVRZU9hi1TEZmzGZSCJB1y9YgoZ8H6itNE/u4suE+yLmOzuE4E5S4TZ/ZX2wcWQ==}
@@ -6471,6 +6499,10 @@ snapshots:
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
+
+  tstyche@7.2.2(typescript@7.0.2):
+    optionalDependencies:
+      typescript: 7.0.2
 
   tsx@4.23.1:
     dependencies:
