@@ -513,7 +513,13 @@ describe("RouterLive — resolve-before-commit (leaf effect pre-run)", () => {
       // Mid-flight: the browser already moved the url, but the match lags until resolve.
       assert.equal(dom.window.location.pathname, "/data");
       assert.equal((await readMatch(service))._tag, "NotFound");
+      // The popstate handler forks commitTo onto a detached fiber and the Navigating
+      // emit is a further forkChild behind it — poll instead of a single tick.
+      for (let i = 0; i < 20 && (await readNav(service))._tag !== "Navigating"; i++) {
+        await tick();
+      }
       assert.deepEqual(await readNav(service), { _tag: "Navigating", to: "/data" });
+      assert.equal((await readMatch(service))._tag, "NotFound");
 
       g.release();
       // The popstate handler runs in a background fiber; poll until it commits.
