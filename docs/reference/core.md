@@ -2,7 +2,7 @@
 title: "@weftui/core"
 order: 1
 section: reference
-description: Full API surface for @weftui/core — element builders, components, sources, streams, and boundaries.
+description: "Full API surface for @weftui/core: element builders, components, sources, streams, and boundaries."
 ---
 
 # @weftui/core API Reference
@@ -52,7 +52,7 @@ Use when a component needs to return multiple sibling elements.
 
 ### `Component`
 
-Namespace exposing two factories for reusable components with caller-propagating reactive prop types: `Component.gen` (generator body) and `Component.make` (plain-function body). Both return a callable that is generic over the caller's specific `props`/`children`, so reactive prop values and reactive children contribute their `E`/`R` at the call site.
+Namespace exposing two factories for reusable components with caller-propagating reactive prop types: `Component.gen` (generator body) and `Component.make` (plain-function body). Both return a callable that is generic over the caller's specific `props`/`children`. Reactive prop values and reactive children therefore contribute their `E`/`R` at the call site.
 
 ```typescript
 import { Component } from "@weftui/core";
@@ -69,7 +69,7 @@ Component.make<BaseProps, C>(
 ): /* same call signature as above */;
 ```
 
-**`Children`** — the optional `children` argument may be either form:
+**`Children`**: the optional `children` argument may be either form:
 
 ```typescript
 type Component.Children<Input = never> =
@@ -79,7 +79,7 @@ type Component.Children<Input = never> =
 
 For function-children, `ChildrenE`/`ChildrenR` are extracted from the function's `ReturnType`, not from the function itself. The component's body invokes the function with whatever input it chooses.
 
-**Example — `Component.gen`**:
+**Example: `Component.gen`**
 
 ```typescript
 interface TextFieldProps {
@@ -96,7 +96,7 @@ const TextField = Component.gen(function* (props: TextFieldProps) {
 });
 ```
 
-**Example — `Component.make` with function-children**:
+**Example: `Component.make` with function-children**
 
 ```typescript
 const Labeled = Component.make(
@@ -108,17 +108,17 @@ Labeled({ label: "Name" }, (label) => [h.label(label), h.input()]);
 ```
 
 > For rendering a reactive collection, reach for the built-in [`List.each`](#listeach)
-> rather than mapping items by hand — it reconciles by key across emissions instead of
+> rather than mapping items by hand. It reconciles by key across emissions instead of
 > rebuilding the region.
 
 ### `Boundary` namespace
 
-Variants for intercepting rendering-path errors in a subtree, plus `Boundary.suspend` for async fallbacks and `Boundary.rpc` for rpc-backed server data. Each returns a descriptor that the renderer processes via the same `{ type, props }` branch. The catch variants share the same call shape — props first, children array second.
+Variants for intercepting rendering-path errors in a subtree, plus `Boundary.suspend` for async fallbacks and `Boundary.rpc` for rpc-backed server data. Each returns a descriptor that the renderer processes via the same `{ type, props }` branch. The catch variants share the same call shape: props first, children array second.
 
 **What is caught:**
 
-- Construction-time failures — the Effect phase of building child nodes
-- Post-mount stream failures — streams driving children or prop values that fail after mount
+- Construction-time failures: the Effect phase of building child nodes
+- Post-mount stream failures: streams driving children or prop values that fail after mount
 
 **What is NOT caught:** event handler errors (they run in detached fibers outside the render path).
 
@@ -144,7 +144,9 @@ Boundary.suspend(
 
 #### `Boundary.rpc`
 
-A universal server/client render boundary backed by one `Rpc` from the app's merged `RpcGroup` ([`effect/unstable/rpc`](https://github.com/Effect-TS/effect)). The rpc **`_tag`** is the boundary's stable identity and its **payload schema** the typed input; the handler lives in the server-only rpc Layer (`group.toLayer(...)`), which the client never imports — tree-shaking does the client/server split structurally. Unlike the catch variants it takes a `render` function — not a children array — and that `render` receives a reactive [`Resource`](#resourcea), not a bare value.
+A universal server/client render boundary backed by one `Rpc` from the app's merged `RpcGroup` ([`effect/unstable/rpc`](https://github.com/Effect-TS/effect)). The rpc **`_tag`** is the boundary's stable identity and its **payload schema** the typed input. The handler lives in the server-only rpc Layer (`group.toLayer(...)`), which the client never imports: tree-shaking does the client/server split structurally.
+
+Unlike the catch variants it takes a `render` function, not a children array. That `render` receives a reactive [`Resource`](#resourcea), not a bare value.
 
 ```typescript
 Boundary.rpc<R extends Rpc.Any, C extends Node<any, any>>(
@@ -157,27 +159,27 @@ Boundary.rpc<R extends Rpc.Any, C extends Node<any, any>>(
 
 The boundary resolves the rpc through the ambient [`AppRpcClientTag`](#apprpcclienttag) seam, provided by `@weftui/router` (`RouterServer` on the server, `RouterLive` on the client). It has four lifecycles:
 
-- **SSR:** the server resolves the rpc in-process (over the handler Layer), `successSchema`-encodes the result inline as `<script type="application/json">` at the region cursor, then renders `render(seededResource)` to HTML in place.
-- **Hydrate:** `hydrate` reads the inline payload positionally, `successSchema`-decodes it, seeds the `Resource`, and adopts the DOM — it **never re-calls the rpc** (replay, not refetch).
-- **Refetch:** `resource.refetch` calls the rpc again over the network (`POST /_eui/rpc`) and patches the subtree in place (**stale-on-error** — a failed refetch leaves the previous value intact).
+- **SSR:** the server resolves the rpc in-process (over the handler Layer), `successSchema`-encodes the result inline as `<script type="application/json">` at the region cursor. It then renders `render(seededResource)` to HTML in place.
+- **Hydrate:** `hydrate` reads the inline payload positionally, `successSchema`-decodes it, seeds the `Resource`, and adopts the DOM. It **never re-calls the rpc** (replay, not refetch).
+- **Refetch:** `resource.refetch` calls the rpc again over the network (`POST /_eui/rpc`) and patches the subtree in place. **Stale-on-error**: a failed refetch leaves the previous value intact.
 - **Client-first mount:** SPA-navigating into a boundary with **no** SSR payload renders `options.fallback`, forks the rpc call, and swaps in `render(resource)` once it resolves.
 
-**Channel algebra:** the output `E` is `render`'s error union plus the rpc's typed `Rpc.Error<R>` (`never` for an rpc with no `error` schema). The output `R` is **exactly** `render`'s `R`, untouched — there is no `provide`/`RServer` to discharge (the handler lives in the rpc Layer) and **no `Exclude`** is applied. A server-only tag accidentally referenced in `render` therefore stays in `R`, where `hydrate`'s `AssertNoServerOnly` rejects it. Brand such services with [`ServerTag`](#servertag).
+**Channel algebra:** the output `E` is `render`'s error union plus the rpc's typed `Rpc.Error<R>` (`never` for an rpc with no `error` schema). The output `R` is **exactly** `render`'s `R`, untouched. There is no `provide`/`RServer` to discharge (the handler lives in the rpc Layer) and **no `Exclude`** is applied. A server-only tag accidentally referenced in `render` therefore stays in `R`, where `hydrate`'s `AssertNoServerOnly` rejects it. Brand such services with [`ServerTag`](#servertag).
 
-**Typed-failure replay:** a resolved rpc **error** on the SSR pass is `errorSchema`-encoded and relocated to the nearest enclosing failure `Boundary`, then replayed on the client (decoded and re-raised, reproducing the same fallback DOM — never retried). A transport **defect**, or an rpc with no `error` schema, is not replayed; it propagates.
+**Typed-failure replay:** a resolved rpc **error** on the SSR pass is `errorSchema`-encoded and relocated to the nearest enclosing failure `Boundary`. It is then replayed on the client: decoded and re-raised, reproducing the same fallback DOM (never retried). A transport **defect**, or an rpc with no `error` schema, is not replayed; it propagates.
 
 > **Not yet covered:** streamed success (`Rpc.make(..., { stream: true })`) and mutations are on the roadmap, not this pass.
 
 ##### `Resource<A>`
 
-The reactive handle `render` receives (`A = Rpc.Success<R>`). After hydrate the region is live: `value` is seeded with the SSR payload and the client can `refetch` the same data on demand, patching the rendered subtree in place.
+The reactive handle `render` receives (`A = Rpc.Success<R>`). After hydrate the region is live: `value` is seeded with the SSR payload. The client can `refetch` the same data on demand, patching the rendered subtree in place.
 
 | Field     | Type                                         | Meaning                                                                                                                                                                                   |
 | --------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`   | `Subscribable.Subscribable<A>`               | Current data. Seeded with the SSR `data` (await-first, emits immediately, so SSR HTML and adopted DOM are byte-identical — no fallback flash). A successful refetch pushes the new value. |
-| `refetch` | `Effect.Effect<void>`                        | Re-resolves the rpc over the network with a fresh `payload()` and sets `value`. Client only — a no-op on the server.                                                                      |
+| `value`   | `Subscribable.Subscribable<A>`               | Current data. Seeded with the SSR `data` (await-first, emits immediately, so SSR HTML and adopted DOM are byte-identical, no fallback flash). A successful refetch pushes the new value. |
+| `refetch` | `Effect.Effect<void>`                        | Re-resolves the rpc over the network with a fresh `payload()` and sets `value`. Client only, a no-op on the server.                                                                      |
 | `pending` | `Subscribable.Subscribable<boolean>`         | `true` while a refetch is in flight (`false` on the server / before any refetch).                                                                                                         |
-| `error`   | `Subscribable.Subscribable<Option<unknown>>` | `Some` with the last refetch error, else `None`. A failed refetch is stale-on-error — it does **not** unmount or raise into a failure `Boundary`.                                         |
+| `error`   | `Subscribable.Subscribable<Option<unknown>>` | `Some` with the last refetch error, else `None`. A failed refetch is stale-on-error: it does **not** unmount or raise into a failure `Boundary`.                                         |
 
 ##### `RpcOptions`
 
@@ -206,7 +208,9 @@ class AppRpcClientTag extends Context.Service<AppRpcClientTag, AppRpcClient>()(
 ) {}
 ```
 
-The ambient, package-neutral seam the renderer resolves a `Boundary.rpc` through — a **flat, untyped** caller `(tag, payload) => Effect<success>`. It lets `@weftui/dom` resolve a boundary without importing `effect/unstable/rpc` or `@weftui/router`. `@weftui/router` provides it: a **network** `RpcClient` (POST `/_eui/rpc`) in the browser, an **in-process** client over the handler Layer on the server. `call` returns the already-decoded success; the renderer owns `successSchema`/`errorSchema` decoding of the inline SSR payload only. Both `AppRpcClientTag` and the `AppRpcClient` type are re-exported from `@weftui/core`. Absent in a router-less mount, where a `Boundary.rpc` resolves to a descriptive "needs router/rpc" error (not a defect).
+The ambient, package-neutral seam the renderer resolves a `Boundary.rpc` through: a **flat, untyped** caller `(tag, payload) => Effect<success>`. It lets `@weftui/dom` resolve a boundary without importing `effect/unstable/rpc` or `@weftui/router`. `@weftui/router` provides it: a **network** `RpcClient` (POST `/_eui/rpc`) in the browser, an **in-process** client over the handler Layer on the server.
+
+`call` returns the already-decoded success; the renderer owns `successSchema`/`errorSchema` decoding of the inline SSR payload only. Both `AppRpcClientTag` and the `AppRpcClient` type are re-exported from `@weftui/core`. Absent in a router-less mount, where a `Boundary.rpc` resolves to a descriptive "needs router/rpc" error (not a defect).
 
 See the [rpc data boundaries guide](../how-to/load-data-with-rpc.md) and [examples/router-ssr](../../examples/router-ssr).
 
@@ -267,7 +271,9 @@ Boundary.catchTags<C, Handlers>(
 
 #### `Boundary.catchFilter`
 
-Conditionally catches using a `Filter`, run on each typed failure: a `Result.succeed` (pass) recovers via `fallback`, receiving the possibly-narrowed pass value; a `Result.fail` re-raises the error (its `Fail` channel `X` is preserved in the output `E`, since the boundary may not handle any given error). Takes the `Filter` and `fallback` as **positional** arguments — no wrapping props object. Mirrors Effect 4's `Effect.catchFilter` (renamed from `catchSome`, which took an `Option`-returning function in v3).
+Conditionally catches using a `Filter`, run on each typed failure. A `Result.succeed` (pass) recovers via `fallback`, receiving the possibly-narrowed pass value. A `Result.fail` re-raises the error; its `Fail` channel `X` is preserved in the output `E`, since the boundary may not handle any given error.
+
+Takes the `Filter` and `fallback` as **positional** arguments (no wrapping props object). Mirrors Effect 4's `Effect.catchFilter` (renamed from `catchSome`, which took an `Option`-returning function in v3).
 
 ```typescript
 Boundary.catchFilter<C, EB, X, FE, FR>(
@@ -288,8 +294,6 @@ Boundary.catchFilter(
 );
 ```
 
-The children's `E` is narrowed to the filter's `Fail` channel `X` in the output, because the boundary may or may not handle any given error.
-
 #### `Boundary.catchIf`
 
 A predicate gates the fallback. `false` re-raises.
@@ -308,7 +312,7 @@ Boundary.catchIf<C, FE, FR>(
 
 When a boundary's `match` returns `null` (unmatched error), the error propagates to the nearest **parent** `Boundary` via `BoundaryContext`. If there is no parent boundary, the error fails the enclosing mount.
 
-Inner boundaries shadow outer ones for their subtree — the innermost boundary is always tried first.
+Inner boundaries shadow outer ones for their subtree: the innermost boundary is always tried first.
 
 ```typescript
 // Inner catches FooError; BarError propagates to outer
@@ -323,7 +327,7 @@ Boundary.catch({ fallback: (e) => h.div(`Outer: ${e.message}`) }, [
 
 ## ServerTag
 
-A `Context.Service` key whose identifier is branded server-only. Use it exactly like `Context.Service` for services that must only ever be provided on the server — e.g. a database handle read inside an rpc handler Layer. The brand also guards [`Boundary.rpc`](#boundaryrpc): a server-only tag accidentally referenced in `render` stays in the requirement channel, where `hydrate`'s `AssertNoServerOnly` rejects it at compile time.
+A `Context.Service` key whose identifier is branded server-only. Use it exactly like `Context.Service` for services that must only ever be provided on the server (e.g. a database handle read inside an rpc handler Layer). The brand also guards [`Boundary.rpc`](#boundaryrpc): a server-only tag accidentally referenced in `render` stays in the requirement channel, where `hydrate`'s `AssertNoServerOnly` rejects it at compile time.
 
 ```typescript
 import { ServerTag } from "@weftui/core";
@@ -336,8 +340,8 @@ class Database extends ServerTag("Database")<
 ```
 
 - The server-only brand rides along in the requirement channel `R` of any effect that uses the tag.
-- An rpc handler Layer (`group.toLayer(...)`) discharges it on the server, where it is provided; it never enters a [`Boundary.rpc`](#boundaryrpc)'s output `R`, since `render` only reads the decoded result.
-- If a branded tag ever reaches client code — referenced in `render` and surviving into `hydrate`'s requirement channel — `AssertNoServerOnly` resolves `R` to a compile-error sentinel (`ServerOnlyLeak`) at the `hydrate` call site, rather than failing silently at runtime.
+- An rpc handler Layer (`group.toLayer(...)`) discharges it on the server, where it is provided. It never enters a [`Boundary.rpc`](#boundaryrpc)'s output `R`, since `render` only reads the decoded result.
+- If a branded tag ever reaches client code (referenced in `render` and surviving into `hydrate`'s requirement channel), `AssertNoServerOnly` resolves `R` to a compile-error sentinel (`ServerOnlyLeak`). The failure surfaces at the `hydrate` call site, not silently at runtime.
 
 `ServerOnly`, `ServerOnlyLeak`, and `AssertNoServerOnly<R>` are exported alongside `ServerTag` for advanced typing; most code only needs `ServerTag` itself.
 
@@ -347,10 +351,10 @@ class Database extends ServerTag("Database")<
 
 ### `List` namespace
 
-The keyed-list combinator. It is the opt-in alternative to wholesale child rebuilds: items are rendered **once per key** and reconciled across emissions, so reordering, inserting, or removing items reuses and moves existing DOM rather than rebuilding the region.
+The keyed-list combinator. It is the opt-in alternative to wholesale child rebuilds: items are rendered **once per key** and reconciled across emissions. Reordering, inserting, or removing items therefore reuses and moves existing DOM rather than rebuilding the region.
 
 > **Note:** This exported `List` namespace is the built-in, key-reconciling way to
-> render collections — prefer it over hand-rolling a component that maps items into
+> render collections. Prefer it over hand-rolling a component that maps items into
 > elements.
 
 ```typescript
@@ -372,7 +376,7 @@ List.each<S extends Source.Source<Iterable<any>, any, any>, CE, CR, K>(
 
 `render` runs **once per key**; a persisted key keeps its DOM nodes and its running subscription fibers across re-emits (it is never re-invoked). The returned node's `E`/`R` are the union of the source channels and the channels of the node `render` returns.
 
-> **⚠️ Render-once / index-key footgun:** because `render` runs exactly once per key, reconciliation never refreshes a kept row's content — refresh a row by threading a `Stream` **inside** it, not by re-running `render`. Keying by index (`by: (_, i) => i`) reuses rows positionally and will show stale content after a reorder; prefer a stable identity key (`by: (item) => item.id`).
+> **⚠️ Render-once / index-key footgun:** because `render` runs exactly once per key, reconciliation never refreshes a kept row's content. Refresh a row by threading a `Stream` **inside** it, not by re-running `render`. Keying by index (`by: (_, i) => i`) reuses rows positionally and will show stale content after a reorder. Prefer a stable identity key (`by: (item) => item.id`).
 
 **`List.Options<S, K>`**
 
@@ -383,8 +387,8 @@ interface List.Options<S, K> {
 }
 ```
 
-- **`of`** — the list source. Each emission is materialized to an array to fix order, then reconciled by key.
-- **`by`** — projects each item to its reconciliation key. Omitted ⇒ the item itself is the key (structural for `Data`, by reference otherwise).
+- **`of`**: the list source. Each emission is materialized to an array to fix order, then reconciled by key.
+- **`by`**: projects each item to its reconciliation key. Omitted ⇒ the item itself is the key (structural for `Data`, by reference otherwise).
 
 #### `List.Error<N>` and `List.Context<N>`
 
@@ -435,7 +439,7 @@ Normalization rules:
 - **`Effect`** → memoized via `Effect.cached`; `changes` emits the resolved value once
 - **`Stream`** → forks a scoped pump fiber that drains into a `SubscriptionRef`; `get` awaits the first emission
 
-The pump fiber is tied to the enclosing scope via `Effect.forkScoped` — it terminates when the scope closes.
+The pump fiber is tied to the enclosing scope via `Effect.forkScoped`. It terminates when the scope closes.
 
 ### `NoPropValue`
 
@@ -458,7 +462,7 @@ type PropsE<P> = { [K in keyof P]: P[K] extends Stream.Stream<any, infer E, any>
 type PropsR<P> = { [K in keyof P]: P[K] extends Stream.Stream<any, any, infer R> ? R : ... }[keyof P]
 ```
 
-These are used internally by `h` and `Component` to accumulate channels from props. You generally don't need to reference them directly unless building utilities over the combinator API.
+These are used internally by `h` and `Component` to accumulate channels from props. Reference them directly only when building utilities over the combinator API.
 
 ---
 
@@ -466,7 +470,7 @@ These are used internally by `h` and `Component` to accumulate channels from pro
 
 ### `FRAGMENT`
 
-Internal brand used to mark fragment nodes. Not intended for direct use — use `h.fragment` instead.
+Internal brand used to mark fragment nodes. Not intended for direct use; use `h.fragment` instead.
 
 ---
 
@@ -502,6 +506,6 @@ isSubscribable(value: unknown): value is Subscribable<unknown, unknown, unknown>
 
 ## See also
 
-- [The Combinator API](../explanation/combinator-api.md) · [Reactive Primitives](../explanation/reactive-primitives.md) · [Boundaries and Suspense](../explanation/boundaries-and-suspense.md) — the concepts behind this surface
-- [Author Components](../how-to/author-components.md) · [Render Keyed Lists](../how-to/render-keyed-lists.md) — task guides that use it
+- [The Combinator API](../explanation/combinator-api.md) · [Reactive Primitives](../explanation/reactive-primitives.md) · [Boundaries and Suspense](../explanation/boundaries-and-suspense.md): the concepts behind this surface
+- [Author Components](../how-to/author-components.md) · [Render Keyed Lists](../how-to/render-keyed-lists.md): task guides that use it
 - [`@weftui/dom` reference](./dom.md) · [`@weftui/router` reference](./router.md)
