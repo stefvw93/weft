@@ -26,7 +26,7 @@ type ParamSchema = Schema.Codec<Record<string, unknown>, unknown, never>;
  * than platform's precise generic types.
  */
 interface EndpointShape {
-  /** Endpoint identifier — the leaf `id`, the `httpApi ↔ compiled` join key. */
+  /** Endpoint identifier: the leaf `id`, the `httpApi ↔ compiled` join key. */
   readonly identifier: string;
   /** Full path template, e.g. `/users/:id` (same as the leaf's `fullPathPattern`). */
   readonly path: string;
@@ -92,19 +92,16 @@ const matchersCache: WeakMap<RouterDef, readonly MatcherEntry[]> = new WeakMap()
 
 /**
  * Precompiles a {@link RouterDef} into ordered matcher entries (memoized per
- * `RouterDef`). The patterns and path/query schemas are read from the authoritative
- * `def.httpApi` `"pages"` endpoints — the single source of truth the server dispatch
- * also reads — and each entry's render metadata leaf is resolved from `def.compiled`
+ * `RouterDef`). Patterns and path/query schemas are read from the authoritative
+ * `def.httpApi` `"pages"` endpoints (the single source of truth the server dispatch
+ * also reads), and each entry's render metadata leaf is resolved from `def.compiled`
  * by endpoint id. Matching stays local (SPA URL→leaf); see the refactor plan's
  * _Feasibility constraint_.
  *
  * Entries are sorted most-specific first (fewer params, then longer pattern) so a
- * static segment wins over a param segment at the same position (M6).
- *
- * Note: the specificity order is a global heuristic (param count, then length).
- * It resolves the common "static beats param at the same position" case, but two
- * patterns with the same param count and length (e.g. `/a/:b/c` vs `/a/x/:d`)
- * fall back to endpoint order.
+ * static segment wins over a param segment at the same position (M6). That order is
+ * a global heuristic, so two patterns with the same param count and length (e.g.
+ * `/a/:b/c` vs `/a/x/:d`) fall back to endpoint order.
  */
 export function compileMatchers(def: RouterDef): readonly MatcherEntry[] {
   const cached = matchersCache.get(def);
@@ -191,7 +188,7 @@ export function match(def: RouterDef, url: string): RouteMatch {
 
     // M8: a query decode failure (a declared query field whose value violates its
     // schema, e.g. `?page=abc` for `NumberFromString`) is a no-match, like a path
-    // decode failure — not a thrown error. Excess/undeclared query keys are
+    // decode failure, not a thrown error. Excess/undeclared query keys are
     // ignored by `Schema.Struct`, so only declared-but-invalid values 404.
     const decodedQuery = Schema.decodeUnknownResult(entry.querySchema)(parseQuery(search));
     if (Result.isFailure(decodedQuery)) continue;

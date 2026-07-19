@@ -9,7 +9,7 @@ import type { Fields, FieldsType } from "./route-tree";
 import { lazyComponent, makeLayout, makeRoute } from "./route-tree";
 
 /**
- * The universal router service. Provided per render — by `RouterLive` on the
+ * The universal router service. Provided per render: by `RouterLive` on the
  * client (History-API backed) and by a fixed per-request implementation on the
  * server. Layouts and pages read it anywhere via `yield* Router`.
  *
@@ -17,12 +17,12 @@ import { lazyComponent, makeLayout, makeRoute } from "./route-tree";
  * {@link Router.layout}, and {@link Router.router} build the route tree (mirroring
  * `Component.gen` / `Boundary.catchTag` / `h.div`), and {@link Router.Outlet} /
  * {@link Router.params} / {@link Router.query} deliver the outlet and the live
- * match's params/query by dependency injection. The roles merge by declaration —
+ * match's params/query by dependency injection. The roles merge by declaration:
  * `yield* Router` reads the service; `Router.route(…)` authors a tree.
  */
 /**
  * The platform `HttpApiClient` derived from a router's `HttpApi` spine. Typed
- * opaquely (`Client<any, …>`) because the spine is `HttpApi.Top` — its
+ * opaquely (`Client<any, …>`) because the spine is `HttpApi.Top`: its
  * group/endpoint shapes are assembled in a runtime loop by `buildHttpApi`, so a
  * precise client type is not recoverable. Present (`Option.some`) on the client
  * (`RouterLive`), absent (`Option.none`) on the server, which is itself the origin.
@@ -66,8 +66,8 @@ export class Router extends Context.Service<
     /**
      * The derived {@link RouterHttpApiClient} for network work (route prefetch,
      * foundation for future loaders/data). `Option.some` on the client,
-     * `Option.none` on the server. SPA URL→leaf resolution does **not** use this —
-     * it stays local via the shared matcher (see the refactor _Feasibility constraint_).
+     * `Option.none` on the server. SPA URL→leaf resolution does **not** use this.
+     * It stays local via the shared matcher (see the refactor _Feasibility constraint_).
      */
     readonly httpApiClient: Option.Option<RouterHttpApiClient>;
     /**
@@ -88,7 +88,7 @@ export class Router extends Context.Service<
  * reads it with `yield* Router.Outlet`.
  *
  * Typed **opaque** as `Node<never, never>` so splicing `[outlet]` adds nothing to
- * a layout's local channels — the subtree's real channels are aggregated
+ * a layout's local channels: the subtree's real channels are aggregated
  * structurally by {@link makeLayout} / {@link makeRouter}, never inferred across
  * this DI boundary. Re-exported on the namespace as `Router.Outlet`.
  */
@@ -106,10 +106,10 @@ function pick<F extends Fields>(
 
 /**
  * Reads the live match's **path params** for the requested `fields`. Snapshot
- * semantics — reads `yield* Router` then `currentMatch.get` — and returns the
+ * semantics (reads `yield* Router`, then `currentMatch.get`), returning the
  * already-decoded values **directly**: the matcher decoded them against the leaf's
- * full path schema, so no re-validation is needed (the cast is sound — the picked
- * subset is the `Type` side of `fields`). Fails with a {@link RouterParamsError}
+ * full path schema, so no re-validation is needed. The cast is sound because the
+ * picked subset is the `Type` side of `fields`. Fails with a {@link RouterParamsError}
  * (`source: "path"`) only when no route is matched. Re-exported as `Router.params`.
  */
 function readParams<F extends Fields>(

@@ -15,7 +15,7 @@ export type FieldsType<F extends Fields> = Schema.Struct.Type<F>;
  * The router passes `{ path, query }` into the leaf slot at render time (the
  * {@link makeRoute} props-form overload), so a page can read them directly as props
  * instead of via the `Router.params` / `Router.query` dependency-injection
- * accessors. Layouts and deeper nodes — which can't take handler args — keep DI.
+ * accessors. Layouts and deeper nodes keep DI, since they can't take handler args.
  */
 export interface RouteHandlerProps<Path extends Fields = {}, Query extends Fields = {}> {
   /** The live match's decoded path params (`Type` side of the route's `path`). */
@@ -28,20 +28,20 @@ export interface RouteHandlerProps<Path extends Fields = {}, Query extends Field
  * The shape of a route/layout `component` slot: a callable producing a {@link Node},
  * invoked by the router at render time. It accepts both a plain zero-arg thunk
  * (`() => h.div(…)`) and a {@link Component} produced by `Component.make` /
- * `Component.gen` (a generic `(props, children?) => Node`). The `props: any` arm —
- * rather than `()` — is what keeps a required-props `Component<…>` structurally
+ * `Component.gen` (a generic `(props, children?) => Node`). The `props: any` arm,
+ * rather than `()`, is what keeps a required-props `Component<…>` structurally
  * assignable; the router calls the slot with no arguments.
  */
 export type ComponentSlot<N extends Node<any, any> = Node<any, any>> = (props: any) => N;
 
 /**
  * The {@link Node} a {@link ComponentSlot} produces when the router invokes it with no
- * props/children — used to recover the slot's `E`/`R` channels for the route tree.
+ * props/children. Used to recover the slot's `E`/`R` channels for the route tree.
  *
  * A plain zero-arg thunk is matched first (`() => infer N`): a required-props
  * `Component` is *not* assignable to `() => unknown`, so it falls through to the
  * `Component` arm, where the internal `E`/`R` type parameters are read directly. This
- * two-step form is deliberate — `ReturnType<S>` collapses a generic `Component`'s
+ * two-step form is deliberate: `ReturnType<S>` collapses a generic `Component`'s
  * channels to `unknown` (they depend on the erased `GenP`/`GenC`), whereas extracting
  * the `Component<…, E, R>` parameters preserves them. Caller prop/children channels are
  * never relevant here because the router supplies neither.
@@ -53,7 +53,7 @@ export type SlotNode<S> = S extends () => infer N
     : never;
 
 /**
- * A leaf page in the route tree. Its `component` *is* its handler — a
+ * A leaf page in the route tree. Its `component` *is* its handler: a
  * {@link ComponentSlot} (a `Component.gen` / `Component.make` component, or a plain
  * `() => Node` thunk) that the router invokes at render time and that reads the live
  * match's params via `Router.params` / `Router.query`. `Path`/`Query` drive matching
@@ -80,7 +80,7 @@ export interface RouteNode<
 
 /**
  * A layout wrapping an outlet (the next level down) in the route tree. A layout is
- * **purely UI nesting** — it owns **no path or segment**; all path structure lives
+ * **purely UI nesting**: it owns **no path or segment**; all path structure lives
  * on routes. Its `component` is a {@link ComponentSlot} that splices the injected
  * outlet via `yield* Router.Outlet`; the router invokes it per render and discharges
  * that `Outlet` requirement. A layout that needs a param reads it via `Router.params`.
@@ -95,7 +95,7 @@ export interface LayoutNode<E = never, R = never> {
   /**
    * Phantom marker for this layout subtree's aggregate error channel (see
    * {@link TreeE}). Covariant (stores `E` directly) so a fully-discharged layout
-   * (`LayoutNode<never, never>` — its `Outlet` provided, no subtree errors) stays
+   * (`LayoutNode<never, never>`, its `Outlet` provided and no subtree errors) stays
    * assignable to the `LayoutNode<any, any>` arm of {@link TreeNode}.
    */
   readonly _E?: E;
@@ -121,25 +121,16 @@ export type SubtreeE<C extends readonly TreeNode[]> = TreeE<C[number]>;
 export type SubtreeR<C extends readonly TreeNode[]> = TreeR<C[number]>;
 
 /**
- * Declares a leaf page. The `component` *is* the route handler — a thunk the
+ * Declares a leaf page. The `component` *is* the route handler: a thunk the
  * router invokes at render time; its error / requirement channels propagate up the
  * tree. Two authoring forms are accepted:
  *
- * - **Handler-arg props** — the slot declares `(props: {@link RouteHandlerProps})`
+ * - **Handler-arg props**: the slot declares `(props: {@link RouteHandlerProps})`
  *   and the router passes the live match's decoded `{ path, query }` in directly
  *   (first overload; `path`/`query` are inferred from the route's `path`/`query`
- *   fields). A plain zero-arg thunk works too — it just ignores the props.
- * - **Dependency injection** — a `Component.make` / `Component.gen` component that
+ *   fields). A plain zero-arg thunk works too. It just ignores the props.
+ * - **Dependency injection**: a `Component.make` / `Component.gen` component that
  *   reads the live match via `Router.params` / `Router.query` (second overload).
- *
- * @example Handler-arg props (decoded `{ path, query }`)
- * ```ts
- * Router.route("users/:id", {
- *   path: { id: Schema.NumberFromString },
- *   query: { tab: Schema.optional(Schema.String) },
- *   component: ({ path, query }) => h.div({}, `User ${path.id} (${query.tab ?? "info"})`),
- * });
- * ```
  *
  * @example Dependency injection (`Router.params` / a `Component`)
  * ```ts
@@ -230,7 +221,7 @@ export function makeLayout<C extends readonly TreeNode[], S extends ComponentSlo
 }
 
 /**
- * Brand key marking a {@link ComponentSlot} as **preloadable** — a lazy slot
+ * Brand key marking a {@link ComponentSlot} as **preloadable**: a lazy slot
  * ({@link lazyComponent}) carries a `preload()` under this key. Internal to
  * `@weftui/router` (read by the client `navigate` to resolve a matched branch's
  * chunks before commit; see `pending-navigation.specs.md`); not public API.
@@ -256,24 +247,16 @@ export function getPreload(slot: ComponentSlot): (() => Promise<unknown>) | unde
 
 /**
  * Wraps a dynamic-import `load` as a lazy {@link ComponentSlot}: the route's descriptor
- * (`segment`, `path`/`query`) stays eager and matchable, while the component — the render
- * body and its module's deps — is split into the chunk `load` resolves. The router invokes
+ * (`segment`, `path`/`query`) stays eager and matchable, while the component (the render
+ * body and its module's deps) is split into the chunk `load` resolves. The router invokes
  * the returned slot at render time; it awaits `load` then renders the resolved component,
  * adopting the server DOM in place on hydration (flash-free) and fetching the chunk on
  * client navigation. Exposed as {@link Router.lazy}. See `lazy-component.specs.md`.
  *
  * The resolved value is a component slot (`Component.gen` / `Component.make`, or a
- * `() => Node` thunk) — the shape `component:` already accepts — so its `E`/`R` channels
+ * `() => Node` thunk), the shape `component:` already accepts, so its `E`/`R` channels
  * are recovered via {@link SlotNode} and propagate up the tree exactly as an eager
  * component's do.
- *
- * @example
- * ```ts
- * Router.route("docs/:category/:slug", {
- *   path: { category: Schema.String, slug: Schema.String },
- *   component: Router.lazy(() => import("./doc-page").then((m) => m.DocPage)),
- * });
- * ```
  */
 export function lazyComponent<S extends ComponentSlot>(
   load: () => Promise<S>,
@@ -285,26 +268,27 @@ export function lazyComponent<S extends ComponentSlot>(
   // overload). A zero-arg thunk is still a valid `ComponentSlot`; the router ignores props.
   //
   // The node is an `Effect.gen` that awaits `load` (the chunk import) then delegates to the
-  // resolved component — the same async-component body that already renders flash-free
+  // resolved component: the same async-component body that already renders flash-free
   // under SSR + hydrate (see `lazy-component.specs.md`). `Effect.promise` means a rejected
   // load is a defect (AC-E1). The cast recovers the channels `SlotNode` proved above but
-  // that the value path — through the wide `ComponentSlot` — erases to `any`.
+  // that the value path, through the wide `ComponentSlot`, erases to `any`.
   //
   // The load `Promise` is memoized per slot: the first render triggers the import; every
-  // later render — and back-navigation to this route — reuses the resolved module, so a
+  // later render (and back-navigation to this route) reuses the resolved module, so a
   // revisit is synchronous (AC-C2) and a single render never double-loads even if the
   // renderer evaluates the slot more than once.
   //
   // A synchronous `resolved` memo lets the slot return the component's node
   // **synchronously** once its chunk is in memory, so the deferred-commit swap is atomic:
   // the DOM renderer's sync probe (`Effect.runSyncExit`) succeeds and the new content
-  // renders inline in the same tick the old is removed — no blank (`pending-navigation.specs.md`
-  // AC-N2). It also gives the leaf **pre-run** (`resolve-before-commit.specs.md` —
-  // `navigate` runs the leaf's component effect to completion before committing) its
-  // synchronous entry into the resolved component. Crucially, only the branded
-  // `preload()` populates `resolved`; the async render body does **not**. Client navigation always `preload()`s the matched branch before it
+  // renders inline in the same tick the old is removed, with no blank
+  // (`pending-navigation.specs.md` AC-N2). It also gives the leaf **pre-run**
+  // (`resolve-before-commit.specs.md`: `navigate` runs the leaf's component effect to
+  // completion before committing) its synchronous entry into the resolved component.
+  // Crucially, only the branded `preload()` populates `resolved`; the async render body
+  // does **not**. Client navigation always `preload()`s the matched branch before it
   // commits (so the post-commit render is the sync path), whereas SSR and **hydration**
-  // render through the async body — where `resolved` stays undefined — preserving the
+  // render through the async body, where `resolved` stays undefined, preserving the
   // flash-free adopt-in-place hydration property (AC-H1). Populating `resolved` from the
   // render body would make a server-then-client render over the *same slot instance* hydrate
   // synchronously and mismatch the adopted DOM.

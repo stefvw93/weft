@@ -8,10 +8,10 @@ import { type NavigateOptions, Router } from "../router-service";
  * type-safe {@link href} builder. They mirror the History API the client `Router`
  * layer (`RouterLive`) is backed by:
  *
- * - {@link navigate} — go to a leaf route reference with typed `{ path, query }`.
- * - {@link push} / {@link replace} — go to a raw `path + search` string.
- * - {@link back} / {@link forward} — step through History (`history.go`).
- * - {@link setQuery} / {@link patchQuery} — change the current route's query in
+ * - {@link navigate}: go to a leaf route reference with typed `{ path, query }`.
+ * - {@link push} / {@link replace}: go to a raw `path + search` string.
+ * - {@link back} / {@link forward}: step through History (`history.go`).
+ * - {@link setQuery} / {@link patchQuery}: change the current route's query in
  *   place, re-encoding through the matched leaf's `querySchema`.
  *
  * All but `back`/`forward` require the `Router` service (run them within the layer
@@ -20,10 +20,10 @@ import { type NavigateOptions, Router } from "../router-service";
 
 /**
  * Navigates to a leaf route `ref` with typed `path`/`query` args, building the URL
- * via {@link href} (so it round-trips with `match`) and pushing — or, with
- * `options.replace`, replacing — the History entry. `path` is required when the
- * route has path params; `query` is optional when every query field is optional
- * (same requiredness rules as `href`).
+ * via {@link href} (so it round-trips with `match`) and pushing the History entry,
+ * or replacing it with `options.replace`. `path` is required when the route has
+ * path params; `query` is optional when every query field is optional (same
+ * requiredness rules as `href`).
  *
  * @example
  * ```ts

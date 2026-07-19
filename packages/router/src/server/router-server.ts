@@ -26,9 +26,9 @@ import { type NavState, Router } from "../router-service";
  * authoritative `HttpApi` spine via `HttpApiBuilder`: platform owns request→leaf
  * matching and path/query decode, then each leaf handler builds a fixed-match
  * server `Router`, renders the universal outlet to hydratable HTML, and replies
- * `text/html`. Status comes from the platform pipeline — a no-match (platform's
+ * `text/html`. Status comes from the platform pipeline: a no-match (platform's
  * `RouteNotFound`) and a page-raised `RouterNotFound` both render the configured
- * `notFound` page at HTTP 404 — so there is no render-time status side-channel.
+ * `notFound` page at HTTP 404, so there is no render-time status side-channel.
  */
 export namespace RouterServer {
   /** Path the in-process rpc web handler claims; mirrors `RouterLive`'s client URL. */
@@ -37,7 +37,7 @@ export namespace RouterServer {
   /**
    * The app's `Boundary.rpc` data foundation: the merged `RpcGroup` contract plus
    * its server-only handler `Layer`. Wired explicitly (no co-located `load`, no
-   * registry) — `toWebHandler` serves it at `POST /_eui/rpc`, and an in-process
+   * registry): `toWebHandler` serves it at `POST /_eui/rpc`, and an in-process
    * client over the same handlers resolves SSR boundaries in-process.
    */
   export interface RpcOptions {
@@ -51,7 +51,7 @@ export namespace RouterServer {
 
   /**
    * Shared server options. The document shell is a {@link ComponentSlot} that splices
-   * the app via `yield* Router.Outlet` (the router provides it per request) —
+   * the app via `yield* Router.Outlet` (the router provides it per request),
    * typically `<html><head>…</head><body><div id="root">{app}</div><script …></body></html>`.
    * The router provides both `Router.Outlet` (the app, per request) and `Router` (to read
    * params), so the document may use either. Mirrors the route/layout `component` slot,
@@ -61,7 +61,7 @@ export namespace RouterServer {
    * `context` is the render-time provide seam (spec:
    * `ambient-context-propagation.specs.md`): an app-wide `Layer` provided to the
    * document shell **and** every route/layout leaf. It is required exactly when the
-   * def carries residual app services ({@link AppServices} — its aggregate `R` minus
+   * def carries residual app services ({@link AppServices}: its aggregate `R` minus
    * the `Router` / `Router.Outlet` / `AppRpcClientTag` the router already threads) and
    * disallowed otherwise, so a missing provide is a compile error and `rpc`-only /
    * no-service apps stay unchanged (surfaced via {@link ContextOption} at each entry).
@@ -71,7 +71,7 @@ export namespace RouterServer {
     readonly document: ComponentSlot;
     /**
      * The app's `Boundary.rpc` foundation (contract + server handlers). Optional:
-     * omit when the app has no `Boundary.rpc` — then `POST /_eui/rpc` is not
+     * omit when the app has no `Boundary.rpc`. Then `POST /_eui/rpc` is not
      * served (it falls through to page dispatch) and a stray `Boundary.rpc`
      * fails with a descriptive error instead of rendering.
      */
@@ -81,13 +81,13 @@ export namespace RouterServer {
   /**
    * The residual app services a caller must still provide through the {@link Options.context}
    * seam: a def's aggregate requirement `R` **minus** the services the router already
-   * threads in per render — `Router` and `Router.Outlet` (provided by the outlet /
+   * threads in per render: `Router` and `Router.Outlet` (provided by the outlet /
    * document plumbing) and `AppRpcClientTag` (provided from the `rpc` option). When this
    * resolves to `never` the app has no app-wide service to inject and `context` is disallowed.
    */
   export type AppServices<R> = Exclude<R, Router | Router.Outlet | AppRpcClientTag>;
 
-  /** True only for the exact `any` type — a loosely-typed `RouterDef<any, any>`. */
+  /** True only for the exact `any` type: a loosely-typed `RouterDef<any, any>`. */
   // oxlint-disable-next-line typescript/no-explicit-any
   type IsAny<T> = 0 extends 1 & T ? true : false;
 
@@ -149,12 +149,12 @@ export namespace RouterServer {
   /**
    * In-process {@link AppRpcClientTag} Layer over the app's handler Layer
    * ({@link RpcTest.makeClient}, flat, no protocol/serialization). SSR
-   * `Boundary.rpc` resolution calls `call(tag, payload())` against this — the rpc
+   * `Boundary.rpc` resolution calls `call(tag, payload())` against this: the rpc
    * runs in-process, never over the network.
    *
    * The render path requires the tag unconditionally, so with no `rpc` configured
-   * a stub is provided whose `call` fails descriptively — a `Boundary.rpc` in an
-   * rpc-less app surfaces the misconfiguration instead of dying opaquely.
+   * a stub is provided whose `call` fails descriptively. A `Boundary.rpc` in an
+   * rpc-less app then surfaces the misconfiguration instead of dying opaquely.
    */
   function appRpcClientLayer(rpc: RpcOptions | undefined): Layer.Layer<AppRpcClientTag> {
     if (rpc === undefined) {
@@ -184,7 +184,7 @@ export namespace RouterServer {
   }
 
   /**
-   * Renders the document shell — with `app` spliced via `Router.Outlet` — to a
+   * Renders the document shell (with `app` spliced via `Router.Outlet`) to a
    * hydratable HTML string. The whole tree (shell + every route/layout leaf) drains
    * in this one `renderToStringHydratable` context, so the app-wide `options.context`
    * Layer provided here reaches the leaves too (the render-time provide seam). No
@@ -206,7 +206,7 @@ export namespace RouterServer {
   /**
    * Renders the configured `notFound` page **directly** in the shell (no nested
    * outlet, no reactive-region markers) at `status`. Mirrors the client's internal
-   * not-found boundary fallback — which replaces the whole outlet subtree — so the
+   * not-found boundary fallback, which replaces the whole outlet subtree, so the
    * page-raised-404 HTML aligns for hydration.
    */
   function renderNotFoundDirect(
@@ -225,8 +225,8 @@ export namespace RouterServer {
   /**
    * Renders the no-match case: the bare {@link outletNode} with a `NotFound` match,
    * so the `notFound` page renders **inside** the level-0 reactive region (markers
-   * present) — matching what the client outlet produces for an unmatched URL — at
-   * HTTP 404.
+   * present) at HTTP 404, matching what the client outlet produces for an
+   * unmatched URL.
    */
   function renderNoMatch(
     def: RouterDef,
@@ -342,9 +342,9 @@ export namespace RouterServer {
   /**
    * Builds (and memoizes) the platform `(Request) => Promise<Response>` handler for
    * `def`. Dispatch runs through a **server-local** `HttpApi`: `def.httpApi`
-   * (pristine — the client and the spec read it) extended with a second `"fallback"`
+   * (pristine: the client and the spec read it) extended with a second `"fallback"`
    * group holding one catch-all `"*"` endpoint. Platform owns matching: a request
-   * routes to the specific leaf endpoint, or — when nothing matches — to the
+   * routes to the specific leaf endpoint, or, when nothing matches, to the
    * catch-all, which renders the configured not-found page at 404. (Platform's own
    * unmatched path resolves a default empty 404 before any response hook can rewrite
    * it, so the catch-all is the route that keeps no-match rendering ours.)
@@ -367,7 +367,7 @@ export namespace RouterServer {
     const leaves = def.compiled.leaves;
     // `def.httpApi` is typed `HttpApi.Top`; the concrete group/endpoint shapes are
     // only known at runtime (assembled in a loop), so `group`/`api` are invoked
-    // loosely — a precise static type across the runtime loop is not expressible.
+    // loosely: a precise static type across the runtime loop is not expressible.
     // oxlint-disable-next-line typescript/no-explicit-any
     const builder = HttpApiBuilder as any;
     // The catch-all matches any URL no specific leaf endpoint claims (platform

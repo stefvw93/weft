@@ -31,13 +31,13 @@ const RPC_PATH = "/_eui/rpc";
 
 /**
  * The residual app services a caller must still provide through the {@link RouterLiveOptions.context}
- * seam — a def's aggregate `R` minus the services `RouterLive` already threads
+ * seam: a def's aggregate `R` minus the services `RouterLive` already threads
  * (`Router`, `Router.Outlet`, `AppRpcClientTag`). The client mirror of
  * `RouterServer.AppServices`; resolves to `never` for an app with no app-wide service.
  */
 export type AppServices<R> = Exclude<R, Router | Router.Outlet | AppRpcClientTag>;
 
-/** True only for the exact `any` type — a loosely-typed `RouterDef<any, any>`. */
+/** True only for the exact `any` type (a loosely-typed `RouterDef<any, any>`). */
 // oxlint-disable-next-line typescript/no-explicit-any
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
@@ -65,8 +65,8 @@ export interface RouterLiveOptions {
   /**
    * The app's `Boundary.rpc` foundation: the merged `RpcGroup` contract (shared
    * with the server handler Layer). Backs the {@link AppRpcClientTag} seam so a
-   * hydrated boundary refetch — and a client-first SPA mount — resolve over the
-   * network rpc client. Optional: omit when the app has no `Boundary.rpc` — then
+   * hydrated boundary refetch (and a client-first SPA mount) resolve over the
+   * network rpc client. Optional: omit when the app has no `Boundary.rpc`. Then
    * no network rpc client is built and a stray `Boundary.rpc` fails with a
    * descriptive error.
    */
@@ -98,11 +98,11 @@ function normalizeTo(to: string): string {
  * It additionally derives a real {@link RouterHttpApiClient} from `def.httpApi`
  * (over `FetchHttpClient`, `baseUrl` default same-origin) and exposes it on the
  * `Router` service for network work. SPA URL→leaf resolution stays local via the
- * shared {@link match}er — both sides read the one `def.httpApi` definition.
+ * shared {@link match}er: both sides read the one `def.httpApi` definition.
  *
- * Alongside `Router` it provides the core {@link AppRpcClientTag} seam — a
+ * Alongside `Router` it provides the core {@link AppRpcClientTag} seam: a
  * **network** flat rpc client (`RpcClient.make` over `layerProtocolHttp` →
- * `POST /_eui/rpc`) — so `@weftui/dom` can resolve a `Boundary.rpc` (hydrated
+ * `POST /_eui/rpc`), so `@weftui/dom` can resolve a `Boundary.rpc` (hydrated
  * refetch and client-first mount) without depending on this package or
  * `effect/unstable/rpc`.
  */
@@ -132,8 +132,8 @@ export function RouterLive<R>(
       const httpApiClient = yield* makeClient;
 
       // A monotonic token; only the newest navigation may commit or reset
-      // `navigating` (latest-wins across in-flight lazy preloads — AC-N7 — and
-      // leaf pre-runs — `resolve-before-commit.specs.md` AC-R6).
+      // `navigating` (latest-wins across in-flight lazy preloads, AC-N7, and
+      // leaf pre-runs, `resolve-before-commit.specs.md` AC-R6).
       let latest = 0;
 
       // The in-flight leaf pre-run fiber, interrupted by a superseding
@@ -157,7 +157,7 @@ export function RouterLive<R>(
               .map(getPreload)
               .filter((p): p is () => Promise<unknown> => p !== undefined);
 
-      // The path portion (before `?`) of a canonical url — the granularity at which
+      // The path portion (before `?`) of a canonical url: the granularity at which
       // scroll is reset (`scroll-reset.specs.md`): a query-only change keeps the path.
       const pathOf = (url: string): string => {
         const qIndex = url.indexOf("?");
@@ -183,7 +183,7 @@ export function RouterLive<R>(
       // and the data fetch, and the swap is a single tick (the outlet consumes
       // the stashed, already-resolved node synchronously). `pushUrl`
       // distinguishes an app navigation (History push/replace) from a popstate
-      // resync (browser already moved the url — set the ref only).
+      // resync (browser already moved the url, so set the ref only).
       const commitTo = (
         normalized: string,
         pushUrl: boolean,
@@ -203,7 +203,7 @@ export function RouterLive<R>(
             yield* Fiber.interrupt(stale);
           }
 
-          // Stage 1 — lazy chunk(s) (AC-N1). Keeps the old outlet mounted while
+          // Stage 1: lazy chunk(s) (AC-N1). Keeps the old outlet mounted while
           // the chunk(s) resolve; also populates the lazy slot's `resolved` memo
           // so the leaf pre-run below enters the synchronous slot path.
           const preloads = collectPreloads(target);
@@ -223,7 +223,7 @@ export function RouterLive<R>(
             if (token !== latest) return;
           }
 
-          // Stage 2 — leaf pre-run (AC-R1): run the target leaf's component
+          // Stage 2: the leaf pre-run (AC-R1). Run the target leaf's component
           // effect to completion pre-commit and stash its Exit for the outlet.
           let exit: Exit.Exit<Renderable, unknown> | undefined;
           if (target._tag === "Matched") {
@@ -249,7 +249,7 @@ export function RouterLive<R>(
             const joined = yield* Effect.exit(Fiber.join(fiber));
             if (inflightPreRun === fiber) inflightPreRun = undefined;
             if (token !== latest || Exit.isFailure(joined)) {
-              // Superseded (the join surfaced the interruption) — the newer nav
+              // Superseded (the join surfaced the interruption): the newer nav
               // owns the url, the stash, and `navigating` (AC-R6).
               yield* Scope.close(scope, Exit.void);
               return;
@@ -268,7 +268,7 @@ export function RouterLive<R>(
           if (exit !== undefined) {
             setResolvedCommit(router, { url: normalized, exit });
           }
-          // Capture the outgoing url before it moves — the previous committed path
+          // Capture the outgoing url before it moves: the previous committed path
           // decides whether scroll resets below (`urlRef` only changes here).
           const previousUrl = yield* SubscriptionRef.get(urlRef);
           if (pushUrl) yield* commitUrl(normalized, replace);
@@ -276,7 +276,7 @@ export function RouterLive<R>(
           // Scroll reset (`scroll-reset.specs.md`): a path-changing app navigation
           // returns to the top of the page, mirroring a full document load. Excludes
           // popstate (`pushUrl === false`, left to the browser's native
-          // scrollRestoration) and query-only changes (same path — `setQuery` /
+          // scrollRestoration) and query-only changes (same path: `setQuery` /
           // `patchQuery`), which preserve scroll. `scrollTo(0, 0)` is height-
           // independent, so it is safe before the outlet's reactive DOM swap paints.
           if (pushUrl && pathOf(previousUrl) !== pathOf(normalized)) {
@@ -289,7 +289,7 @@ export function RouterLive<R>(
         commitTo(normalizeTo(to), true, options?.replace === true);
 
       // popstate (back/forward): the browser already moved the url, so only resync
-      // the ref — but resolve the target branch's lazy chunk(s) first so back-nav is
+      // the ref. But resolve the target branch's lazy chunk(s) first so back-nav is
       // also blank-free (AC-N8).
       const onPopState = (): void => {
         Effect.runForkWith(services)(commitTo(locationUrl(), false, false));
@@ -308,8 +308,8 @@ export function RouterLive<R>(
 
       // The {@link AppRpcClientTag} seam: a **network** flat rpc client over the
       // app's merged `RpcGroup`, posting to `<origin>/_eui/rpc`. `@weftui/dom`
-      // reads this tag to resolve a `Boundary.rpc` — hydrated refetch and
-      // client-first mount — without importing this package or `effect/unstable/rpc`.
+      // reads this tag to resolve a `Boundary.rpc` (hydrated refetch and
+      // client-first mount) without importing this package or `effect/unstable/rpc`.
       // With no `rpc` configured the seam is a stub whose `call` fails
       // descriptively, so a stray `Boundary.rpc` surfaces the misconfiguration.
       const rpc = options.rpc;
@@ -326,8 +326,8 @@ export function RouterLive<R>(
       } else {
         // `effect/unstable/rpc` (and its `msgpackr` serialization dependency) is loaded
         // lazily so it stays out of the base client bundle: an app with no
-        // `Boundary.rpc` never passes `rpc`, so this branch — and the async
-        // chunk it pulls — never runs. Only rpc-enabled apps pay the cost.
+        // `Boundary.rpc` never passes `rpc`, so this branch, and the async
+        // chunk it pulls, never runs. Only rpc-enabled apps pay the cost.
         const { RpcClient, RpcSerialization } = yield* Effect.promise(
           () => import("effect/unstable/rpc"),
         );

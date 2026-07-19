@@ -8,7 +8,7 @@ import type { ComponentSlot, LayoutNode, RouteNode, TreeE, TreeNode, TreeR } fro
  * A compiled layout level: its component slot plus the dedupe `patternPrefix` used
  * by the client outlet to key the level. A layout owns no path of its own, so the
  * prefix is derived as the **longest common path-segment prefix of every leaf in
- * the layout's subtree** — it changes (and the level re-renders) exactly when a
+ * the layout's subtree**: it changes (and the level re-renders) exactly when a
  * param shared by all those leaves changes, and persists otherwise.
  */
 export interface CompiledLayout {
@@ -35,7 +35,7 @@ export interface CompiledLeaf {
   /**
    * Path-param schema. Its **encoded** side is typed string-encodeable
    * (`Record<string, string | undefined>`) so it satisfies platform's
-   * `HttpApiEndpoint` `params` constraint without an `as any` cast — param schemas
+   * `HttpApiEndpoint` `params` constraint without an `as any` cast: param schemas
    * round-trip strings, so the `Schema.Struct` value is asserted to this shape.
    */
   readonly pathSchema: Schema.Codec<
@@ -167,9 +167,9 @@ interface LeafWork {
  * Pass 1 walks the tree: only **routes** contribute path parts (layouts own no
  * path), so each leaf's `parts` come solely from the route segments on its branch,
  * and its ancestor `LayoutNode`s are recorded in order. Pass 2 derives one shared
- * {@link CompiledLayout} per distinct layout node — its `patternPrefix` is the
- * longest common path prefix of that layout's subtree leaves — then assembles each
- * leaf's `layoutChain` (root → parent) and merged path schema.
+ * {@link CompiledLayout} per distinct layout node, whose `patternPrefix` is the
+ * longest common path prefix of that layout's subtree leaves. It then assembles
+ * each leaf's `layoutChain` (root → parent) and merged path schema.
  */
 export function compile(def: { root: TreeNode; notFound: () => Node<any, any> }): Compiled {
   const leafWorks: LeafWork[] = [];
@@ -247,7 +247,7 @@ export function compile(def: { root: TreeNode; notFound: () => Node<any, any> })
 
 /**
  * Builds the authoritative `HttpApi` for a compiled tree (S4): a single `"pages"`
- * group whose endpoints are GET endpoints — one per leaf — at each leaf's full path
+ * group holding one GET endpoint per leaf, at each leaf's full path
  * pattern, carrying `params: pathSchema`, `query: querySchema`, a
  * `Schema.String` (text/HTML) success, and a `RouterNotFound → 404` error. The tree
  * (not `HttpApi`) is the authoring surface; this is the single source of truth the

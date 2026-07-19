@@ -31,7 +31,7 @@ export const isRouterNotFound = (u: unknown): u is RouterNotFound =>
 
 /**
  * Tagged error raised by `Router.params` / `Router.query` when the live match does
- * not satisfy the requested fields — either no route is matched, or a requested
+ * not satisfy the requested fields: either no route is matched, or a requested
  * key is missing / fails its schema's `Type`-side validation. `source` records
  * whether the failure was on the path params or the query, and `keys` lists the
  * requested field names for diagnostics.

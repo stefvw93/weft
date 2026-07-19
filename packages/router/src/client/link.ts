@@ -8,8 +8,8 @@ import { match } from "../matcher";
  * the href resolves to a route (L1). Modified clicks, non-left buttons,
  * `target=_blank`, `download`, external origins, same-document (hash-only or
  * identical-URL) navigations, and non-matching hrefs fall through to the
- * browser's native handling — the interceptor leaves `preventDefault` untouched
- * in those cases (L2). The listener is removed on scope teardown (L3).
+ * browser's native handling. In those cases the interceptor leaves
+ * `preventDefault` untouched (L2). The listener is removed on scope teardown (L3).
  *
  * @param def - The router definition, used to decide whether an href matches a route.
  * @param navigate - The router's `navigate`, run via the captured runtime on a match.

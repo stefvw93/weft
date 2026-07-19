@@ -1,5 +1,5 @@
 /**
- * Internal seams for resolve-before-commit navigation — the resolved-commit
+ * Internal seams for resolve-before-commit navigation: the resolved-commit
  * stash and the staged match view. See `resolve-before-commit.specs.md`.
  *
  * **Not public API.** This module is deliberately not re-exported from
@@ -54,10 +54,10 @@ export interface ResolvedCommitSlot {
 }
 
 /**
- * Writes the stash on the (client) router instance: called by `navigate` /
- * popstate with the pre-run's `Exit`, immediately before the URL ref is set,
- * so the outlet emission triggered by that commit finds it (AC-R1/AC-R2).
- * Overwrites any stale entry — latest-wins already guarantees only the newest
+ * Writes the stash on the (client) router instance. Called by `navigate` /
+ * popstate with the pre-run's `Exit`, immediately before the URL ref is set, so
+ * the outlet emission triggered by that commit finds it (AC-R1/AC-R2).
+ * Overwrites any stale entry: latest-wins already guarantees only the newest
  * navigation reaches the commit step (AC-R6).
  */
 export function setResolvedCommit(router: Router["Service"], entry: ResolvedCommitEntry): void {
@@ -66,10 +66,10 @@ export function setResolvedCommit(router: Router["Service"], entry: ResolvedComm
 
 /**
  * Consumes the stash: returns the entry when its `url` equals the emission's
- * `match.url` and **clears the slot** (consume-exactly-once, AC-R2), else
- * `undefined` — a URL mismatch (stale entry) or an absent slot (server render,
- * hydration, non-navigation re-emission) falls through to the ordinary slot
- * invocation in `renderLevel`.
+ * `match.url` and **clears the slot** (consume-exactly-once, AC-R2). Otherwise
+ * returns `undefined`, so a URL mismatch (stale entry) or an absent slot (server
+ * render, hydration, non-navigation re-emission) falls through to the ordinary
+ * slot invocation in `renderLevel`.
  */
 export function takeResolvedCommit(
   router: Router["Service"],
@@ -86,13 +86,13 @@ export function takeResolvedCommit(
 
 /**
  * The staged `Router` view the pre-run executes under (AC-R4): identical to
- * `router` except `currentMatch.get` resolves to the **target** match — the
- * URL ref has not moved yet, and one-shot reads (`Router.params`,
- * `Router.query`, `currentMatch.get`) inside the pre-running component body
- * must decode the destination, not the page being left. `currentMatch.changes`
- * (and `navigate` / `httpApiClient` / `navigating`) delegate to the live
- * service, so reactive subscriptions — which occur at render/mount time,
- * post-commit — observe the committed match onward.
+ * `router` except `currentMatch.get` resolves to the **target** match. The URL
+ * ref has not moved yet, and one-shot reads (`Router.params`, `Router.query`,
+ * `currentMatch.get`) inside the pre-running component body must decode the
+ * destination, not the page being left. `currentMatch.changes` (and `navigate` /
+ * `httpApiClient` / `navigating`) delegate to the live service, so reactive
+ * subscriptions, which occur at render/mount time post-commit, observe the
+ * committed match onward.
  */
 export function stageMatch(router: Router["Service"], target: RouteMatch): Router["Service"] {
   return {
@@ -105,15 +105,15 @@ export function stageMatch(router: Router["Service"], target: RouteMatch): Route
 }
 
 /**
- * Pre-runs a matched leaf's component effect: invokes the slot with the
- * target match's handler-arg props (`{ path, query }` — exactly what
- * `renderLevel` passes), under the {@link stageMatch | staged view}, and
- * captures the outcome as an `Exit` (AC-R1/AC-R7). The returned effect never
- * fails — failures are folded into the `Exit` for stash-and-replay — but it
- * is **interruptible**: a superseding navigation interrupts the whole pre-run
- * fiber (AC-R6). Requires the caller's runtime context (the `RouterLive`
- * layer's — `Router`, `AppRpcClientTag`, app services), which is what makes
- * the pre-run possible at all (Feasibility §1).
+ * Pre-runs a matched leaf's component effect: invokes the slot with the target
+ * match's handler-arg props (`{ path, query }`, exactly what `renderLevel`
+ * passes), under the {@link stageMatch | staged view}, and captures the outcome
+ * as an `Exit` (AC-R1/AC-R7). The returned effect never fails, since failures
+ * are folded into the `Exit` for stash-and-replay, but it is **interruptible**:
+ * a superseding navigation interrupts the whole pre-run fiber (AC-R6). Requires
+ * the caller's runtime context (the `RouterLive` layer's: `Router`,
+ * `AppRpcClientTag`, app services), which is what makes the pre-run possible at
+ * all (Feasibility §1).
  */
 export function preRunLeaf(
   router: Router["Service"],
@@ -124,8 +124,8 @@ export function preRunLeaf(
       return Effect.succeed(Exit.succeed<Renderable>(null));
     }
     const node = target.leaf.component({ path: target.path, query: target.query });
-    // Static markup carries its descriptor and is never executed by the renderer —
-    // mirror that: nothing to resolve, succeed with the node itself. Likewise a
+    // Static markup carries its descriptor and is never executed by the renderer,
+    // so mirror that: nothing to resolve, succeed with the node itself. Likewise a
     // non-Effect renderable (plain descriptor, primitive) is already resolved.
     if (!Effect.isEffect(node) || getElementDescriptor(node) !== undefined) {
       return Effect.succeed(Exit.succeed(node as Renderable));
