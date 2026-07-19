@@ -1,6 +1,6 @@
 # @weftui/router
 
-> Universal nested router for [Weft](https://weftui.dev) — one route tree, rendered on the server and the client, with type-safe params and `href`s.
+> Universal nested router for [Weft](https://weftui.dev): one route tree, rendered on the server and the client, with type-safe params and `href`s.
 
 Maps a URL to a nested page tree that renders identically on the server (`@weftui/router/server`) and the client (`@weftui/router/client`). Route params and query are decoded through [Effect Schema](https://effect.website/docs/schema/introduction/), `href` builds type-safe URLs that round-trip with the matcher, layouts persist across navigations, and `Router.lazy` code-splits a branch while keeping its descriptor eager.
 
@@ -26,7 +26,7 @@ Weft tracks Effect 4's beta line. This release is built and tested against `effe
 | `Router.params` / `Router.query` | Read the live match (snapshot); `…Stream` variants for reactive query-in-place updates. |
 | `Router.navigating`              | Reactive `Idle`/`Navigating` signal for pending UI during deferred-commit navigation.   |
 | `href(ref, args)`                | Builds a type-safe URL for a leaf route reference.                                      |
-| `RouterApp` / `RouterOutlet`     | The universal router root node — render on both server and client.                      |
+| `RouterApp` / `RouterOutlet`     | The universal router root node: render on both server and client.                       |
 | `RouterLive` (client)            | History-backed `Router` layer; also provides the `AppRpcClientTag` seam.                |
 | `RouterServer` (server)          | `RouterServer.render` / `RouterServer.toWebHandler` for SSR dispatch.                   |
 
@@ -54,7 +54,7 @@ href(userRoute, { path: { id: 42 } }); // "/users/42"
 - Full docs: **https://weftui.dev**
 - `@weftui/router` API reference: **https://weftui.dev/docs/reference/router**
 - Routing guide: **https://weftui.dev/docs/how-to/add-routing**
-- Bundled with this package: see the [`./docs`](./docs) directory in `node_modules/@weftui/router/docs` — the complete tutorial, how-to, explanation, and reference tree ships on disk for offline and agent use.
+- Bundled with this package: see the [`./docs`](./docs) directory in `node_modules/@weftui/router/docs`. The complete tutorial, how-to, explanation, and reference tree ships on disk for offline and agent use.
 
 ## License
 

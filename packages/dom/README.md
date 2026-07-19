@@ -1,8 +1,8 @@
 # @weftui/dom
 
-> The DOM renderer for [Weft](https://weftui.dev) — mount and hydrate in the browser, render to string or stream on the server.
+> The DOM renderer for [Weft](https://weftui.dev): mount and hydrate in the browser, render to string or stream on the server.
 
-Takes a [`@weftui/core`](https://weftui.dev/docs/reference/core) node tree and renders it to real DOM on the client or to HTML on the server. There is no virtual DOM and no diffing — streams patch the tree in place. The same tree renders to HTML with `renderToStringHydratable` and `hydrate()`s flash-free on the client.
+Takes a [`@weftui/core`](https://weftui.dev/docs/reference/core) node tree and renders it to real DOM on the client or to HTML on the server. There is no virtual DOM and no diffing: streams patch the tree in place. The same tree renders to HTML with `renderToStringHydratable` and `hydrate()`s flash-free on the client.
 
 Two entry points: `@weftui/dom/client` for the browser, `@weftui/dom/server` for Node.
 
@@ -22,21 +22,21 @@ Weft tracks Effect 4's beta line. This release is built and tested against `effe
 
 | Export                             | What it does                                                                                                                                                                             |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `WeftApp.make(layer?)`             | Creates an app: one lazily-built `ManagedRuntime` (the layer), one root `Scope`, one error hub. Synchronous — the layer builds on first mount.                                           |
-| `WeftApp.mount(app, node, root)`   | Renders a node into `root` as a new root of `app`, starting all streams. Returns `Effect<RootHandle, …>` with `R = never` — runs via bare `Effect.runPromise`.                           |
-| `WeftApp.hydrate(app, node, root)` | Adopts server-rendered DOM **in place** as a new root of `app` and resumes reactivity — the flash-free path.                                                                             |
+| `WeftApp.make(layer?)`             | Creates an app: one lazily-built `ManagedRuntime` (the layer), one root `Scope`, one error hub. Synchronous: the layer builds on first mount.                                            |
+| `WeftApp.mount(app, node, root)`   | Renders a node into `root` as a new root of `app`, starting all streams. Returns `Effect<RootHandle, …>` with `R = never`, so it runs via bare `Effect.runPromise`.                      |
+| `WeftApp.hydrate(app, node, root)` | Adopts server-rendered DOM **in place** as a new root of `app` and resumes reactivity: the flash-free path.                                                                              |
 | `WeftApp.errors(app)`              | `Stream` of errors that escaped every user-level handler (stream failures, outermost-boundary escapes, event-handler failures/defects). Subscribing suppresses the default log fallback. |
 | `WeftApp.dispose(app)`             | Tears down every root, then releases the app layer, then shuts the error hub down. Idempotent.                                                                                           |
-| `RootHandle`                       | Returned by `mount`/`hydrate`. `unmount()` closes that root's scope only — other roots and the app runtime are untouched. Idempotent.                                                    |
+| `RootHandle`                       | Returned by `mount`/`hydrate`. `unmount()` closes that root's scope only; other roots and the app runtime are untouched. Idempotent.                                                     |
 
 ### `@weftui/dom/server`
 
-| Export                           | What it does                                                                     |
-| -------------------------------- | -------------------------------------------------------------------------------- |
-| `renderToString`                 | Renders a node to a complete HTML string (static, non-hydrated).                 |
-| `renderToStringHydratable`       | Same, plus the hydration markers `hydrate` needs. Pair with `hydrate`.           |
-| `renderToStream` / `…Hydratable` | Streaming variants — emit HTML chunks as the tree resolves, for progressive SSR. |
-| `renderToHydratableShell`        | Produces the document scaffold for servers that assemble the shell separately.   |
+| Export                           | What it does                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| `renderToString`                 | Renders a node to a complete HTML string (static, non-hydrated).                |
+| `renderToStringHydratable`       | Same, plus the hydration markers `hydrate` needs. Pair with `hydrate`.          |
+| `renderToStream` / `…Hydratable` | Streaming variants: emit HTML chunks as the tree resolves, for progressive SSR. |
+| `renderToHydratableShell`        | Produces the document scaffold for servers that assemble the shell separately.  |
 
 The package root re-exports the renderer error types: `HydrationMismatchError`, `UnsupportedNodeTypeError`, `RenderError`, `StreamSubscriptionError`.
 
@@ -64,7 +64,7 @@ void Effect.runPromise(WeftApp.mount(app, Counter(), document.getElementById("ro
 - Full docs: **https://weftui.dev**
 - `@weftui/dom` API reference: **https://weftui.dev/docs/reference/dom**
 - Server-side rendering guide: **https://weftui.dev/docs/how-to/render-on-the-server**
-- Bundled with this package: see the [`./docs`](./docs) directory in `node_modules/@weftui/dom/docs` — the complete tutorial, how-to, explanation, and reference tree ships on disk for offline and agent use.
+- Bundled with this package: see the [`./docs`](./docs) directory in `node_modules/@weftui/dom/docs`. The complete tutorial, how-to, explanation, and reference tree ships on disk for offline and agent use.
 
 ## License
 

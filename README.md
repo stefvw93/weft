@@ -4,16 +4,20 @@
 
 > Reactive UI, woven from [Effect](https://effect.website).
 
-Frontend at scale is hard. Real applications need robust API orchestration, error handling, retries, and telemetry. [Effect](https://effect.website) solves these problems elegantly; Weft brings the same patterns to the UI layer — in the browser and on the server.
+Frontend at scale is hard. Real applications need robust API orchestration, error handling, retries, and telemetry. [Effect](https://effect.website) solves these problems elegantly, and Weft brings the same patterns to the UI layer, in the browser and on the server.
 
-Weft is a reactive DOM library where every node _is_ an Effect. Components are plain functions that return `Node<E, R>` — a type alias for `Effect.Effect<ElementDescriptor, E, R>` — so error and requirement channels accumulate through the tree and every Effect combinator applies to nodes directly. Your component tree is the **warp**, the fixed structure held under tension; streams are the **weft**, the live thread drawn across it. Streams drive all updates — there is no virtual DOM, no diffing — and the same tree renders to HTML on the server and `hydrate()`s in place on the client, flash-free. No JSX. The full model is explained in [The Rendering Model](./docs/explanation/rendering-model.md).
+Weft is a reactive DOM library where every node _is_ an Effect. Components are plain functions that return `Node<E, R>`, a type alias for `Effect.Effect<ElementDescriptor, E, R>`. Error and requirement channels accumulate through the tree, and every Effect combinator applies to nodes directly.
+
+Your component tree is the **warp**, the fixed structure held under tension; streams are the **weft**, the live thread drawn across it. Streams drive all updates, so there is no virtual DOM and no diffing.
+
+The same tree renders to HTML on the server and `hydrate()`s in place on the client, flash-free. No JSX. The full model is explained in [The Rendering Model](./docs/explanation/rendering-model.md).
 
 > **Early Development Notice**: Weft is in active early development. APIs may change rapidly. Not recommended for production use yet.
 
 ## Features
 
 - **Effect-first architecture**: Services, Layers, and dependency injection across client and server
-- **Combinator API**: Build trees with `h`, `h.fragment`, and `Component.gen` / `Component.make` — no JSX, no build-tool plugins
+- **Combinator API**: Build trees with `h`, `h.fragment`, and `Component.gen` / `Component.make`, with no JSX and no build-tool plugins
 - **Type-safe channels**: Effect's `E` and `R` channels propagate through the full component tree
 - **Ephemeral components**: Components run once, streams drive all updates
 - **Error boundaries**: Six failure-catch `Boundary.*` variants, plus `Boundary.suspend` and the `Boundary.rpc` server-data seam
@@ -37,7 +41,7 @@ npm install @weftui/core @weftui/dom @weftui/router effect@beta
 
 Weft tracks Effect 4's beta line. This release is built and tested against `effect@4.0.0-beta.98`; the peer range accepts newer 4.0 betas, which may contain upstream breaking changes.
 
-**New to Effect?** Check out the [Effect documentation](https://effect.website/docs/getting-started/introduction) to learn the fundamentals — the docs assume you know them.
+**New to Effect?** Check out the [Effect documentation](https://effect.website/docs/getting-started/introduction) to learn the fundamentals. These docs assume you know them.
 
 ## A minimal app
 
@@ -68,11 +72,11 @@ Full documentation lives in [`docs/`](./docs/index.md). Pick your entry point by
 |                                                          |                                                                                                                                                                       |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **[Tutorial](./docs/tutorial/01-your-first-app.md)**     | Learning-oriented. A four-step guided path: your first app → reactivity → services and async → errors and server rendering.                                           |
-| **[How-to guides](./docs/how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing — plus recipes for forms, keyed lists, refs, and more.                        |
+| **[How-to guides](./docs/how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing, plus recipes for forms, keyed lists, refs, and more.                         |
 | **[Explanation](./docs/explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                             |
 | **[Reference](./docs/reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](./docs/reference/core.md), [`@weftui/dom`](./docs/reference/dom.md), [`@weftui/router`](./docs/reference/router.md). |
 
-New to the model itself? Read [The Rendering Model](./docs/explanation/rendering-model.md) — why there is no virtual DOM, and what "streams are the weft" means.
+New to the model itself? Read [The Rendering Model](./docs/explanation/rendering-model.md): why there is no virtual DOM, and what "streams are the weft" means.
 
 ## Examples
 
