@@ -253,7 +253,7 @@ interface AHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   download?: HTMLAttributeSource<string>;
   /**
-   * The URL that the hyperlink points to. Links are not restricted to HTTP-based URLs — they can use any URL scheme supported by browsers: Sections of a page with fragment URLs Pieces of media files with media fragments Telephone numbers with tel: URLs Email addresses with mailto: URLs While web browsers may not support other URL schemes, web sites can with registerProtocolHandler()
+   * The URL that the hyperlink points to. Links are not restricted to HTTP-based URLs, and they can use any URL scheme supported by browsers: Sections of a page with fragment URLs Pieces of media files with media fragments Telephone numbers with tel: URLs Email addresses with mailto: URLs While web browsers may not support other URL schemes, web sites can with registerProtocolHandler()
    */
   href?: HTMLAttributeSource<string>;
   /**
@@ -634,7 +634,7 @@ interface ButtonHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   formnovalidate?: HTMLAttributeSource<boolean>;
   /**
-   * If the button is a submit button, this attribute is a author-defined name or standardized, underscore-prefixed keyword indicating where to display the response from submitting the form. This is the name of, or keyword for, a browsing context (a tab, window, or `<iframe>`). If this attribute is specified, it overrides the target attribute of the button's form owner. The following keywords have special meanings: _self: Load the response into the same browsing context as the current one. This is the default if the attribute is not specified. _blank: Load the response into a new unnamed browsing context — usually a new tab or window, depending on the user's browser settings. _parent: Load the response into the parent browsing context of the current one. If there is no parent, this option behaves the same way as _self. _top: Load the response into the top-level browsing context (that is, the browsing context that is an ancestor of the current one, and has no parent). If there is no parent, this option behaves the same way as _self.
+   * If the button is a submit button, this attribute is a author-defined name or standardized, underscore-prefixed keyword indicating where to display the response from submitting the form. This is the name of, or keyword for, a browsing context (a tab, window, or `<iframe>`). If this attribute is specified, it overrides the target attribute of the button's form owner. The following keywords have special meanings: _self: Load the response into the same browsing context as the current one. This is the default if the attribute is not specified. _blank: Load the response into a new unnamed browsing context, usually a new tab or window, depending on the user's browser settings. _parent: Load the response into the parent browsing context of the current one. If there is no parent, this option behaves the same way as _self. _top: Load the response into the top-level browsing context (that is, the browsing context that is an ancestor of the current one, and has no parent). If there is no parent, this option behaves the same way as _self.
    */
   formtarget?: HTMLAttributeSource<string>;
   /**
@@ -756,7 +756,7 @@ interface DelHTMLAttributes<T> extends HTMLAttributes<T> {
 }
 interface DetailsHTMLAttributes<T> extends HTMLAttributes<T> {
   /**
-   * This Boolean attribute indicates whether or not the details — that is, the contents of the `<details>` element — are currently visible. The details are shown when this attribute exists, or hidden when this attribute is absent. By default this attribute is absent which means the details are not visible. Note: You have to remove this attribute entirely to make the details hidden. open="false" makes the details visible because this attribute is Boolean.
+   * This Boolean attribute indicates whether or not the details (that is, the contents of the `<details>` element) are currently visible. The details are shown when this attribute exists, or hidden when this attribute is absent. By default this attribute is absent which means the details are not visible. Note: You have to remove this attribute entirely to make the details hidden. open="false" makes the details visible because this attribute is Boolean.
    */
   open?: HTMLAttributeSource<boolean>;
 }
@@ -796,7 +796,7 @@ interface FieldsetHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   disabled?: HTMLAttributeSource<boolean>;
   /**
-   * This attribute takes the value of the id attribute of a `<form>` element you want the `<fieldset>` to be part of, even if it is not inside the form. Please note that usage of this is confusing — if you want the `<input>` elements inside the `<fieldset>` to be associated with the form, you need to use the form attribute directly on those elements. You can check which elements are associated with a form via JavaScript, using HTMLFormElement.elements.
+   * This attribute takes the value of the id attribute of a `<form>` element you want the `<fieldset>` to be part of, even if it is not inside the form. Please note that usage of this is confusing: if you want the `<input>` elements inside the `<fieldset>` to be associated with the form, you need to use the form attribute directly on those elements. You can check which elements are associated with a form via JavaScript, using HTMLFormElement.elements.
    */
   form?: HTMLAttributeSource<string>;
   /**
@@ -1000,7 +1000,7 @@ interface IframeHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   referrerpolicy?: HTMLAttributeSource<HTMLReferrerPolicy>;
   /**
-   * Applies extra restrictions to the content in the frame. The value of the attribute can either be empty to apply all restrictions, or space-separated tokens to lift particular restrictions: allow-downloads-without-user-activation : Allows for downloads to occur without a gesture from the user. allow-downloads: Allows for downloads to occur with a gesture from the user. allow-forms: Allows the resource to submit forms. If this keyword is not used, form submission is blocked. allow-modals: Lets the resource open modal windows. allow-orientation-lock: Lets the resource lock the screen orientation. allow-pointer-lock: Lets the resource use the Pointer Lock API. allow-popups: Allows popups (such as window.open(), target="_blank", or showModalDialog()). If this keyword is not used, the popup will silently fail to open. allow-popups-to-escape-sandbox: Lets the sandboxed document open new windows without those windows inheriting the sandboxing. For example, this can safely sandbox an advertisement without forcing the same restrictions upon the page the ad links to. allow-presentation: Lets the resource start a presentation session. allow-same-origin: If this token is not used, the resource is treated as being from a special origin that always fails the same-origin policy (potentially preventing access to data storage/cookies and some JavaScript APIs). allow-scripts: Lets the resource run scripts (but not create popup windows). allow-storage-access-by-user-activation : Lets the resource request access to the parent's storage capabilities with the Storage Access API. allow-top-navigation: Lets the resource navigate the top-level browsing context (the one named _top). allow-top-navigation-by-user-activation: Lets the resource navigate the top-level browsing context, but only if initiated by a user gesture. Notes about sandboxing: When the embedded document has the same origin as the embedding page, it is strongly discouraged to use both allow-scripts and allow-same-origin, as that lets the embedded document remove the sandbox attribute — making it no more secure than not using the sandbox attribute at all. Sandboxing is useless if the attacker can display content outside a sandboxed iframe — such as if the viewer opens the frame in a new tab. Such content should be also served from a separate origin to limit potential damage. The sandbox attribute is unsupported in Internet Explorer 9 and earlier.
+   * Applies extra restrictions to the content in the frame. The value of the attribute can either be empty to apply all restrictions, or space-separated tokens to lift particular restrictions: allow-downloads-without-user-activation : Allows for downloads to occur without a gesture from the user. allow-downloads: Allows for downloads to occur with a gesture from the user. allow-forms: Allows the resource to submit forms. If this keyword is not used, form submission is blocked. allow-modals: Lets the resource open modal windows. allow-orientation-lock: Lets the resource lock the screen orientation. allow-pointer-lock: Lets the resource use the Pointer Lock API. allow-popups: Allows popups (such as window.open(), target="_blank", or showModalDialog()). If this keyword is not used, the popup will silently fail to open. allow-popups-to-escape-sandbox: Lets the sandboxed document open new windows without those windows inheriting the sandboxing. For example, this can safely sandbox an advertisement without forcing the same restrictions upon the page the ad links to. allow-presentation: Lets the resource start a presentation session. allow-same-origin: If this token is not used, the resource is treated as being from a special origin that always fails the same-origin policy (potentially preventing access to data storage/cookies and some JavaScript APIs). allow-scripts: Lets the resource run scripts (but not create popup windows). allow-storage-access-by-user-activation : Lets the resource request access to the parent's storage capabilities with the Storage Access API. allow-top-navigation: Lets the resource navigate the top-level browsing context (the one named _top). allow-top-navigation-by-user-activation: Lets the resource navigate the top-level browsing context, but only if initiated by a user gesture. Notes about sandboxing: When the embedded document has the same origin as the embedding page, it is strongly discouraged to use both allow-scripts and allow-same-origin, as that lets the embedded document remove the sandbox attribute, making it no more secure than not using the sandbox attribute at all. Sandboxing is useless if the attacker can display content outside a sandboxed iframe, such as if the viewer opens the frame in a new tab. Such content should be also served from a separate origin to limit potential damage. The sandbox attribute is unsupported in Internet Explorer 9 and earlier.
    */
   sandbox?: HTMLAttributeSource<HTMLIframeSandbox>;
   /**
@@ -1116,7 +1116,7 @@ interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   autocorrect?: HTMLAttributeSource<string>;
   /**
-   * Introduced in the HTML Media Capture specification and valid for the file input type only, the capture attribute defines which media—microphone, video, or camera—should be used to capture a new file for upload with file upload control in supporting scenarios. See the file input type.
+   * Introduced in the HTML Media Capture specification and valid for the file input type only, the capture attribute defines which media (microphone, video, or camera) should be used to capture a new file for upload with file upload control in supporting scenarios. See the file input type.
    */
   capture?: HTMLAttributeSource<string>;
   /**
@@ -1218,7 +1218,7 @@ interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   required?: HTMLAttributeSource<boolean>;
   /**
-   * The results attribute—supported only by Safari—is a numeric value that lets you override the maximum number of entries to be displayed in the `<input>` element's natively-provided drop-down menu of previous search queries.The value must be a non-negative decimal number. If not provided, or an invalid value is given, the browser's default maximum number of entries is used.
+   * The results attribute (supported only by Safari) is a numeric value that lets you override the maximum number of entries to be displayed in the `<input>` element's natively-provided drop-down menu of previous search queries.The value must be a non-negative decimal number. If not provided, or an invalid value is given, the browser's default maximum number of entries is used.
    */
   results?: HTMLAttributeSource<string>;
   /**
@@ -1230,7 +1230,7 @@ interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   src?: HTMLAttributeSource<string>;
   /**
-   * Valid for the numeric input types, including number, date/time input types, and range, the step attribute is a number that specifies the granularity that the value must adhere to. If not explicitly included: step defaults to 1 for number and range. For the date/time input types, step is expressed in seconds, with the default step being 60 seconds. The step scale factor is 1000 (which converts the seconds to milliseconds, as used in other algorithms). The value must be a positive number—integer or float—or the special value any, which means no stepping is implied, and any value is allowed (barring other constraints, such as min and max). If any is not explicity set, valid values for the number, date/time input types, and range input types are equal to the basis for stepping — the min value and increments of the step value, up to the max value, if specified. For example, if you have `<input type="number" min="10" step="2">`, then any even integer, 10 or greater, is valid. If omitted, `<input type="number">`, any integer is valid, but floats (like 4.2) are not valid, because step defaults to 1. For 4.2 to be valid, step would have had to be set to any, 0.1, 0.2, or any the min value would have had to be a number ending in .2, such as `<input type="number" min="-5.2">` Note: When the data entered by the user doesn't adhere to the stepping configuration, the value is considered invalid in contraint validation and will match the :invalid pseudoclass. See Client-side validation for more information.
+   * Valid for the numeric input types, including number, date/time input types, and range, the step attribute is a number that specifies the granularity that the value must adhere to. If not explicitly included: step defaults to 1 for number and range. For the date/time input types, step is expressed in seconds, with the default step being 60 seconds. The step scale factor is 1000 (which converts the seconds to milliseconds, as used in other algorithms). The value must be a positive number (integer or float) or the special value any, which means no stepping is implied, and any value is allowed (barring other constraints, such as min and max). If any is not explicity set, valid values for the number, date/time input types, and range input types are equal to the basis for stepping: the min value and increments of the step value, up to the max value, if specified. For example, if you have `<input type="number" min="10" step="2">`, then any even integer, 10 or greater, is valid. If omitted, `<input type="number">`, any integer is valid, but floats (like 4.2) are not valid, because step defaults to 1. For 4.2 to be valid, step would have had to be set to any, 0.1, 0.2, or any the min value would have had to be a number ending in .2, such as `<input type="number" min="-5.2">` Note: When the data entered by the user doesn't adhere to the stepping configuration, the value is considered invalid in contraint validation and will match the :invalid pseudoclass. See Client-side validation for more information.
    */
   step?: HTMLAttributeSource<number | string>;
   /**
@@ -1284,7 +1284,7 @@ interface KeygenHTMLAttributes<T> extends HTMLAttributes<T> {
 }
 interface LabelHTMLAttributes<T> extends HTMLAttributes<T> {
   /**
-   * The value of the for attribute must be a single id for a labelable form-related element in the same document as the `<label>` element. So, any given label element can be associated with only one form control. The first element in the document with an id attribute matching the value of the for attribute is the labeled control for this label element — if the element with that id is actually a labelable element. If it is not a labelable element, then the for attribute has no effect. If there are other elements that also match the id value, later in the document, they are not considered. Multiple label elements can be given the same value for their for attribute; doing so causes the associated form control (the form control that for value references) to have multiple labels. Note: A `<label>` element can have both a for attribute and a contained control element, as long as the for attribute points to the contained control element.
+   * The value of the for attribute must be a single id for a labelable form-related element in the same document as the `<label>` element. So, any given label element can be associated with only one form control. The first element in the document with an id attribute matching the value of the for attribute is the labeled control for this label element. If the element with that id is actually a labelable element. If it is not a labelable element, then the for attribute has no effect. If there are other elements that also match the id value, later in the document, they are not considered. Multiple label elements can be given the same value for their for attribute; doing so causes the associated form control (the form control that for value references) to have multiple labels. Note: A `<label>` element can have both a for attribute and a contained control element, as long as the for attribute points to the contained control element.
    */
   for?: HTMLAttributeSource<string>;
   /** */
@@ -1336,11 +1336,11 @@ interface LinkHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   imagesrcset?: HTMLAttributeSource<string>;
   /**
-   * Contains inline metadata — a base64-encoded cryptographic hash of the resource (file) you're telling the browser to fetch. The browser can use this to verify that the fetched resource has been delivered free of unexpected manipulation. See Subresource Integrity.
+   * Contains inline metadata: a base64-encoded cryptographic hash of the resource (file) you're telling the browser to fetch. The browser can use this to verify that the fetched resource has been delivered free of unexpected manipulation. See Subresource Integrity.
    */
   integrity?: HTMLAttributeSource<string>;
   /**
-   * This attribute specifies the media that the linked resource applies to. Its value must be a media type / media query. This attribute is mainly useful when linking to external stylesheets — it allows the user agent to pick the best adapted one for the device it runs on. Notes: In HTML 4, this can only be a simple white-space-separated list of media description literals, i.e., media types and groups, where defined and allowed as values for this attribute, such as print, screen, aural, braille. HTML5 extended this to any kind of media queries, which are a superset of the allowed values of HTML 4. Browsers not supporting CSS3 Media Queries won't necessarily recognize the adequate link; do not forget to set fallback links, the restricted set of media queries defined in HTML 4.
+   * This attribute specifies the media that the linked resource applies to. Its value must be a media type / media query. This attribute is mainly useful when linking to external stylesheets: it allows the user agent to pick the best adapted one for the device it runs on. Notes: In HTML 4, this can only be a simple white-space-separated list of media description literals, i.e., media types and groups, where defined and allowed as values for this attribute, such as print, screen, aural, braille. HTML5 extended this to any kind of media queries, which are a superset of the allowed values of HTML 4. Browsers not supporting CSS3 Media Queries won't necessarily recognize the adequate link; do not forget to set fallback links, the restricted set of media queries defined in HTML 4.
    */
   media?: HTMLAttributeSource<number | string | (number | string)[]>;
   /**
@@ -1472,7 +1472,7 @@ interface MetaHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   content?: HTMLAttributeSource<string>;
   /**
-   * Defines a pragma directive. The attribute is named http-equiv(alent) because all the allowed values are names of particular HTTP headers: content-security-policy Allows page authors to define a content policy for the current page. Content policies mostly specify allowed server origins and script endpoints which help guard against cross-site scripting attacks. content-type Declares the MIME type and character encoding of the document. If specified, the content attribute must have the value "text/html; charset=utf-8". This is equivalent to a `<meta>` element with the charset attribute specified, and carries the same restriction on placement within the document. Note: Can only be used in documents served with a text/html — not in documents served with an XML MIME type. default-style Sets the name of the default CSS style sheet set. x-ua-compatible If specified, the content attribute must have the value "IE=edge". User agents are required to ignore this pragma. refresh This instruction specifies: The number of seconds until the page should be reloaded - only if the content attribute contains a positive integer. The number of seconds until the page should redirect to another - only if the content attribute contains a positive integer followed by the string ';url=', and a valid URL. Accessibility concerns Pages set with a refresh value run the risk of having the time interval being too short. People navigating with the aid of assistive technology such as a screen reader may be unable to read through and understand the page's content before being automatically redirected. The abrupt, unannounced updating of the page content may also be disorienting for people experiencing low vision conditions. MDN Understanding WCAG, Guideline 2.1 explanations MDN Understanding WCAG, Guideline 3.1 explanations Understanding Success Criterion 2.2.1 | W3C Understanding WCAG 2.0 Understanding Success Criterion 2.2.4 | W3C Understanding WCAG 2.0 Understanding Success Criterion 3.2.5 | W3C Understanding WCAG 2.0
+   * Defines a pragma directive. The attribute is named http-equiv(alent) because all the allowed values are names of particular HTTP headers: content-security-policy Allows page authors to define a content policy for the current page. Content policies mostly specify allowed server origins and script endpoints which help guard against cross-site scripting attacks. content-type Declares the MIME type and character encoding of the document. If specified, the content attribute must have the value "text/html; charset=utf-8". This is equivalent to a `<meta>` element with the charset attribute specified, and carries the same restriction on placement within the document. Note: Can only be used in documents served with a text/html, not in documents served with an XML MIME type. default-style Sets the name of the default CSS style sheet set. x-ua-compatible If specified, the content attribute must have the value "IE=edge". User agents are required to ignore this pragma. refresh This instruction specifies: The number of seconds until the page should be reloaded - only if the content attribute contains a positive integer. The number of seconds until the page should redirect to another - only if the content attribute contains a positive integer followed by the string ';url=', and a valid URL. Accessibility concerns Pages set with a refresh value run the risk of having the time interval being too short. People navigating with the aid of assistive technology such as a screen reader may be unable to read through and understand the page's content before being automatically redirected. The abrupt, unannounced updating of the page content may also be disorienting for people experiencing low vision conditions. MDN Understanding WCAG, Guideline 2.1 explanations MDN Understanding WCAG, Guideline 3.1 explanations Understanding Success Criterion 2.2.1 | W3C Understanding WCAG 2.0 Understanding Success Criterion 2.2.4 | W3C Understanding WCAG 2.0 Understanding Success Criterion 3.2.5 | W3C Understanding WCAG 2.0
    */
   "http-equiv"?: HTMLAttributeSource<
     "content-type" | "default-style" | "refresh" | "x-ua-compatible" | "content-security-policy"
@@ -1700,7 +1700,7 @@ interface ScriptHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   crossorigin?: HTMLAttributeSource<HTMLCrossorigin>;
   /**
-   * This Boolean attribute is set to indicate to a browser that the script is meant to be executed after the document has been parsed, but before firing DOMContentLoaded. Scripts with the defer attribute will prevent the DOMContentLoaded event from firing until the script has loaded and finished evaluating. This attribute must not be used if the src attribute is absent (i.e. for inline scripts), in this case it would have no effect. The defer attribute has no effect on module scripts — they defer by default. Scripts with the defer attribute will execute in the order in which they appear in the document. This attribute allows the elimination of parser-blocking JavaScript where the browser would have to load and evaluate scripts before continuing to parse. async has a similar effect in this case.
+   * This Boolean attribute is set to indicate to a browser that the script is meant to be executed after the document has been parsed, but before firing DOMContentLoaded. Scripts with the defer attribute will prevent the DOMContentLoaded event from firing until the script has loaded and finished evaluating. This attribute must not be used if the src attribute is absent (i.e. for inline scripts), in this case it would have no effect. The defer attribute has no effect on module scripts: they defer by default. Scripts with the defer attribute will execute in the order in which they appear in the document. This attribute allows the elimination of parser-blocking JavaScript where the browser would have to load and evaluate scripts before continuing to parse. async has a similar effect in this case.
    */
   defer?: HTMLAttributeSource<boolean>;
   /**
@@ -1712,7 +1712,7 @@ interface ScriptHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   language?: HTMLAttributeSource<string>;
   /**
-   * This Boolean attribute is set to indicate that the script should not be executed in browsers that support ES2015 modules — in effect, this can be used to serve fallback scripts to older browsers that do not support modular JavaScript code.
+   * This Boolean attribute is set to indicate that the script should not be executed in browsers that support ES2015 modules. In effect, this can be used to serve fallback scripts to older browsers that do not support modular JavaScript code.
    */
   nomodule?: HTMLAttributeSource<boolean>;
   /**
@@ -2142,7 +2142,7 @@ interface TrackHTMLAttributes<T> extends HTMLAttributes<T> {
    */
   label?: HTMLAttributeSource<string>;
   /**
-   * Address of the track (.vtt file). Must be a valid URL. This attribute must be specified and its URL value must have the same origin as the document — unless the `<audio>` or `<video>` parent element of the track element has a crossorigin attribute.
+   * Address of the track (.vtt file). Must be a valid URL. This attribute must be specified and its URL value must have the same origin as the document, unless the `<audio>` or `<video>` parent element of the track element has a crossorigin attribute.
    */
   src?: HTMLAttributeSource<string>;
   /**
@@ -2599,7 +2599,7 @@ export interface HTMLElements {
    */
   colgroup: ColgroupHTMLAttributes<HTMLTableColElement>;
   /**
-   * The `<content>` HTML element—an obsolete part of the Web Components suite of technologies—was used inside of Shadow DOM as an insertion point, and wasn't meant to be used in ordinary HTML. It has now been replaced by the `<slot>` element, which creates a point in the DOM at which a shadow DOM can be inserted.
+   * The `<content>` HTML element (an obsolete part of the Web Components suite of technologies) was used inside of Shadow DOM as an insertion point, and wasn't meant to be used in ordinary HTML. It has now been replaced by the `<slot>` element, which creates a point in the DOM at which a shadow DOM can be inserted.
    *
    * **Content:** Flow content.
    *
@@ -2662,7 +2662,7 @@ export interface HTMLElements {
    *
    * | Attribute | Type | Description
    * |--|--|--
-   * | `open` | _Boolean_ | This Boolean attribute indicates whether or not the details — that is, the contents of the `<details>` element — are currently visible.
+   * | `open` | _Boolean_ | This Boolean attribute indicates whether or not the details (that is, the contents of the `<details>` element) are currently visible.
    * | `tabindex` | _Int_ | .
    *
    * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details)
@@ -3014,7 +3014,7 @@ export interface HTMLElements {
    * | `autocomplete` | _AutoComplete_ | (Not a Boolean attribute!) The autocomplete attribute takes as its value a space-separated string that describes what, if any, type of autocomplete functionality the input should provide.
    * | `autocorrect` | _String_ | A Safari extension, the autocorrect attribute is a string which indicates whether or not to activate automatic correction while the user is editing this field.
    * | `autofocus` | _String_ | A Boolean attribute which, if present, indicates that the input should automatically have focus when the page has finished loading (or when the `<dialog>` containing the element has been displayed).
-   * | `capture` | _String_ | Introduced in the HTML Media Capture specification and valid for the file input type only, the capture attribute defines which media—microphone, video, or camera—should be used to capture a new file for upload with file upload control in supporting scenarios.
+   * | `capture` | _String_ | Introduced in the HTML Media Capture specification and valid for the file input type only, the capture attribute defines which media (microphone, video, or camera) should be used to capture a new file for upload with file upload control in supporting scenarios.
    * | `checked` | _Boolean_ | Valid for both radio and checkbox types, checked is a Boolean attribute.
    * | `dirname` | _String_ | Valid for text and search input types only, the dirname attribute enables the submission of the directionality of the element.
    * | `disabled` | _Boolean_ | A Boolean attribute which, if present, indicates that the user should not be able to interact with the input.
@@ -3041,7 +3041,7 @@ export interface HTMLElements {
    * | `placeholder` | _String_ | The placeholder attribute is a string that provides a brief hint to the user as to what kind of information is expected in the field.
    * | `readonly` | _Boolean_ | A Boolean attribute which, if present, indicates that the user should not be able to edit the value of the input.
    * | `required` | _Boolean_ | required is a Boolean attribute which, if present, indicates that the user must specify a value for the input before the owning form can be submitted.
-   * | `results` | _String_ | The results attribute—supported only by Safari—is a numeric value that lets you override the maximum number of entries to be displayed in the `<input>` element's natively-provided drop-down menu of previous search queries.
+   * | `results` | _String_ | The results attribute (supported only by Safari) is a numeric value that lets you override the maximum number of entries to be displayed in the `<input>` element's natively-provided drop-down menu of previous search queries.
    * | `size` | _NonZeroUint_ | Valid for email, password, tel, and text input types only.
    * | `src` | _URL_ | Valid for the image input button only, the src is string specifying the URL of the image file to display to represent the graphical submit button.
    * | `step` | _String_ | Valid for the numeric input types, including number, date/time input types, and range, the step attribute is a number that specifies the granularity that the value must adhere to.
@@ -3147,7 +3147,7 @@ export interface HTMLElements {
    * | `hreflang` | _BCP47_ | This attribute indicates the language of the linked resource.
    * | `imagesizes` | _SourceSizeList_ | For rel="preload" and as="image" only, the imagesizes attribute is a sizes attribute that indicates to preload the appropriate resource used by an img element with corresponding values for its srcset and sizes attributes.
    * | `imagesrcset` | _SrcSet_ | For rel="preload" and as="image" only, the imagesrcset attribute is a sourceset attribute that indicates to preload the appropriate resource used by an img element with corresponding values for its srcset and sizes attributes.
-   * | `integrity` | _String_ | Contains inline metadata — a base64-encoded cryptographic hash of the resource (file) you’re telling the browser to fetch.
+   * | `integrity` | _String_ | Contains inline metadata: a base64-encoded cryptographic hash of the resource (file) you’re telling the browser to fetch.
    * | `media` | _MediaQueryList_ | This attribute specifies the media that the linked resource applies to.
    * | `methods` | _String_ | The value of this attribute provides information about the functions that might be performed on an object.
    * | `prefetch` | _String_ | Identifies a resource that might be required by the next navigation and that the user agent should retrieve it.
@@ -3348,7 +3348,7 @@ export interface HTMLElements {
    */
   object: ObjectHTMLAttributes<HTMLObjectElement>;
   /**
-   * The `<ol>` HTML element represents an ordered list of items — typically rendered as a numbered list.
+   * The `<ol>` HTML element represents an ordered list of items, typically rendered as a numbered list.
    *
    * **Content:** Zero or more `<li>`, `<script>` and `<template>` elements.
    *
@@ -3559,7 +3559,7 @@ export interface HTMLElements {
    * | `defer` | _Boolean_ | This Boolean attribute is set to indicate to a browser that the script is meant to be executed after the document has been parsed, but before firing DOMContentLoaded.
    * | `integrity` | _String_ | This attribute contains inline metadata that a user agent can use to verify that a fetched resource has been delivered free of unexpected manipulation.
    * | `language` | _String_ | Like the type attribute, this attribute identifies the scripting language in use.
-   * | `nomodule` | _Boolean_ | This Boolean attribute is set to indicate that the script should not be executed in browsers that support ES2015 modules — in effect, this can be used to serve fallback scripts to older browsers that do not support modular JavaScript code.
+   * | `nomodule` | _Boolean_ | This Boolean attribute is set to indicate that the script should not be executed in browsers that support ES2015 modules. In effect, this can be used to serve fallback scripts to older browsers that do not support modular JavaScript code.
    * | `nonce` | _String_ | A cryptographic nonce (number used once) to allow scripts in a script-src Content-Security-Policy.
    * | `referrerpolicy` | _ReferrerPolicy_ | Indicates which referrer to send when fetching the script, or resources fetched by the script: no-referrer: The Referer header will not be sent.
    * | `src` | _URL_ | This attribute specifies the URI of an external script; this can be used as an alternative to embedding a script directly within a document.
@@ -3596,7 +3596,7 @@ export interface HTMLElements {
    */
   select: SelectHTMLAttributes<HTMLSelectElement>;
   /**
-   * The `<shadow>` HTML element—an obsolete part of the Web Components technology suite—was intended to be used as a shadow DOM insertion point. You might have used it if you have created multiple shadow roots under a shadow host. It is not useful in ordinary HTML.
+   * The `<shadow>` HTML element (an obsolete part of the Web Components technology suite) was intended to be used as a shadow DOM insertion point. You might have used it if you have created multiple shadow roots under a shadow host. It is not useful in ordinary HTML.
    *
    * **Content:** Flow content
    *
@@ -3604,7 +3604,7 @@ export interface HTMLElements {
    */
   shadow: HTMLAttributes<HTMLElement>;
   /**
-   * The `<slot>` HTML element—part of the Web Components technology suite—is a placeholder inside a web component that you can fill with your own markup, which lets you create separate DOM trees and present them together.
+   * The `<slot>` HTML element (part of the Web Components technology suite) is a placeholder inside a web component that you can fill with your own markup, which lets you create separate DOM trees and present them together.
    *
    * **Content:** Transparent
    *
@@ -3714,7 +3714,7 @@ export interface HTMLElements {
    */
   sup: HTMLAttributes<HTMLElement>;
   /**
-   * The `<table>` HTML element represents tabular data — that is, information presented in a two-dimensional table comprised of rows and columns of cells containing data.
+   * The `<table>` HTML element represents tabular data: information presented in a two-dimensional table comprised of rows and columns of cells containing data.
    *
    * **Content:** In this order: an optional `<caption>` element, zero or more `<colgroup>` elements, an optional `<thead>` element, either one of the following: zero or more `<tbody>` elements one or more `<tr>` elements an optional `<tfoot>` element
    *
@@ -3907,7 +3907,7 @@ export interface HTMLElements {
    */
   tr: TrHTMLAttributes<HTMLTableRowElement>;
   /**
-   * The `<track>` HTML element is used as a child of the media elements, `<audio>` and `<video>`. It lets you specify timed text tracks (or time-based data), for example to automatically handle subtitles. The tracks are formatted in WebVTT format (.vtt files) — Web Video Text Tracks.
+   * The `<track>` HTML element is used as a child of the media elements, `<audio>` and `<video>`. It lets you specify timed text tracks (or time-based data), for example to automatically handle subtitles. The tracks are formatted in WebVTT format (.vtt files): Web Video Text Tracks.
    *
    * | Attribute | Type | Description
    * |--|--|--
@@ -3984,7 +3984,7 @@ export interface HTMLElements {
    */
   video: VideoHTMLAttributes<HTMLVideoElement>;
   /**
-   * The `<wbr>` HTML element represents a word break opportunity—a position within text where the browser may optionally break a line, though its line-breaking rules would not otherwise create a break at that location.
+   * The `<wbr>` HTML element represents a word break opportunity: a position within text where the browser may optionally break a line, though its line-breaking rules would not otherwise create a break at that location.
    *
    * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/wbr)
    */
