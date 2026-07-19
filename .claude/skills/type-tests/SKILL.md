@@ -1,17 +1,17 @@
 ---
 name: "type-tests"
-description: "Step 3 of the Weft TDD workflow. Use after /mock: assesses whether the feature has meaningful type-level surface and, if so, writes __type-tests__/*.tst.ts TSTyche type tests with expect().type matchers. If not applicable, records an explicit skip in specs.md — never a silent skip."
+description: "Step 3 of the Weft TDD workflow. Use after /mock: assesses whether the feature has meaningful type-level surface and, if so, writes __type-tests__/*.tst.ts TSTyche type tests with expect().type matchers. If not applicable, records an explicit skip in specs.md, never a silent skip."
 ---
 
-# /type-tests — TSTyche type tests (TDD step 3)
+# /type-tests: TSTyche type tests (TDD step 3)
 
 Verify the mocked type surface with TSTyche, or record an explicit, reasoned skip.
 
 ## When to run
 
-- **Previous step:** `/mock` — the `declare`-based surface must exist in the source file.
+- **Previous step:** `/mock` (the `declare`-based surface must exist in the source file).
 - **Next step:** `/unit-test`.
-- **Gate:** the step always concludes with either a `.tst.ts` file or an explicit `type-tests: not applicable — <reason>` line in `specs.md`. Silent skips are forbidden.
+- **Gate:** the step always concludes with either a `.tst.ts` file or an explicit `type-tests: not applicable, <reason>` line in `specs.md`. Silent skips are forbidden.
 
 ## Procedure
 
@@ -26,7 +26,7 @@ Verify the mocked type surface with TSTyche, or record an explicit, reasoned ski
 2. **If not applicable:** add to the feature's `specs.md`:
 
    ```markdown
-   type-tests: not applicable — <one-line reason>
+   type-tests: not applicable, <one-line reason>
    ```
 
    Report the skip and reason to the user, then hand off to `/unit-test`.
@@ -52,13 +52,13 @@ Verify the mocked type surface with TSTyche, or record an explicit, reasoned ski
    ```
 
    Cover:
-   - Positive cases: valid usage compiles, inference lands on the expected types — assert with `.type.toBe<T>()` (exact identity; prefer over `toBeAssignableTo` unless assignability *is* the intent).
-   - Negative cases: each rejection asserted by one `.not` matcher. Where no matcher fits (wrong-assignment-type, contextual typing inside a larger expression), keep a `// @ts-expect-error <fragment>` directive — TSTyche requires a fragment of the expected diagnostic message after the directive and validates it (`checkSuppressedErrors`); put prose on its own comment line above.
-   - One assertion per rejection — a single check swallowing two mistakes proves nothing.
+   - Positive cases: valid usage compiles and inference lands on the expected types. Assert with `.type.toBe<T>()` (exact identity; prefer over `toBeAssignableTo` unless assignability *is* the intent).
+   - Negative cases: each rejection asserted by one `.not` matcher. Where no matcher fits (wrong-assignment-type, contextual typing inside a larger expression), keep a `// @ts-expect-error <fragment>` directive. TSTyche requires a fragment of the expected diagnostic message after the directive and validates it (`checkSuppressedErrors`). Put prose on its own comment line above.
+   - One assertion per rejection. A single check swallowing two mistakes proves nothing.
 
-   Constraints: `declare` fixtures live at module scope (`declare` is illegal inside `test()` bodies). `test()` callbacks must not start comments with `@ts-expect-error` unless they are real directives — TSTyche parses them.
+   Constraints: `declare` fixtures live at module scope (`declare` is illegal inside `test()` bodies). `test()` callbacks must not start comments with `@ts-expect-error` unless they are real directives. TSTyche parses them.
 
-4. **Validate** with `vp run test:types` (never bare `tstyche`/`vp test` — the pack rule; dom/router/website tests resolve `@weftui/*` through built `dist/`). The files also stay inside the tsc program (`include: ["src"]`), so `vp run check` still typechecks the test code itself — but **only `vp run test:types` evaluates the assertions**; a failed `toBe` is invisible to `vp run check`.
+4. **Validate** with `vp run test:types` (never bare `tstyche`/`vp test`: the pack rule; dom/router/website tests resolve `@weftui/*` through built `dist/`). The files also stay inside the tsc program (`include: ["src"]`), so `vp run check` still typechecks the test code itself. But **only `vp run test:types` evaluates the assertions**; a failed `toBe` is invisible to `vp run check`.
 
 5. **Hand off.** Next step is `/unit-test`.
 
@@ -66,6 +66,6 @@ Verify the mocked type surface with TSTyche, or record an explicit, reasoned ski
 
 - `.tst.ts` extension, under `__type-tests__/`, self-contained per feature.
 - Import test globals from `"tstyche"` (`expect`, `test`); no hand-rolled `Expect<Equal<>>` helpers.
-- Type tests run against the mock surface — they must pass *before* implementation exists (they compare types, not runtime behavior).
-- If writing the tests reveals the mocked types are wrong: pause rule — back to `/spec` + `/mock` first.
-- TSTyche runs its own pinned TypeScript (`target` in `tstyche.json`) because the workspace `typescript@7` (tsgo) exposes no JS language-service API — on checker disagreement, trust `vp run check` for program correctness and TSTyche for assertion verdicts.
+- Type tests run against the mock surface. They must pass *before* implementation exists (they compare types, not runtime behavior).
+- If writing the tests reveals the mocked types are wrong, apply the pause rule: go back to `/spec` + `/mock` first.
+- TSTyche runs its own pinned TypeScript (`target` in `tstyche.json`) because the workspace `typescript@7` (tsgo) exposes no JS language-service API. On checker disagreement, trust `vp run check` for program correctness and TSTyche for assertion verdicts.

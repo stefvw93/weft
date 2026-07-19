@@ -1,7 +1,7 @@
 {
   "name": "@weftui/vite",
   "version": "0.0.0",
-  "description": "Vite plugins for Weft (shell — prune plugin retired with Boundary.server)",
+  "description": "Vite plugins for Weft (shell; prune plugin retired with Boundary.server)",
   "keywords": [
     "ssr",
     "vite-plugin",

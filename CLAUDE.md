@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Workspace layout (see `pnpm-workspace.yaml`):
 
-- `packages/*` — published library packages:
-  - `@weftui/base` (`packages/base`) — shared primitives
-  - `@weftui/core` (`packages/core`) — core combinators, sources, streams, boundaries
-  - `@weftui/dom` (`packages/dom`) — DOM renderer with `./client` and `./server` entry points
-- `examples/*` — standalone runnable example apps, each its own workspace package
+- `packages/*`: published library packages:
+  - `@weftui/base` (`packages/base`): shared primitives
+  - `@weftui/core` (`packages/core`): core combinators, sources, streams, boundaries
+  - `@weftui/dom` (`packages/dom`): DOM renderer with `./client` and `./server` entry points
+- `examples/*`: standalone runnable example apps, each its own workspace package
 
 ## Requirements
 
@@ -30,10 +30,10 @@ This is a monorepo: `@weftui/dom` and the `examples/*` consume `@weftui/core`/`@
 
 **Rule: run validation through the `vp run <task>` tasks, never the bare `vp <command>`.** The tasks are declared in the root `vite.config.ts` under `run.tasks` and each one declares `dependsOn: ["pack"]`, so `vp run` always rebuilds the packages first:
 
-- ✅ `vp run check`, `vp run test`, `vp run test:browser`, `vp run test:types` — pack first, then run. Always correct.
-- ❌ `vp check`, `vp test` directly — skip `pack`, so against stale/missing `dist/` they report **false** cross-package errors (e.g. spurious `implicit any` from unresolved `@weftui/*` types). Only safe right after a pack.
+- ✅ `vp run check`, `vp run test`, `vp run test:browser`, `vp run test:types`: pack first, then run. Always correct.
+- ❌ `vp check`, `vp test` directly: skip `pack`, so against stale/missing `dist/` they report **false** cross-package errors (e.g. spurious `implicit any` from unresolved `@weftui/*` types). Only safe right after a pack.
 
-Treat the task list in `vite.config.ts` (`run.tasks`) as the source of truth for how to validate — if a task exists there, invoke it via `vp run <task>`. Current tasks: `dev`, `pack`, `check`, `test`, `test:browser`, `test:types`.
+Treat the task list in `vite.config.ts` (`run.tasks`) as the source of truth for how to validate. If a task exists there, invoke it via `vp run <task>`. Current tasks: `dev`, `pack`, `check`, `test`, `test:browser`, `test:types`.
 
 ### Building
 
@@ -54,7 +54,7 @@ vp test --watch        # Watch mode (only safe after a pack)
 
 Uses Vitest (via Vite+). Node test files follow the pattern `**/*.test.{ts,tsx}`; `*.browser.test.{ts,tsx}` are excluded from `vp run test` and run via `vp run test:browser` (see the `pack` step rule above).
 
-Type tests (`src/**/__type-tests__/*.tst.ts`) run via [TSTyche](https://tstyche.org) (`vp run test:types`, config in root `tstyche.json`). **A failed `expect().type` assertion does NOT fail `vp run check`** — TSTyche matchers are language-service comparisons, not compile errors — so `test:types` is a required CI job. Checker note: the workspace `typescript@7` (tsgo) has no JS language-service API, so TSTyche runs against its own pinned TypeScript (`target` in `tstyche.json`); its checker can diverge from `@effect/tsgo` on edge cases — trust `vp run check` for program correctness and TSTyche for the assertion verdicts.
+Type tests (`src/**/__type-tests__/*.tst.ts`) run via [TSTyche](https://tstyche.org) (`vp run test:types`, config in root `tstyche.json`). **A failed `expect().type` assertion does NOT fail `vp run check`**, since TSTyche matchers are language-service comparisons, not compile errors, so `test:types` is a required CI job. Checker note: the workspace `typescript@7` (tsgo) has no JS language-service API, so TSTyche runs against its own pinned TypeScript (`target` in `tstyche.json`); its checker can diverge from `@effect/tsgo` on edge cases. Trust `vp run check` for program correctness and TSTyche for the assertion verdicts.
 
 ### Checking (format + lint + typecheck)
 
@@ -63,7 +63,7 @@ vp run check       # Pack, then format, lint, and type-check all files
 vp check --fix     # Auto-fix formatting/lint (only safe after a pack)
 ```
 
-**Important:** Validate via `vp run check` (it packs first — see the `pack` step rule). Use `vp check --fix` for auto-fixing, but only when packages are already built, otherwise it reports false cross-package type errors. Always prefer these over individual lint/format commands.
+**Important:** Validate via `vp run check` (it packs first, see the `pack` step rule). Use `vp check --fix` for auto-fixing, but only when packages are already built, otherwise it reports false cross-package type errors. Always prefer these over individual lint/format commands.
 
 ## Architecture
 
@@ -116,7 +116,7 @@ The `examples/` folder contains standalone workspace packages demonstrating spec
 - Include a JSDoc header comment in `app.ts` explaining the example's purpose
 - READMEs should include: Overview, Problem, Solution, How It Works, and When to Use sections
 - Each example is split into a **side-effect-free `app.ts`** (or `src/app.ts`) that
-  `export`s `App` — no top-level `mount`/`hydrate` call — and a thin entry
+  `export`s `App` (no top-level `mount`/`hydrate` call) and a thin entry
   (`main.ts`, or `entry-client.ts` for SSR examples) that mounts it and is the file
   referenced by `index.html`. This keeps `app.ts` importable by tests.
 - Every example **must include at least one co-located `*.browser.test.ts`** that
@@ -136,7 +136,7 @@ The `examples/` folder contains standalone workspace packages demonstrating spec
 - Prefer `pipe(effect, ...)` over `effect.pipe(...)`
 - **No JSX.** Weft does **not** use JSX, even though its node descriptors
   (`{ type, props }`) resemble React elements. There is no JSX runtime (no `jsx`
-  in any tsconfig) and no `h(Component)` overload — `h.*` only builds string-tag
+  in any tsconfig) and no `h(Component)` overload. `h.*` only builds string-tag
   and `FRAGMENT` nodes, and components are plain functions that are **called**
   (e.g. `App()`), placing their resulting node in the tree directly rather than
   deferring construction. Do not assume `<Component/>`-style deferred descriptors
@@ -195,19 +195,19 @@ Every feature follows this 8-step cycle. Each step is a project skill (detail li
 
 `/spec → /mock → /type-tests → /unit-test → /implement → /e2e → /review-step → /document`
 
-1. `/spec` — interactive Q&A (one question at a time), then co-located `specs.md` (Overview & Purpose + Acceptance Criteria required). User approves before moving on.
-2. `/mock` — `declare`-based full API surface in the real source file, JSDoc included. Refuses to run without `specs.md`.
-3. `/type-tests` — TSTyche tests at `src/**/__type-tests__/*.tst.ts` (`expect().type` matchers, message-fragment `@ts-expect-error` where no matcher fits) run via `vp run test:types`, or explicit `type-tests: not applicable — <reason>` recorded in `specs.md`.
-4. `/unit-test` — co-located `*.test.ts` covering every acceptance criterion, happy + error paths (full Effect error union), edge cases. **Red phase:** new tests must fail against the mocks before implementation.
-5. `/implement` — replace mocks in-place with signature parity, loop `vp check --fix` → `vp run check` → `vp run test` until green, then `graphify update .`.
-6. `/e2e` — `*.browser.test.ts` via `vp run test:browser`. Mandatory for every touched `examples/*` app; conditional for package features (explicit skip recorded otherwise).
-7. `/review-step` — code-review pass (medium effort; high when `packages/core` or `packages/dom` public API is touched) plus spec-conformance check; every finding fixed or explicitly rejected with reason; loop until clean. **Hard gate: no commit until clean.**
-8. `/document` — full docs sweep (JSDoc, `specs.md` sync, `docs/`, READMEs, example readmes) via the `weft-docs-author` agent + main thread. **Hard gate: no commit until complete.** Then branch + PR — never push `main`.
+1. `/spec`: interactive Q&A (one question at a time), then co-located `specs.md` (Overview & Purpose + Acceptance Criteria required). User approves before moving on.
+2. `/mock`: `declare`-based full API surface in the real source file, JSDoc included. Refuses to run without `specs.md`.
+3. `/type-tests`: TSTyche tests at `src/**/__type-tests__/*.tst.ts` (`expect().type` matchers, message-fragment `@ts-expect-error` where no matcher fits) run via `vp run test:types`, or explicit `type-tests: not applicable, <reason>` recorded in `specs.md`.
+4. `/unit-test`: co-located `*.test.ts` covering every acceptance criterion, happy + error paths (full Effect error union), edge cases. **Red phase:** new tests must fail against the mocks before implementation.
+5. `/implement`: replace mocks in-place with signature parity, loop `vp check --fix` → `vp run check` → `vp run test` until green, then `graphify update .`.
+6. `/e2e`: `*.browser.test.ts` via `vp run test:browser`. Mandatory for every touched `examples/*` app; conditional for package features (explicit skip recorded otherwise).
+7. `/review-step`: code-review pass (medium effort; high when `packages/core` or `packages/dom` public API is touched) plus spec-conformance check; every finding fixed or explicitly rejected with reason; loop until clean. **Hard gate: no commit until clean.**
+8. `/document`: full docs sweep (JSDoc, `specs.md` sync, `docs/`, READMEs, example readmes) via the `weft-docs-author` agent + main thread. **Hard gate: no commit until complete.** Then branch + PR, never push `main`.
 
 Invariants:
 
-- Strict cycle — no phase skips; a step skipped as not-applicable must be recorded in `specs.md` with a reason.
-- Pause rule — if any step reveals the spec or mock surface is wrong, stop, update spec + mocks (and affected tests) first, then resume.
+- Strict cycle: no phase skips; a step skipped as not-applicable must be recorded in `specs.md` with a reason.
+- Pause rule: if any step reveals the spec or mock surface is wrong, stop, update spec + mocks (and affected tests) first, then resume.
 
 ### Error Handling
 
@@ -256,9 +256,9 @@ Invariants:
 A shallow clone of [Effect-TS/effect](https://github.com/Effect-TS/effect) lives at `./effect-src` as a **local docs/source reference** for AI agents. It is gitignored and not part of the workspace. Effect 4 development merged back into this canonical repo (the old `effect-smol` repo is archived): `main` is Effect 4 (v4); v3 lives on the `v3` branch. Cloning the default branch gets you v4.
 
 - Use it to look up Effect 4 APIs and semantics instead of guessing or relying on Effect 3 knowledge. Most useful entry points:
-  - `effect-src/packages/effect/src/` — actual source of every module (authoritative for signatures and JSDoc)
-  - `effect-src/AGENTS.md` and `effect-src/LLMS.md` — repo guidance written for AI agents
-  - `effect-src/MIGRATION.md` exists but is **known-stale** for the beta line — prefer the installed `effect` dist (`node_modules/.pnpm/effect@<version>/…/dist/*.d.ts`) as the authoritative source for any API claim.
+  - `effect-src/packages/effect/src/`: actual source of every module (authoritative for signatures and JSDoc)
+  - `effect-src/AGENTS.md` and `effect-src/LLMS.md`: repo guidance written for AI agents
+  - `effect-src/MIGRATION.md` exists but is **known-stale** for the beta line. Prefer the installed `effect` dist (`node_modules/.pnpm/effect@<version>/…/dist/*.d.ts`) as the authoritative source for any API claim.
 - If `./effect-src` is missing, fetch it first:
 
   ```bash
@@ -266,7 +266,7 @@ A shallow clone of [Effect-TS/effect](https://github.com/Effect-TS/effect) lives
   ```
 
 - To refresh an existing clone: `git -C effect-src pull --depth 1`
-- Never edit files in `effect-src/`, import from it in workspace code, or include it in builds/tests — it is read-only reference material.
+- Never edit files in `effect-src/`, import from it in workspace code, or include it in builds/tests. It is read-only reference material.
 
 ## Meta Rules
 

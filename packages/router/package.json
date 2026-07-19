@@ -1,7 +1,7 @@
 {
   "name": "@weftui/router",
   "version": "0.0.0",
-  "description": "Universal nested router for Weft — one route tree, server and client, with type-safe params and href",
+  "description": "Universal nested router for Weft: one route tree, server and client, with type-safe params and href",
   "keywords": [
     "effect",
     "nested-routes",

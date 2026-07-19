@@ -1,7 +1,7 @@
 {
   "name": "@weftui/dom",
   "version": "0.0.0",
-  "description": "DOM renderer for Weft — mount and hydrate in the browser, render to string or stream on the server",
+  "description": "DOM renderer for Weft: mount and hydrate in the browser, render to string or stream on the server",
   "keywords": [
     "dom",
     "effect",

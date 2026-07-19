@@ -58,17 +58,17 @@ server. Notes from wiring these up:
   initial state with `vi.waitFor` rather than synchronously.
 - To run an effect when a `ref`'s element mounts (auto-focus, measure), fork the
   `ref.changes` observer with `Effect.forkScoped`, **not** bare `Effect.forkChild`.
-  `forkScoped` ties it to the component instance scope so it survives an isolated
-  `mount`; a bare `Effect.forkChild` binds it to the transient component-body fiber and is
-  interrupted the instant the gen returns the tree — under `vp dev` it usually wins
-  the race and emits anyway, but under an isolated `mount` it is killed first (see
-  `examples/element-ref`).
+  `forkScoped` ties it to the component instance scope, so it survives an isolated
+  `mount`. A bare `Effect.forkChild` binds it to the transient component-body fiber
+  and is interrupted the instant the gen returns the tree. Under `vp dev` it usually
+  wins the race and emits anyway, but under an isolated `mount` it is killed first
+  (see `examples/element-ref`).
 - The test page has none of the example's `index.html` CSS, so don't assert on
   layout-derived pixel values.
 
 ## When to Use
 
 Add a `*.browser.test.ts` file here (or co-located in a package) when behaviour
-depends on real browser semantics that jsdom cannot faithfully reproduce — e.g.
+depends on real browser semantics that jsdom cannot faithfully reproduce, e.g.
 layout, real event dispatch, hydration against a real parser, or rendering an
 example app end-to-end.

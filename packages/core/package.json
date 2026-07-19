@@ -1,7 +1,7 @@
 {
   "name": "@weftui/core",
   "version": "0.0.0",
-  "description": "Element builders and combinators for Weft — reactive UI, woven from Effect",
+  "description": "Element builders and combinators for Weft: reactive UI, woven from Effect",
   "keywords": [
     "combinators",
     "dom",

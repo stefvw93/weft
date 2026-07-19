@@ -3,7 +3,7 @@ name: "review-step"
 description: "Step 7 of the Weft TDD workflow. Use after /e2e: self-reviews the diff via the code-review skill (medium effort; high when packages/core or packages/dom public API is touched) plus a spec-conformance check, then fixes or explicitly rejects every finding and re-validates until clean. Hard gate: no commit until the review is clean. Named review-step to avoid the built-in /review (GitHub PR review)."
 ---
 
-# /review-step — Self-review (TDD step 7)
+# /review-step: Self-review (TDD step 7)
 
 Review the full diff for correctness and spec conformance; loop until clean. Commits are blocked until this step passes.
 
@@ -16,26 +16,26 @@ Review the full diff for correctness and spec conformance; loop until clean. Com
 ## Procedure
 
 1. **Pick the effort level.**
-   - Default: run the `code-review` skill at **medium** effort (fewer, high-confidence findings — fast loop).
+   - Default: run the `code-review` skill at **medium** effort (fewer, high-confidence findings, fast loop).
    - Escalate to **high** when the diff touches `packages/core` or the public API surface of `packages/dom` (exports reachable from `@weftui/dom`, `./client`, or `./server`).
 
 2. **Run the code-review skill** on the working diff at the chosen level.
 
-3. **Spec-conformance check — always, regardless of effort level.** Independently of the skill's findings, verify:
+3. **Spec-conformance check (always, regardless of effort level).** Independently of the skill's findings, verify:
    - The implementation satisfies every acceptance criterion in the co-located `specs.md`.
-   - The implemented exports still match the mock surface exactly (signatures, error union) — no drift since `/implement`'s parity pass.
+   - The implemented exports still match the mock surface exactly (signatures, error union): no drift since `/implement`'s parity pass.
    - `specs.md` skip records (`type-tests: not applicable`, `e2e: not applicable`) are present where those steps were skipped.
 
    Any conformance gap is a finding, same weight as a bug.
 
-4. **Disposition every finding — no silent drops.** Each finding is either:
+4. **Disposition every finding (no silent drops).** Each finding is either:
    - **Fixed**, or
    - **Explicitly rejected with a stated reason**, reported to the user.
 
-   If a finding reveals spec/mock drift: **pause rule** — stop, update `specs.md` and the mock surface (and affected tests) first, then resume.
+   If a finding reveals spec/mock drift: **pause rule**. Stop, update `specs.md` and the mock surface (and affected tests) first, then resume.
 
 5. **Re-validate and re-review loop.** After applying any fixes:
-   1. `vp run check` and `vp run test` (and `vp run test:browser` if browser-covered code changed) — must be green.
+   1. `vp run check` and `vp run test` (and `vp run test:browser` if browser-covered code changed): must be green.
    2. Re-run the review on the updated diff.
    3. Repeat until a review pass comes back clean (no findings, or only findings already explicitly rejected with reasons).
 

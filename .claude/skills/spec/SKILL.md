@@ -3,21 +3,21 @@ name: "spec"
 description: "Step 1 of the Weft TDD workflow. Use when starting any new feature (or retroactively spec'ing an existing one being modified): drives an interactive Q&A requirements discussion, then writes the co-located specs.md. Entry point of the cycle spec → mock → type-tests → unit-test → implement → e2e → review-step → document."
 ---
 
-# /spec — Specification (TDD step 1)
+# /spec: Specification (TDD step 1)
 
 Draft a co-located `specs.md` for a feature through interactive Q&A, before any code exists.
 
 ## When to run
 
-- **Previous step:** none — this is the entry point of the workflow.
+- **Previous step:** none (this is the entry point of the workflow).
 - **Next step:** `/mock`.
 - **Gate:** none to enter. To exit, the user must explicitly approve the spec.
 
 ## Procedure
 
-1. **Locate the feature.** Determine the owning package (`packages/base`, `packages/core`, `packages/dom`, or an `examples/*` package) and the source file the feature will live in. The spec is co-located: `dom/feature.ts` gets `dom/feature.specs.md`. If a `specs.md` already exists for this feature, this run revises it — read it first.
+1. **Locate the feature.** Determine the owning package (`packages/base`, `packages/core`, `packages/dom`, or an `examples/*` package) and the source file the feature will live in. The spec is co-located: `dom/feature.ts` gets `dom/feature.specs.md`. If a `specs.md` already exists for this feature, this run revises it. Read it first.
 
-2. **Q&A discussion — one question at a time.** Use the AskUserQuestion tool. Ask a single question, await the answer, then ask the next (per the project Meta Rules). Cover, as applicable:
+2. **Q&A discussion: one question at a time.** Use the AskUserQuestion tool. Ask a single question, await the answer, then ask the next (per the project Meta Rules). Cover, as applicable:
    - Purpose: what problem does this solve, for whom?
    - Requirements and acceptance criteria: what must observably be true?
    - API shape: inputs, outputs, Effect error union (tagged errors), services/dependencies.
