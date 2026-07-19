@@ -40,7 +40,7 @@ export interface ServerBoundaryReplayProps {
  * `Boundary.rpc` descriptor's `props` within `children`, in document order.
  * Imported by **both** the server SSR (to compute a failing boundary's index)
  * and the client `hydrate` (to locate the index-th boundary's `errorSchema`),
- * so the index is computed identically on both sides — the same positional
+ * so the index is computed identically on both sides: the same positional
  * determinism the renderers already rely on.
  *
  * Traversal rules (mirrors the renderers' own walk):
@@ -49,7 +49,7 @@ export interface ServerBoundaryReplayProps {
  *   their props, like the renderers do), and static-markup nodes carrying an
  *   {@link ElementDescriptor}.
  * - **Does not descend** into another `Boundary.rpc`'s `render` output (it is
- *   data-dependent — only produced once the rpc resolves) or a `List.each`
+ *   data-dependent, only produced once the rpc resolves) or a `List.each`
  *   projection (also data-dependent), and stops at a genuinely reactive
  *   `Effect`/`Stream` child with no static descriptor. A `Boundary.rpc` that
  *   is only reachable through one of those is therefore **not** indexed; a
@@ -68,8 +68,8 @@ function walk(node: Renderable, out: ServerBoundaryReplayProps[]): void {
   if (typeof node === "string" || typeof node === "number" || typeof node === "bigint") return;
 
   if (isStream(node) || Effect.isEffect(node)) {
-    // Static markup carries its descriptor — descend it; a genuinely reactive
-    // Effect/Stream has none and is not statically reachable.
+    // Static markup carries its descriptor, so descend it. A genuinely
+    // reactive Effect/Stream has none and is not statically reachable.
     const descriptor = getElementDescriptor(node);
     if (descriptor !== undefined) {
       walkDescriptor(descriptor, out);
@@ -94,7 +94,7 @@ function walkDescriptor(descriptor: ElementDescriptor, out: ServerBoundaryReplay
 
   if (type === SERVER_BOUNDARY) {
     // Record the live props object (matched by reference on the server). Do NOT
-    // descend into render(data) — it is data-dependent, not statically reachable.
+    // descend into render(data): it is data-dependent, not statically reachable.
     out.push(props as unknown as ServerBoundaryReplayProps);
     return;
   }
@@ -105,7 +105,7 @@ function walkDescriptor(descriptor: ElementDescriptor, out: ServerBoundaryReplay
   }
 
   if (type === LIST) {
-    // List.each `render` is data-dependent (per-item) — not statically reachable.
+    // List.each `render` is data-dependent (per-item), not statically reachable.
     return;
   }
 

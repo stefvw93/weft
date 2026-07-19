@@ -12,7 +12,7 @@ export interface SuspenseFailureSubstitute {
    * When `true`, the patch script also injects
    * `<meta name="robots" content="noindex">` into `document.head` before
    * performing the swap (the head has long been flushed; DOM injection is the
-   * only route — Googlebot's soft-404 pattern).
+   * only route: Googlebot's soft-404 pattern).
    */
   readonly markNoindex: boolean;
   /**
@@ -32,7 +32,7 @@ export interface SuspenseFailureSubstitute {
  * cause escapes the suspended children unhandled (no failure `Boundary`
  * inside the children matched it). Returning `Option.some` substitutes the
  * patch content for that boundary; `Option.none` (or an absent service)
- * keeps the default behaviour — the failure is swallowed, no patch is
+ * keeps the default behaviour: the failure is swallowed, no patch is
  * emitted, and the fallback persists. Spec: `streaming-shell.specs.md`
  * (AC-FH1 … AC-FH6).
  */

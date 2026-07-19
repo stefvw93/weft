@@ -2,7 +2,7 @@ import { Context } from "effect";
 
 /**
  * Type-level marker stamped onto the identifier of a {@link ServerTag}. It never
- * exists at runtime — only its `typeof` is referenced by {@link ServerOnly} — so
+ * exists at runtime (only its `typeof` is referenced by {@link ServerOnly}), so
  * the brand is purely a compile-time discriminator for {@link AssertNoServerOnly}.
  */
 declare const ServerOnlyTypeId: unique symbol;

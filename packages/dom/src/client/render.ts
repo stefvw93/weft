@@ -352,7 +352,7 @@ function forkSupervised<A, E, R>(
       // publish an unhandled failure to the app hub. Interruption (unmount
       // teardown) is never reported. Effect 4 removed the
       // unhandled-error-log-level FiberRef (and `withUnhandledErrorLogLevel`), so
-      // the report is explicit here rather than deferred to the runtime — which
+      // the report is explicit here rather than deferred to the runtime, which
       // mirrors the with-Boundary branch below and is deterministic (exactly once).
       const fiber = yield* Effect.forkIn(effect, scope);
       yield* pipe(
@@ -438,7 +438,7 @@ function setEventHandler(
           // handler forks (`Effect.forkScoped`, `acquireRelease`, …) is owned by
           // the root and interrupted at `unmount`. Observe the full exit
           // (failures AND defects) and publish it to the app's unhandled-error
-          // hub — identical in development and production. Interruption is never
+          // hub (identical in development and production). Interruption is never
           // reported.
           context.runtime.runFork(
             pipe(
@@ -500,7 +500,7 @@ function boundaryRecoveryEffect(
   return Effect.gen(function* () {
     const context = yield* RenderContext;
     // The deferred is only ever failed (via reportError), never succeeded, so
-    // flip's residual success-as-error path is dead — discharge it.
+    // flip's residual success-as-error path is dead. Discharge it.
     const cause = yield* Deferred.await(errorDeferred).pipe(
       Effect.flip,
       Effect.catch(() => Effect.interrupt),
@@ -652,7 +652,7 @@ function renderSuspenseBoundary(
     // Wrap direct *reactive* Effect/Stream children in function-component
     // descriptors so they go through renderComponent and register/settle with
     // this boundary. Static-markup Nodes carry a descriptor (and are Effects too,
-    // iterable under Effect 4) — pass them through so renderNode renders them
+    // iterable under Effect 4). Pass them through so renderNode renders them
     // synchronously; wrapping them would defer to an async fiber that no longer
     // completes at mount, and they never suspend anyway.
     const suspenseChildren = childArray.map((child): Renderable => {
@@ -680,7 +680,7 @@ function renderSuspenseBoundary(
     // ── 5. Release sentinel ──────────────────────────────────────────────────
     yield* settle;
 
-    // ── 6. Fast path: all children were synchronous — no boundary needed ─────
+    // ── 6. Fast path: all children were synchronous, no boundary needed ──────
     const polled = yield* Deferred.poll(allSettled);
     if (Option.isSome(polled)) {
       return childNodes;
@@ -735,7 +735,7 @@ function renderSuspenseBoundary(
 }
 
 /**
- * Implements the **client-first mount** of a {@link Boundary.rpc} region (C1) —
+ * Implements the **client-first mount** of a {@link Boundary.rpc} region (C1):
  * the SPA-navigation path with no SSR payload to replay. Models
  * {@link renderSuspenseBoundary}: shows `props.fallback` bracketed by comment
  * markers, then forks a fiber that resolves the rpc through the ambient
@@ -744,9 +744,9 @@ function renderSuspenseBoundary(
  * and atomically swaps it in for the fallback.
  *
  * With no {@link AppRpcClientTag} in context (a router-less mount) the boundary
- * cannot be resolved — a descriptive, typed {@link RenderError} is raised (not a
+ * cannot be resolved: a descriptive, typed {@link RenderError} is raised (not a
  * defect), mirroring how the hydrate path degrades. A failed rpc call after mount
- * is logged and leaves the fallback in place (there is no prior value to keep —
+ * is logged and leaves the fallback in place (there is no prior value to keep:
  * stale-on-error applies only to a subsequent {@link Boundary.Resource.refetch}).
  */
 function renderServerBoundary(
@@ -850,8 +850,8 @@ export function renderNode(
 
     // Check for Stream/Effect first (before iterables, since Stream might be iterable)
     if (isStream(node) || Effect.isEffect(node)) {
-      // Static markup (h.*, h.fragment, Boundary.*) carries its descriptor — render
-      // it directly, without executing the Effect.
+      // Static markup (h.*, h.fragment, Boundary.*) carries its descriptor.
+      // Render it directly, without executing the Effect.
       const descriptor = getElementDescriptor(node);
       if (descriptor !== undefined) {
         return yield* renderNode(descriptor);
@@ -859,8 +859,8 @@ export function renderNode(
       // Untagged Effect: probe for synchronous resolution (e.g. a synchronous
       // Component.gen used directly as a child) so it renders inline. The probe
       // runs under the *ambient* context (Effect 4's runSyncExit otherwise uses a
-      // bare runtime with no services, so a component that reads a service — e.g. a
-      // route leaf reading `Router` — would fail the probe and be forced onto the
+      // bare runtime with no services, so a component that reads a service, e.g. a
+      // route leaf reading `Router`, would fail the probe and be forced onto the
       // async stream-marker path, breaking in-place reuse against a later static
       // render). A genuinely async Effect resolves to a failure exit
       // (AsyncFiberException) and falls through to the fork + stream-marker path.
@@ -900,7 +900,7 @@ export function renderNode(
         return yield* renderSuspenseBoundary(props as Boundary.SuspenseProps);
       }
 
-      // Server (rpc) boundary — client-first mount (C1). Hydrate has its own
+      // Server (rpc) boundary: client-first mount (C1). Hydrate has its own
       // branch (`hydrateServerBoundary`); this is the SPA-navigation path.
       if (type === SERVER_BOUNDARY) {
         return yield* renderServerBoundary(props as ServerBoundaryProps);
@@ -982,7 +982,7 @@ function renderChildren(
     for (const child of children) {
       // Reactive stream/effect children render through the async stream path.
       // Static-markup Nodes are Effects too (and iterable under Effect 4), but
-      // carry a descriptor — render them synchronously via renderNode so they
+      // carry a descriptor. Render them synchronously via renderNode so they
       // are in the DOM at mount rather than deferred behind stream markers.
       if (
         getElementDescriptor(child) === undefined &&
@@ -1057,7 +1057,7 @@ function renderElement(
       for (const child of childArray) {
         // Check if child is a *reactive* stream/effect. Static-markup Nodes are
         // Effects too (and, in Effect 4, iterable), but they carry a descriptor
-        // and must render synchronously via renderNode — routing them through the
+        // and must render synchronously via renderNode. Routing them through the
         // async stream path would leave them unrendered when mount resolves.
         if (
           getElementDescriptor(child) === undefined &&
@@ -1109,7 +1109,7 @@ function renderComponent(
       // AC-10/12: Fork a per-instance child scope so that prop pump fibers
       // (spawned via Effect.forkScoped inside toSubscribable) are tied to this
       // component instance and not to the mount-level scope. The instance scope
-      // is a child of context.scope — closing context.scope closes it too.
+      // is a child of context.scope, so closing context.scope closes it too.
       const instanceScope = yield* Scope.fork(context.scope, "sequential");
       const instanceContext = { ...context, scope: instanceScope };
 
@@ -1121,8 +1121,8 @@ function renderComponent(
         // Register before subscribing so the boundary knows about this child.
         yield* suspenseCtx.value.register;
 
-        // Wrap the stream so `settle` is called exactly once — on the first
-        // emission — and subsequent emissions pass through unchanged.
+        // Wrap the stream so `settle` is called exactly once (on the first
+        // emission) and subsequent emissions pass through unchanged.
         stream = pipe(
           stream,
           Stream.zipWithIndex,
@@ -1176,7 +1176,7 @@ function handleStreamChild(
     // Closed before each new emission so nested fibers don't accumulate.
     let currentContentScope: Scope.Closeable | null = null;
 
-    // AC20: Set up subscription — one fiber per stream, content scope per emission.
+    // AC20: Set up subscription. One fiber per stream, content scope per emission.
     const effect = Stream.runForEach(stream, (value) =>
       Effect.gen(function* () {
         // Close the previous content scope (cancels any nested fibers/pumps).
@@ -1228,12 +1228,12 @@ function createStreamMarkers(streamId: number): readonly [Comment, Comment] {
  * / primitive type **before** rendering, so identity-preserving updates avoid
  * creating throwaway nodes and subscriptions:
  *
- * - **SP1/SP2** — text→text: the region holds one `Text` node and `newNode` is a
+ * - **SP1/SP2** (text→text): the region holds one `Text` node and `newNode` is a
  *   `string`/`number`/`bigint` → update `.data` in place (only if it differs).
- * - **SP3** — same-tag element reuse: the region holds one `Element` whose tag
+ * - **SP3** (same-tag element reuse): the region holds one `Element` whose tag
  *   matches `newNode`'s descriptor → reuse the node, re-apply props, recurse over
  *   children by position.
- * - **SP4** — fallback (any other shape change): remove the nodes between the
+ * - **SP4** (fallback, any other shape change): remove the nodes between the
  *   markers, render `newNode`, and insert the result before the end marker.
  *
  * Content-scope rotation is owned by the caller (`handleStreamChild` /
@@ -1257,7 +1257,7 @@ export function updateStreamChild(
     const only = startMarker.nextSibling;
     const isSingle = only !== null && only !== endMarker && only.nextSibling === endMarker;
 
-    // SP1/SP2: text→text — patch the existing Text node in place.
+    // SP1/SP2 (text→text): patch the existing Text node in place.
     if (isSingle && only.nodeType === TEXT_NODE && isTextValue(newNode)) {
       const text = String(newNode);
       if ((only as Text).data !== text) {
@@ -1266,7 +1266,7 @@ export function updateStreamChild(
       return;
     }
 
-    // SP3: same-tag element reuse — keep the node, re-apply props, recurse children.
+    // SP3 (same-tag element reuse): keep the node, re-apply props, recurse children.
     if (isSingle && only.nodeType === ELEMENT_NODE) {
       const descriptor = staticElementDescriptor(newNode);
       if (
@@ -1279,7 +1279,7 @@ export function updateStreamChild(
       }
     }
 
-    // SP4: fallback — remove all nodes between markers, render, and insert.
+    // SP4 (fallback): remove all nodes between markers, render, and insert.
     removeNodesBetweenMarkers(startMarker, endMarker);
     const result = yield* renderNode(newNode);
     const parent = startMarker.parentNode;
@@ -1359,7 +1359,7 @@ function patchElementInPlace(
 /**
  * Attempts an in-place positional patch of an element's children. Succeeds (returns
  * `true`, having patched) only when every new child maps to exactly one existing
- * DOM node of the matching kind — text→`Text`, same-tag element→`Element`. Any
+ * DOM node of the matching kind: text→`Text`, same-tag element→`Element`. Any
  * mismatch (count, kind, multi-node child, reactive child) returns `false` having
  * mutated nothing, so the caller can rebuild cleanly. Element children recurse via
  * {@link patchElementInPlace}, preserving nested node identity.
@@ -1482,8 +1482,8 @@ interface ListProps {
 
 /**
  * A single keyed item rendered inside a `List.each` region. Its `scope` is forked
- * from the region scope and **persists across emissions** — it is closed only when
- * the item is removed or the region is torn down — which is what keeps per-item
+ * from the region scope and **persists across emissions**, closing only when the
+ * item is removed or the region is torn down. That is what keeps per-item
  * subscription fibers (and therefore stream-driven content) alive while the item
  * survives reconciliation. See `client/list.specs.md`.
  */
@@ -1644,7 +1644,7 @@ function reconcileList(
       const key = keys[j];
       const existing = HashMap.get(prev.records, key);
       if (Option.isSome(existing)) {
-        records.push(existing.value); // KR3: reuse — no re-render, scope untouched.
+        records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
         sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
       } else {
         const record = yield* renderItem(key, items[j], j, render, regionScope, context);
@@ -1741,8 +1741,8 @@ function renderItem(
 }
 
 /**
- * Collects an item's live DOM range — its start marker through its end marker,
- * inclusive — into an array so the whole unit can be moved with `insertBefore`
+ * Collects an item's live DOM range (its start marker through its end marker,
+ * inclusive) into an array so the whole unit can be moved with `insertBefore`
  * without the live `nextSibling` chain shifting mid-move.
  */
 function collectItemRange(startMarker: Comment, endMarker: Comment): Node[] {
@@ -1759,8 +1759,8 @@ function collectItemRange(startMarker: Comment, endMarker: Comment): Node[] {
 }
 
 /**
- * Removes an item's DOM range — its start marker through its end marker,
- * inclusive — handling any nested reactive content that accrued between them.
+ * Removes an item's DOM range (its start marker through its end marker,
+ * inclusive), handling any nested reactive content that accrued between them.
  */
 function removeItemRange(startMarker: Comment, endMarker: Comment): void {
   let current: ChildNode | null = startMarker;
@@ -1790,7 +1790,7 @@ function describeKey(key: unknown): string {
 /**
  * Computes a longest strictly-increasing subsequence over `seq` and returns the
  * **set of indices into `seq`** that participate in it (patience-sorting,
- * O(n log n)). Entries equal to `-1` mark newly created items and are excluded —
+ * O(n log n)). Entries equal to `-1` mark newly created items and are excluded:
  * they always need insertion. The returned indices are the retained items that
  * are already in relative DOM order and must not be moved (KR5).
  */
@@ -1803,7 +1803,7 @@ function longestIncreasingSubsequence(seq: readonly number[]): Set<number> {
   for (let i = 0; i < n; i++) {
     const x = seq[i] as number;
     if (x === -1) {
-      continue; // new item — never part of the retained LIS.
+      continue; // new item: never part of the retained LIS.
     }
     let lo = 0;
     let hi = piles.length;
@@ -1831,7 +1831,7 @@ function longestIncreasingSubsequence(seq: readonly number[]): Set<number> {
 }
 
 // ============================================================================
-// Hydrate — adopt walk
+// Hydrate: adopt walk
 // ============================================================================
 
 type HydrateError =
@@ -1855,14 +1855,14 @@ export function hydrateNode(
       return yield* hydrateText(String(node), cursor, path);
     }
 
-    // boolean/null/undefined render nothing — consume no DOM
+    // boolean/null/undefined render nothing, so consume no DOM
     if (typeof node === "boolean" || node === null || node === undefined) {
       return cursor;
     }
 
     // Reactive region (checked before iterables, since a Stream may be iterable)
     if (isStream(node) || Effect.isEffect(node)) {
-      // Static markup carries its descriptor — hydrate it directly, no execution.
+      // Static markup carries its descriptor: hydrate it directly, no execution.
       const descriptor = getElementDescriptor(node);
       if (descriptor !== undefined) {
         return yield* hydrateNode(descriptor, cursor, path);
@@ -1911,7 +1911,7 @@ export function hydrateNode(
           }
         }
         // Standard case: the SSR patch script has already resolved the
-        // boundary — the fallback and markers are gone and the children are
+        // boundary. The fallback and markers are gone and the children are
         // inline in the DOM. Hydrate the children directly from the current
         // cursor; the Suspense wrapper is transparent to the DOM walk.
         return yield* hydrateChildren(props, cursor, path);
@@ -2119,7 +2119,7 @@ function hydrateReactive(
  * Hydrates a reactive region's first (server-rendered) emission against the DOM
  * already present between its markers, reusing the adopt-walk. If the adopted
  * content exactly matches the emission (cursor lands on the end marker), nothing
- * is mutated — node identity is preserved and there is no flash. If it diverges
+ * is mutated: node identity is preserved and there is no flash. If it diverges
  * (a `HydrationMismatchError`, or the walk doesn't consume the whole region), the
  * region is patched via {@link updateStreamChild} as a recoverable fallback and a
  * `console.error` is logged.
@@ -2161,8 +2161,8 @@ function hydrateFirstEmission(
  * `data-weft-suspense-failure` sentinel script carrying the Schema-encoded
  * failure. The region's static DOM is **not** hydrated or mutated: the parsed
  * `error` payload is replayed as a `Cause.fail` to the nearest
- * {@link BoundaryContext} (whose recovery then swaps the whole boundary extent
- * — the canonical fallback replaces this snapshot anyway), and the cursor
+ * {@link BoundaryContext} (whose recovery then swaps the whole boundary extent,
+ * since the canonical fallback replaces this snapshot anyway), and the cursor
  * resumes after the end marker.
  *
  * Graceful degradations (never a hard hydrate failure): a missing/unparsable
@@ -2184,7 +2184,7 @@ function hydrateSubstitutedSuspense(
       );
     }
 
-    // The sentinel is the first substituted child — scan the region's direct
+    // The sentinel is the first substituted child: scan the region's direct
     // siblings for it.
     let sentinel: HTMLScriptElement | null = null;
     for (
@@ -2272,7 +2272,7 @@ function findMatchingSuspenseEnd(startMarker: Comment): Comment | null {
  *   adopted extent, and a recovery fiber swaps the extent to `props.match`'s
  *   fallback when a live failure is reported (including an AC-H14 sentinel
  *   replay). Construction-time `HydrateError`s are **not** routed through
- *   `match` — static mismatches keep hard-failing (AC-H8). An empty extent
+ *   `match`. Static mismatches keep hard-failing (AC-H8). An empty extent
  *   skips the recovery install (nothing to swap) with a `console.error`.
  * - **Typed-failure replay:** the cursor is the
  *   `<script type="application/json" data-weft-boundary-failure>` the server
@@ -2280,7 +2280,7 @@ function findMatchingSuspenseEnd(startMarker: Comment): Comment | null {
  *   locates the `index`-th statically-reachable {@link Boundary.server} in
  *   `props.children`, `Schema.decodeUnknownEffect`s `error` via **that** boundary's `failure`
  *   schema, `Cause.fail`s the rebuilt typed error, and feeds it to `props.match`
- *   to obtain the **same** fallback the server rendered — hydrating it against the
+ *   to obtain the **same** fallback the server rendered, hydrating it against the
  *   adopted DOM at `script.nextSibling` and removing the script.
  *
  * A parse/decode miss, a missing/locate-less boundary, or a `match` that declines
@@ -2294,7 +2294,7 @@ function hydrateFailureBoundary(
 ): Effect.Effect<ChildNode | null, HydrateError, RenderContext> {
   return Effect.gen(function* () {
     // Success path: anything other than a failure-marked payload script means the
-    // boundary rendered its children inline — walk them with the live
+    // boundary rendered its children inline. Walk them with the live
     // failure-boundary machinery installed (AC-H13).
     if (
       cursor === null ||
@@ -2315,7 +2315,7 @@ function hydrateFailureBoundary(
       };
 
       // No construction-time catch (unlike renderBoundary): a HydrateError here
-      // hard-fails per AC-H8 — only deferred live failures route to the boundary.
+      // hard-fails per AC-H8. Only deferred live failures route to the boundary.
       const next = yield* hydrateChildren(props, cursor, path).pipe(
         Effect.provideService(BoundaryContext, boundaryService),
         Effect.provideService(RenderContext, subtreeContext),
@@ -2323,7 +2323,7 @@ function hydrateFailureBoundary(
       );
 
       // Bracket the adopted extent [cursor, next) with boundary markers so the
-      // recovery swap has a target — the only success-path DOM mutation
+      // recovery swap has a target, the only success-path DOM mutation
       // (AC-H11 note). An empty extent has nothing to swap: skip the install.
       const extentParent = cursor?.parentNode ?? null;
       if (cursor === null || cursor === next || extentParent === null) {
@@ -2362,7 +2362,7 @@ function hydrateFailureBoundary(
     const raw = script.textContent ?? "";
 
     // Rebuild the fallback from the encoded typed failure. A failure to parse,
-    // locate the boundary, or decode is a recoverable mismatch (logged) — the
+    // locate the boundary, or decode is a recoverable mismatch (logged): the
     // wire contract changed across a deploy and the region cannot be replayed.
     const fallbackNode = yield* Effect.gen(function* () {
       const payload = yield* Effect.try({
@@ -2387,13 +2387,13 @@ function hydrateFailureBoundary(
     );
 
     // `match` declined the rebuilt cause (or decoding failed): the fallback DOM
-    // cannot be reproduced from here — surface a recoverable mismatch.
+    // cannot be reproduced from here. Surface a recoverable mismatch.
     if (fallbackNode === null) {
       return yield* mismatch("replayable boundary failure", "undecodable failure payload", path);
     }
 
     // Hydrate the fallback against the adopted DOM following the payload script,
-    // then drop the script — it is consumed only by hydration.
+    // then drop the script: it is consumed only by hydration.
     const next = yield* hydrateNode(fallbackNode as Renderable, script.nextSibling, path);
     script.remove();
     return next;
@@ -2424,15 +2424,15 @@ interface ServerBoundaryProps {
  * region hands to `render`. `value` is seeded from `data` (the replayed SSR
  * payload on hydrate, or the freshly-resolved value on a client-first mount) so
  * its first emission matches the rendered DOM; `refetch` re-reads the data through
- * the injected {@link AppRpcClientTag} by calling `call(tag, payload())` — the
- * rpc client returns an already-decoded success — then `SubscriptionRef.set`s
+ * the injected {@link AppRpcClientTag} by calling `call(tag, payload())` (the
+ * rpc client returns an already-decoded success), then `SubscriptionRef.set`s
  * `value` so the subtree patches in place. A refetch is **stale-on-error**: any
  * failure **or defect** (captured via `Effect.exit`) leaves the previous `value`
  * intact, sets `error` to `Some`, and never raises into an enclosing failure
  * `Boundary`; `pending` is always cleared (`Effect.ensuring`). A refetch
  * triggered while one is already in flight is **ignored** (the `pending` guard),
  * so concurrent triggers cannot clobber `value` out of completion order. When no
- * client is present (`Option.none` — server, or a router-less mount) `refetch` is
+ * client is present (`Option.none`: server, or a router-less mount) `refetch` is
  * a no-op.
  */
 function makeClientResource(
@@ -2448,7 +2448,7 @@ function makeClientResource(
 
     const refetch: Effect.Effect<void> = Option.match(client, {
       // No client (server / router-less mount): refetch cannot reach the rpc, so
-      // it is a no-op — the region stays at its seeded value.
+      // it is a no-op. The region stays at its seeded value.
       onNone: () => Effect.void,
       onSome: (rpcClient) =>
         Effect.gen(function* () {
@@ -2501,17 +2501,17 @@ function makeClientResource(
  * Hydrates a {@link Boundary.rpc} region. The hydratable server renderer
  * emitted the encoded rpc result inline as a `<script type="application/json">`
  * payload at the region cursor, followed by the `render(resource)` HTML. Here we
- * **replay** that result — the rpc is never called on the client: the payload is
+ * **replay** that result. The rpc is never called on the client: the payload is
  * decoded through `successSchema`, seeded into a live {@link Boundary.Resource}
  * (see {@link makeClientResource}), and `render(resource)` is hydrated against the
  * adopted DOM at `script.nextSibling`. The payload script is then removed so it
  * does not linger in the live document. The region stays **live**: a later
  * `resource.refetch` re-calls the rpc and patches it in place.
  *
- * A missing payload, malformed JSON, or a value that fails `successSchema` decoding is
- * a {@link HydrationMismatchError} (recoverable, logged) — the same typed,
- * non-defect failure surfaced by every other adopt-walk divergence — since the
- * region cannot be located/replayed without the data.
+ * A missing payload, malformed JSON, or a value that fails `successSchema`
+ * decoding is a {@link HydrationMismatchError} (recoverable, logged), since the
+ * region cannot be located/replayed without the data. It is the same typed,
+ * non-defect failure surfaced by every other adopt-walk divergence.
  */
 function hydrateServerBoundary(
   props: ServerBoundaryProps,
@@ -2570,7 +2570,7 @@ function hydrateServerBoundary(
     // rpc client, then hydrate render(resource) against the adopted DOM following
     // the payload script. `value`'s first emission is the seeded data, so the
     // adopt-walk matches the server DOM (no fallback flash). The script is then
-    // dropped — it is consumed only by hydration; the region stays live for
+    // dropped: it is consumed only by hydration; the region stays live for
     // subsequent refetches.
     const client = yield* Effect.serviceOption(AppRpcClientTag);
     const resource = yield* makeClientResource(props.tag, props.payload, data, client);
@@ -2639,13 +2639,13 @@ function hydrateChildren(
 }
 
 // ============================================================================
-// Hydrate — keyed list region (List.each)
+// Hydrate: keyed list region (List.each)
 // ============================================================================
 
 /**
  * An item's DOM range adopted from server HTML during list hydration: its
  * per-item markers and the nodes between them (exclusive). The reconciliation
- * key is not yet known — it is paired positionally with the first emission's
+ * key is not yet known. It is paired positionally with the first emission's
  * projected keys in {@link hydrateFirstListEmission}.
  */
 interface AdoptedItem {
@@ -2657,9 +2657,9 @@ interface AdoptedItem {
 /**
  * Hydrates a `List.each` region (HY2). Pairs the region's `stream-start`/
  * `stream-end` markers, collects the server-rendered per-item ranges, then
- * subscribes to `of`. The **first** emission is adopted in place — paired
+ * subscribes to `of`. The **first** emission is adopted in place, paired
  * positionally with the server items and hydrated flash-free (node identity and
- * per-item subscriptions preserved) — building the persistent
+ * per-item subscriptions preserved), building the persistent
  * `HashMap<K, ItemRecord>`. Later emissions reconcile normally via
  * {@link reconcileList}. Divergence (item-count or per-item content mismatch)
  * patches the DOM and logs `console.error`, mirroring {@link hydrateReactive}.
@@ -2673,7 +2673,7 @@ function hydrateList(
     const context = yield* RenderContext;
     const { of, by, render } = props;
 
-    // Region start marker — same brackets as any reactive region.
+    // Region start marker: same brackets as any reactive region.
     if (cursor === null || cursor.nodeType !== COMMENT_NODE) {
       return yield* mismatch("list region start marker", describeNode(cursor), path);
     }
@@ -2757,7 +2757,7 @@ function hydrateList(
  * order. Item boundaries are the `list-item-start`/`list-item-end` markers;
  * nesting is tracked with a depth counter so a nested `List.each` inside an item
  * doesn't terminate the outer item early. Stream markers (nested reactive
- * children) are stepped over — they belong to the item's node range.
+ * children) are stepped over: they belong to the item's node range.
  */
 function collectAdoptedItems(regionStart: Comment, regionEnd: Comment): AdoptedItem[] {
   const items: AdoptedItem[] = [];
@@ -2875,11 +2875,11 @@ function hydrateFirstListEmission(
  * Hydrates a single server-rendered list item in place: forks a persistent
  * per-item scope, then hydrates `render(item)`'s output against the adopted DOM
  * range (attaching event handlers and reactive subscriptions, preserving node
- * identity — flash-free). `render` runs once per key, consistent with mount.
+ * identity, flash-free). `render` runs once per key, consistent with mount.
  *
  * If the item's content diverges from the server output, the item's scope is
  * closed and re-forked, its adopted nodes are removed, and it is rendered fresh
- * into the (preserved) marker range — logged and recoverable, mirroring
+ * into the (preserved) marker range, logged and recoverable, mirroring
  * {@link hydrateFirstEmission}.
  */
 function hydrateItem(
@@ -2972,7 +2972,7 @@ const SHOW_COMMENT = 128;
  * DOM under `root`. Stream, suspense, and list-item markers all draw from this
  * one counter (see `shared.ts`), so any of them can set the high-water mark.
  * Without this, ids minted after hydration restart at 1 and collide with adopted
- * markers — harmless for location (markers are matched positionally / by depth)
+ * markers, harmless for location (markers are matched positionally / by depth)
  * but it leaves duplicate ids in the live DOM.
  */
 export function seedStreamIdCounter(root: Node, counter: { current: number }): void {

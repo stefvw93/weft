@@ -9,10 +9,11 @@ export interface CapturedErrorLog {
 
 /**
  * Builds a replacement logger `Layer` that records every `Error`-level log
- * entry carrying a non-empty `Cause` — the shape of both the Effect runtime's
- * unhandled-error report and an explicit `Effect.logError(message, cause)` — so
- * tests can assert that unhandled failures are surfaced (with their
- * `weft.region` annotation) rather than silently swallowed. Provide `logger` to
+ * entry carrying a non-empty `Cause`. That is the shape of both the Effect
+ * runtime's unhandled-error report and an explicit
+ * `Effect.logError(message, cause)`. This lets tests assert that unhandled
+ * failures are surfaced (with their `weft.region` annotation) rather than
+ * silently swallowed. Provide `logger` to
  * the mount/hydrate Effect; `entries` populates asynchronously as failures occur.
  */
 export function makeErrorLogCapture() {

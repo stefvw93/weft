@@ -16,16 +16,15 @@ import type { Source } from "~/source/source";
 export interface CustomElements {}
 
 /**
- * Callable type for an element builder (one per tag — `h.div`, `h.span`, …).
+ * Callable type for an element builder (one per tag: `h.div`, `h.span`, …).
+ * Every call shape preserves the caller's prop and child `E`/`R` channels on the
+ * returned {@link Node}:
  *
- * Four call shapes are supported; each preserves the caller's prop and child
- * `E`/`R` channels on the returned {@link Node}:
- *
- * - `el(props, children)` — props plus an array of children.
- * - `el(props, child)` — props plus a single `string | number` child.
- * - `el(props)` — props only, no children.
- * - `el(children)` — children only, no props.
- * - `el()` — no arguments; yields a `Node<never, never>`.
+ * - `el(props, children)`: props plus an array of children.
+ * - `el(props, child)`: props plus a single `string | number` child.
+ * - `el(props)`: props only, no children.
+ * - `el(children)`: children only, no props.
+ * - `el()`: no arguments, yielding a `Node<never, never>`.
  */
 export interface ElementFn<Props> {
   <P extends Props, const C extends readonly Renderable[]>(
@@ -45,14 +44,9 @@ type DataAttributes = {
 
 type H = {
   /**
-   * Builds a fragment node containing the given children — children are rendered
-   * inline, with no wrapping element. Equivalent to `<>…</>` in JSX. `E`/`R`
-   * from the children accumulate on the returned {@link Node}.
-   *
-   * @example
-   * ```ts
-   * h.fragment([h.span({}, "left"), h.span({}, "right")]);
-   * ```
+   * Builds a fragment node whose children render inline, with no wrapping
+   * element. Equivalent to `<>…</>` in JSX. `E`/`R` from the children accumulate
+   * on the returned {@link Node}.
    */
   fragment<const C extends readonly Renderable[]>(children: C): Node<ChildrenE<C>, ChildrenR<C>>;
 } & {
@@ -84,9 +78,9 @@ function createElementFn(tag: string): ElementFn<any> {
 
 /**
  * Builds an `h` proxy backed by the given cache. Each tag access lazily creates
- * an `ElementFn` and memoizes it in the cache, so repeat accesses return the
- * same function reference. Exposed primarily to allow tests to observe an
- * isolated cache; production code should use the module-level `h`.
+ * an `ElementFn` and memoizes it, so repeat accesses return the same function
+ * reference. Exposed for tests to observe an isolated cache; production code
+ * should use the module-level `h`.
  */
 export function makeH(cache: Map<string, ElementFn<any>> = new Map()): H {
   return new Proxy<H>(

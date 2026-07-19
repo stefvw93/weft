@@ -53,8 +53,8 @@ export function escapeHtml(value: string): string {
 
 /**
  * UTF-16 code units that must be escaped to make JSON safe to embed inline
- * inside a `<script type="application/json">` element. `<` is the critical one —
- * escaping it prevents an embedded `</script` from closing the script early and
+ * inside a `<script type="application/json">` element. `<` is the critical one.
+ * Escaping it prevents an embedded `</script` from closing the script early and
  * `<!--` from opening an HTML comment; the JS line/paragraph separators
  * U+2028/U+2029 are escaped because they are valid JSON but illegal in a JS
  * string literal (some embedders reuse the JS tokenizer). `&` and `>` are

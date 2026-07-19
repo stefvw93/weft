@@ -74,7 +74,7 @@ interface ServerSuspenseCtx {
    * `{ owner, encoded }` here, then re-fails the original cause; the enclosing
    * failure boundary drains it (after its `match` handles the cause) to emit the
    * `data-weft-boundary-failure` payload before its fallback. `null` on the plain
-   * SSR passes — failure payloads are emitted only on the hydratable pass.
+   * SSR passes: failure payloads are emitted only on the hydratable pass.
    */
   readonly failureCollector: FailureCollector | null;
 }
@@ -112,7 +112,7 @@ interface ListSSRProps {
  *
  * With `markNoindex` (a `SuspenseFailureHandler` substitute opting into the
  * soft-404 pattern, AC-FH3) the script first appends
- * `<meta name="robots" content="noindex">` to `document.head` — the head has
+ * `<meta name="robots" content="noindex">` to `document.head`. The head has
  * long been flushed, so DOM injection is the only route.
  *
  * With `failureReplay` (AC-FH7) the patch switches to the **failure-replay
@@ -265,7 +265,7 @@ function renderSuspenseSSRInline(
 
 /**
  * Renders a `Boundary.*` descriptor for SSR. Attempts to render children; on
- * error calls `props.match` — if it returns a `Node`, renders the fallback
+ * error calls `props.match`. If it returns a `Node`, renders the fallback
  * inline with no markers; if it returns `null`, propagates the error as a
  * stream failure. Used by both plain-SSR and hydratable-SSR code paths.
  *
@@ -351,7 +351,7 @@ interface ServerBoundarySSRProps {
  * (re-fails unchanged) on the plain passes (`failureCollector === null`), on a
  * defect (no `Cause.findErrorOption`), or if the encode itself fails (e.g. a
  * transport defect against an rpc with no `error` schema, where `errorSchema` is
- * `Never`) — all of which fall back to a server fallback + client mismatch.
+ * `Never`), all of which fall back to a server fallback + client mismatch.
  */
 function stashServerBoundaryFailure(
   props: ServerBoundarySSRProps,
@@ -398,8 +398,8 @@ function staticResource(data: unknown): Boundary.Resource<unknown> {
 
 /**
  * Renders a `Boundary.rpc` descriptor for SSR (success path). Resolves the rpc
- * through the ambient {@link AppRpcClientTag} via `call(tag, payload())` — the
- * region **blocks** on it, like `firstListEmission` — then renders `render(data)`
+ * through the ambient {@link AppRpcClientTag} via `call(tag, payload())`. The
+ * region **blocks** on it, like `firstListEmission`, then renders `render(data)`
  * HTML in place. `call` returns the already-decoded success value (the in-process
  * client over the handler Layer does the decoding).
  *
@@ -407,7 +407,7 @@ function staticResource(data: unknown): Boundary.Resource<unknown> {
  * emitted inline as a `<script type="application/json">…</script>` at the region
  * cursor, **before** the rendered HTML, so the client `hydrate` walk reads it
  * positionally and hydrates `render(data)` at `script.nextSibling`. The plain
- * passes (`emitPayload === false`) emit only the `render(data)` HTML — complete
+ * passes (`emitPayload === false`) emit only the `render(data)` HTML: complete
  * without JS, with no payload script (AC-11/AC-12).
  *
  * No wrapper comment markers are needed: `render(data)` is fully-resolved static
@@ -425,8 +425,8 @@ function renderServerBoundarySSR(
       // A resolved rpc failure is stashed for the enclosing failure boundary to
       // replay (hydratable pass only); the original cause is then re-raised so it
       // still propagates to `match` as before. The rpc seam's error channel is
-      // `unknown`; the renderer's stream channel is `Error`, so the cause is cast
-      // — `match`/encode inspect the failure value untyped, never as an `Error`.
+      // `unknown`; the renderer's stream channel is `Error`, so the cause is cast.
+      // `match`/encode inspect the failure value untyped, never as an `Error`.
       const data = yield* (
         client.call(props.tag, props.payload()) as Effect.Effect<unknown, Error>
       ).pipe(
@@ -472,9 +472,9 @@ function firstListEmission(
 // ============================================================================
 
 /**
- * Core SSR render — `ctx` controls Suspense behaviour:
- * - `null`     → fallback-only (no markers, no patches) — used by `renderToString`
- * - non-`null` → full streaming-patch model — used by `renderToStream`
+ * Core SSR render: `ctx` controls Suspense behaviour:
+ * - `null`     → fallback-only (no markers, no patches), used by `renderToString`
+ * - non-`null` → full streaming-patch model, used by `renderToStream`
  */
 function renderSSRNode(
   node: Renderable,
@@ -487,7 +487,7 @@ function renderSSRNode(
   }
 
   if (isStream(node) || Effect.isEffect(node)) {
-    // Static markup carries its descriptor — render it directly, no execution.
+    // Static markup carries its descriptor: render it directly, no execution.
     const descriptor = getElementDescriptor(node);
     if (descriptor !== undefined) {
       return renderSSRNode(descriptor, ctx);
@@ -530,7 +530,7 @@ function renderSSRNode(
     if (type === SUSPENSE_BOUNDARY) {
       const sp = props as unknown as Boundary.SuspenseProps;
       if (ctx === null) {
-        // AC-SS1: renderToString — fallback only, no markers, no patches.
+        // AC-SS1: renderToString, fallback only, no markers, no patches.
         return renderSSRNode((sp.fallback ?? null) as Renderable, null);
       }
       return renderSuspenseSSRInline(sp, ctx, (n) => renderSSRNode(n, ctx));
@@ -547,7 +547,7 @@ function renderSSRNode(
 
     if (type === SERVER_BOUNDARY) {
       // Plain SSR: run load + render(data) inline, but emit no payload script
-      // (not hydratable) — AC-11.
+      // (not hydratable). AC-11.
       return renderServerBoundarySSR(props as unknown as ServerBoundarySSRProps, false, null, (n) =>
         renderSSRNode(n, ctx),
       );
@@ -631,7 +631,7 @@ function renderHydratableSSRNode(
   }
 
   if (isStream(node) || Effect.isEffect(node)) {
-    // Static markup carries its descriptor — render it directly, no execution.
+    // Static markup carries its descriptor: render it directly, no execution.
     const descriptor = getElementDescriptor(node);
     if (descriptor !== undefined) {
       return renderHydratableSSRNode(descriptor, counter, ctx);
@@ -696,7 +696,7 @@ function renderHydratableSSRNode(
 
     if (type === SERVER_BOUNDARY) {
       // Hydratable SSR: emit the encoded payload inline at the cursor, then the
-      // render(data) HTML, so client hydrate reads it positionally — AC-10.
+      // render(data) HTML, so client hydrate reads it positionally. AC-10.
       return renderServerBoundarySSR(
         props as unknown as ServerBoundarySSRProps,
         true,
@@ -846,7 +846,7 @@ export const renderToStream = (node: Renderable): Stream.Stream<string, Error, A
 
 /**
  * The patch queue as a string stream: emits each queued `Some` patch and
- * completes at the terminal `None` — so patches offered before the consumer
+ * completes at the terminal `None`, so patches offered before the consumer
  * attaches are never dropped.
  *
  * @internal
@@ -877,7 +877,7 @@ export const makeHydratableSSR = (
     const patchQueue = yield* Queue.unbounded<Option.Option<string>>();
     // If the scope closes while resolution fibers are still pending (consumer
     // disconnect, AC-SH6), those fibers are interrupted before they can offer
-    // the terminal None — so the patch stream would hang. Offer None on scope
+    // the terminal None, so the patch stream would hang. Offer None on scope
     // close so the stream always terminates; harmless after a normal close (the
     // last-settling boundary already offered None).
     yield* Scope.addFinalizer(scope, Effect.asVoid(Queue.offer(patchQueue, Option.none())));

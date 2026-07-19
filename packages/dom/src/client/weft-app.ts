@@ -45,7 +45,7 @@ export type HydrateError = MountError | HydrationMismatchError;
 
 /**
  * An error that escaped every user-level handler and reached the app's
- * unhandled-error hub — published on the {@link errors} stream.
+ * unhandled-error hub, published on the {@link errors} stream.
  *
  * Sources (one entry per failing occurrence):
  * - a rendered stream subscription failing or dying with no enclosing
@@ -84,7 +84,7 @@ export interface RootHandle {
    * Closes this root's scope: interrupts its stream subscriptions and any
    * scoped work forked from its event handlers. Does **not** dispose the app
    * runtime, touch other roots, or remove the rendered DOM nodes from
-   * {@link element}. Idempotent — teardown side effects fire once.
+   * {@link element}. Idempotent. Teardown side effects fire once.
    */
   unmount(): Effect.Effect<void>;
 }
@@ -107,7 +107,7 @@ export interface WeftApp<in R = never, out E = never> {
   readonly [TypeId]: typeof TypeId;
   /**
    * The app's `ManagedRuntime`, for running app-level effects against the
-   * shared layer outside any root — e.g.
+   * shared layer outside any root, e.g.
    * `app.runtime.runFork(trackPageviews)` or
    * `app.runtime.runPromise(Router.push("/about"))`.
    */
@@ -246,8 +246,8 @@ function makeImpl(
     options,
   );
   // Pure allocation on the current beta (no async, no services). If a future
-  // beta makes PubSub construction effectful, `runSync` will throw here —
-  // switch to a lazily-created hub in that case (see weft-app.specs.md).
+  // beta makes PubSub construction effectful, `runSync` will throw here.
+  // Switch to a lazily-created hub in that case (see weft-app.specs.md).
   const hub = Effect.runSync(PubSub.unbounded<UnhandledError>());
   const app: WeftApp<any, any> = { [TypeId]: TypeId, runtime };
   states.set(app, {
@@ -269,7 +269,7 @@ export const make: Make = makeImpl as unknown as Make;
  * - Clears `root`'s existing children, renders the tree, appends the result.
  * - Completes after initial render; streams keep running in the background,
  *   owned by the root's scope (a child of the app scope).
- * - Self-contained: the returned effect's requirement channel is `never` —
+ * - Self-contained: the returned effect's requirement channel is `never`, so
  *   run it with a bare `Effect.runPromise`. Services come exclusively from the
  *   app layer; `Effect.provide` around this call does not feed components.
  * - The app layer builds lazily here on first mount; its error channel `E`
@@ -431,7 +431,7 @@ export const errors = <R, E>(app: WeftApp<R, E>): Stream.Stream<UnhandledError> 
 
 /**
  * Disposes the app: closes every root scope (in mount order), then releases
- * the runtime's layers, then shuts the error hub down. Idempotent — teardown
+ * the runtime's layers, then shuts the error hub down. Idempotent: teardown
  * effects run once. Subsequent {@link mount} / {@link hydrate} calls fail.
  *
  * @param app - the {@link WeftApp} to dispose

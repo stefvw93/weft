@@ -99,7 +99,7 @@ export type RenderResult = Node | readonly Node[] | null;
  * promise settles.
  *
  * Hydrate-only: `mount` does not provide it (a blanket mount barrier deadlocks on
- * regions whose first emission arrives post-mount — see hydrate-ready.specs.md
+ * regions whose first emission arrives post-mount, see hydrate-ready.specs.md
  * §mount symmetry). Reactive hydrate spots read it optionally.
  */
 export type HydrationReady = {
@@ -128,7 +128,7 @@ export class RenderContext extends Context.Service<
     /**
      * The current enclosing reactive scope. All forked fibers and prop pumps
      * within this region are children of this scope. Provided alongside the
-     * ambient `Scope.Scope` service at every scope boundary — the two always
+     * ambient `Scope.Scope` service at every scope boundary. The two always
      * point at the same scope.
      */
     readonly scope: Scope.Scope;

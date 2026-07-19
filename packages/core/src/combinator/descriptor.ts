@@ -12,8 +12,8 @@ const ELEMENT_DESCRIPTOR = Symbol.for("@weftui/core/ElementDescriptor");
 /**
  * Builds a static-markup {@link Node} for a known {@link ElementDescriptor}.
  *
- * The result is a normal `Effect.succeed(descriptor)` — fully `yield*`-able
- * inside `Component.gen` and indistinguishable to Effect — but additionally
+ * The result is a normal `Effect.succeed(descriptor)` (fully `yield*`-able
+ * inside `Component.gen` and indistinguishable to Effect), but additionally
  * carries the descriptor on a non-enumerable property. Renderers detect this via
  * {@link getElementDescriptor} and render the descriptor directly, with no
  * `runSync` probe (the reason `h.*`, `h.fragment`, and `Boundary.*` never need to
@@ -30,8 +30,8 @@ export function elementNode<E = never, R = never>(descriptor: ElementDescriptor)
  * built with {@link elementNode}, or `undefined` if `node` is anything else
  * (a primitive, an iterable, a `Stream`, or a reactive `Effect`).
  *
- * Renderers call this to take the static fast path — rendering the descriptor
- * directly — before falling back to running genuinely reactive Effects.
+ * Renderers call this to take the static fast path (rendering the descriptor
+ * directly) before falling back to running genuinely reactive Effects.
  */
 export function getElementDescriptor(node: unknown): ElementDescriptor | undefined {
   return Effect.isEffect(node) && ELEMENT_DESCRIPTOR in node

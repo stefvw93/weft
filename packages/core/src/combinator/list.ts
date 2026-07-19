@@ -9,7 +9,7 @@ import type { Source } from "~/source/source";
  */
 export const LIST = Symbol("@weftui/core/list");
 
-/** Element type carried by a list source — the element type of the emitted `Iterable`. */
+/** Element type carried by a list source: the element type of the emitted `Iterable`. */
 type ItemOf<S> = Source.Success<S> extends Iterable<infer T> ? T : never;
 
 /**
@@ -39,20 +39,10 @@ export namespace List {
   }
 
   /**
-   * Declares a keyed reactive list region.
-   *
-   * `render` runs **once per key**; a persisted key keeps its DOM nodes and its
-   * running subscription fibers across re-emits (it is never re-invoked). The
-   * returned node's `E`/`R` are the union of the source channels and the
-   * channels of the node `render` returns.
-   *
-   * @example
-   * ```ts
-   * List.each(
-   *   { of: peopleStream, by: (p) => p.id },
-   *   (person) => h.li({}, person.name),
-   * );
-   * ```
+   * Declares a keyed reactive list region. `render` runs **once per key**; a
+   * persisted key keeps its DOM nodes and its running subscription fibers across
+   * re-emits (it is never re-invoked). The returned node's `E`/`R` are the union
+   * of the source channels and the channels of the node `render` returns.
    */
   export function each<
     S extends Source.Source<Iterable<any>, any, any>,
@@ -70,13 +60,13 @@ export namespace List {
   }
 
   /**
-   * Extract the error channel `E` from a list {@link Node} — re-exported from
+   * Extract the error channel `E` from a list {@link Node}, re-exported from
    * {@link Node.Error}, the canonical accessor (a `Node`'s success channel is
    * fixed to `ElementDescriptor`, so only `Error`/`Context` are exposed here).
    */
   export type Error<N> = Node.Error<N>;
   /**
-   * Extract the requirement channel `R` from a list {@link Node} — re-exported
+   * Extract the requirement channel `R` from a list {@link Node}, re-exported
    * from {@link Node.Context}, the canonical accessor.
    */
   export type Context<N> = Node.Context<N>;

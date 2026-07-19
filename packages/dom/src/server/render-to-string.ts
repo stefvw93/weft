@@ -8,7 +8,7 @@ import { renderToStreamFallbackOnly, renderToStreamHydratable } from "./render-t
  * The server-side counterpart to the client DOM renderer, intended to produce
  * output isomorphic with what the client renderer creates in the browser.
  *
- * Suspense boundaries render their fallback directly — no comment markers
+ * Suspense boundaries render their fallback directly: no comment markers
  * and no `<template>`/`<script>` patches. For streaming Suspense support use
  * {@link renderToStreamHydratable} / {@link renderToStream} instead.
  *

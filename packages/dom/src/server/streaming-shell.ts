@@ -10,7 +10,7 @@ import type { SuspenseFailureHandlerTag } from "./suspense-failure-handler";
  */
 export interface HydratableShell {
   /**
-   * The fully buffered main walk — byte-identical to the `mainStream` portion
+   * The fully buffered main walk, byte-identical to the `mainStream` portion
    * of `renderToStreamHydratable` for the same tree: reactive-region markers,
    * Suspense fallbacks inline with their markers, resolved (blocking)
    * `Boundary.rpc` regions, and failure-boundary fallbacks with payloads.
@@ -18,7 +18,7 @@ export interface HydratableShell {
   readonly shell: string;
   /**
    * The Suspense patch queue as a stream. Never fails (resolution fibers
-   * handle their own errors — see {@link SuspenseFailureHandlerTag}); completes
+   * handle their own errors, see {@link SuspenseFailureHandlerTag}); completes
    * once all pending boundaries have resolved, or immediately if the tree has
    * no `Boundary.suspend`.
    */
@@ -31,7 +31,7 @@ export interface HydratableShell {
  * an HTTP consumer can decide status/headers before flushing any bytes, then
  * streams Suspense patches separately.
  *
- * Errors raised during the main walk fail this Effect — nothing has been
+ * Errors raised during the main walk fail this Effect. Nothing has been
  * handed to the consumer yet, so the caller may respond with a different
  * document and a real status (AC-SH2).
  *

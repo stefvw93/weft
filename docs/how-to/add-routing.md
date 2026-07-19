@@ -24,11 +24,11 @@ A route's **component is its handler**. A page is a component that renders, and 
 
 You author an **explicit nested route tree** with three namespaced combinators (mirroring the `h.div` / `Component.gen` / `Boundary.catchTag` surface) and seal it once:
 
-| Combinator                                            | Builds                                                            |
-| ----------------------------------------------------- | ----------------------------------------------------------------- |
-| `Router.route(segment, { path?, query?, component })` | A leaf page.                                                      |
-| `Router.layout({ component }, children)`              | A layout that wraps an outlet (purely UI nesting; owns no path).  |
-| `Router.router(root, { notFound })`                   | Seals the tree into a `RouterDef`.                                |
+| Combinator                                            | Builds                                                           |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `Router.route(segment, { path?, query?, component })` | A leaf page.                                                     |
+| `Router.layout({ component }, children)`              | A layout that wraps an outlet (purely UI nesting; owns no path). |
+| `Router.router(root, { notFound })`                   | Seals the tree into a `RouterDef`.                               |
 
 The tree is the source of truth. The same sealed `RouterDef` drives both server and client.
 

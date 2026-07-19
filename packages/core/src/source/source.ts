@@ -41,7 +41,7 @@ export namespace Source {
    * contributes its value channel; a static value is itself.
    *
    * Checked in the same order as `OpenPropSource` (`combinator/types.ts`) so an
-   * `Effect` — which is itself iterable for generators — never reaches the static
+   * `Effect`, which is itself iterable for generators, never reaches the static
    * fallback. The props-object analog is `PropsE`/`PropsR` in `combinator/types.ts`.
    */
   export type Success<S> =
@@ -92,7 +92,7 @@ export namespace Source {
     source: Source.Source<A, E, R>,
     key?: string,
   ): Effect.Effect<Subscribable.Subscribable<A, E | NoPropValue, R>, never, Scope.Scope> {
-    // Identity: already a Subscribable — return by reference, no new ref/fiber.
+    // Identity: already a Subscribable, so return by reference, no new ref/fiber.
     if (Subscribable.isSubscribable(source)) {
       return Effect.succeed(source);
     }
@@ -136,7 +136,7 @@ export namespace Source {
           ),
         );
 
-        // Fork pump into the enclosing scope — dies when the scope closes.
+        // Fork pump into the enclosing scope: it dies when the scope closes.
         yield* Effect.forkScoped(pump);
 
         // get: return latest if available; otherwise await the first emission.

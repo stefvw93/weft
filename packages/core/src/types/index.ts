@@ -6,7 +6,7 @@ export type ElementType = symbol | string | ((props: Record<string, unknown>) =>
 /**
  * Virtual element descriptor produced by `h`, `h.fragment`, `Suspense`, and
  * components, and consumed by the renderers. This is the resolved value of a
- * {@link Node} — a plain object, not a browser DOM `Node`.
+ * {@link Node}: a plain object, not a browser DOM `Node`.
  */
 export interface ElementDescriptor {
   readonly type: ElementType;

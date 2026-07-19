@@ -9,10 +9,9 @@ export function isStream(value: unknown): value is Stream.Stream<unknown, any, a
 }
 
 /**
- * Normalizes a static value, `Effect`, or `Stream` into a `Stream` — the
- * weft equivalent of Vue's `unref`. Static values become a single-element
- * stream, Effects become a one-shot stream, and existing Streams pass through
- * unchanged.
+ * Normalizes a static value, `Effect`, or `Stream` into a `Stream`, the weft
+ * equivalent of Vue's `unref`. Static values become a single-element stream,
+ * Effects become a one-shot stream, and existing Streams pass through unchanged.
  */
 export function toStream<A>(value: A | Effect.Effect<A> | Stream.Stream<A>): Stream.Stream<A> {
   if (isStream(value)) {

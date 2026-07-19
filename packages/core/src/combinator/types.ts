@@ -6,7 +6,7 @@ export type { ElementDescriptor, Renderable };
 
 /**
  * Widens a single prop value type so that Stream/Effect/Subscribable variants
- * accept any E and R — not just `never`. Static values (string, number, etc.)
+ * accept any E and R, not just `never`. Static values (string, number, etc.)
  * are left unchanged. TypeScript distributes this over union types.
  */
 export type OpenPropSource<T> =
@@ -20,7 +20,7 @@ export type OpenPropSource<T> =
 
 /**
  * A node in the combinator tree.
- * IS an Effect — `yield*`, `Effect.gen`, and `pipe` all work natively. Resolves
+ * IS an Effect: `yield*`, `Effect.gen`, and `pipe` all work natively. Resolves
  * to an {@link ElementDescriptor}.
  *
  * Declared as an interface (rather than a bare alias) so it can merge with the
@@ -44,7 +44,7 @@ export namespace Node {
   export type Context<N> = [N] extends [Effect.Effect<any, any, infer R>] ? R : never;
 }
 
-/** Extract E from a props object — Stream/Effect/Subscribable prop values and Effect-returning event handlers contribute their E channel. */
+/** Extract E from a props object: Stream/Effect/Subscribable prop values and Effect-returning event handlers contribute their E channel. */
 export type PropsE<P> = {
   [K in keyof P]: P[K] extends Stream.Stream<any, infer E, any>
     ? E
@@ -59,7 +59,7 @@ export type PropsE<P> = {
           : never;
 }[keyof P];
 
-/** Extract R from a props object — Stream/Effect/Subscribable prop values and Effect-returning event handlers contribute their R channel. */
+/** Extract R from a props object: Stream/Effect/Subscribable prop values and Effect-returning event handlers contribute their R channel. */
 export type PropsR<P> = {
   [K in keyof P]: P[K] extends Stream.Stream<any, any, infer R>
     ? R
@@ -74,7 +74,7 @@ export type PropsR<P> = {
           : never;
 }[keyof P];
 
-/** Extract E from a children array — Node (Effect) and Stream children contribute their E. */
+/** Extract E from a children array: Node (Effect) and Stream children contribute their E. */
 export type ChildrenE<T extends readonly Renderable[]> = [T[number]] extends [never]
   ? never
   : {
@@ -85,7 +85,7 @@ export type ChildrenE<T extends readonly Renderable[]> = [T[number]] extends [ne
           : never;
     }[number];
 
-/** Extract R from a children array — Node (Effect) and Stream children contribute their R. */
+/** Extract R from a children array: Node (Effect) and Stream children contribute their R. */
 export type ChildrenR<T extends readonly Renderable[]> = [T[number]] extends [never]
   ? never
   : {
@@ -98,7 +98,7 @@ export type ChildrenR<T extends readonly Renderable[]> = [T[number]] extends [ne
 
 /**
  * Strip `children` from HTML prop types and widen all Source prop types to
- * allow any E/R — so callers can pass `Stream<T, E, R>` with real requirements.
+ * allow any E/R, so callers can pass `Stream<T, E, R>` with real requirements.
  */
 export type CombinatorialProps<P> = {
   [K in keyof Omit<P, "children">]: OpenPropSource<Omit<P, "children">[K]>;

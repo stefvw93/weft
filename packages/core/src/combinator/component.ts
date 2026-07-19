@@ -12,22 +12,17 @@ import type {
 /**
  * Factories for building custom components whose returned `Node`s carry the
  * caller's prop `E`/`R` channels and the component's own internal `E`/`R`.
- *
- * Two flavours are provided:
- *
- * - `Component.gen` — body is a generator (use `yield*` like `Effect.gen`).
- * - `Component.make` — body is a plain function returning any `Effect`.
- *
- * Both accept an optional second `children` argument which may be either an
- * array of {@link Renderable} or a function `(input) => readonly Renderable[]` (the
- * render-prop / function-children pattern).
+ * `Component.gen` takes a generator body (use `yield*` like `Effect.gen`);
+ * `Component.make` takes a plain function returning any `Effect`. Both accept an
+ * optional second `children` argument: an array of {@link Renderable}, or a
+ * function `(input) => readonly Renderable[]` (the render-prop pattern).
  */
 export namespace Component {
   /**
    * Shape of the optional `children` argument to a {@link Component}.
    *
-   * - `readonly Renderable[]` — a flat list of children, the common case.
-   * - `(input: Input) => readonly Renderable[]` — function-children: the component
+   * - `readonly Renderable[]`: a flat list of children, the common case.
+   * - `(input: Input) => readonly Renderable[]`: function-children. The component
    *   supplies `input` (some scoped value) and the caller returns the children
    *   array. Useful for render-prop / slot patterns.
    */
@@ -36,14 +31,14 @@ export namespace Component {
     | ((input: Input) => readonly Renderable[]);
 
   /**
-   * Extract the error channel `E` from the {@link Node} a component produces —
+   * Extract the error channel `E` from the {@link Node} a component produces,
    * re-exported from {@link Node.Error}, the canonical accessor. Apply to a
    * component's return type, e.g. `Component.Error<ReturnType<typeof MyComponent>>`.
    */
   export type Error<N> = Node.Error<N>;
   /**
    * Extract the requirement channel `R` from the {@link Node} a component
-   * produces — re-exported from {@link Node.Context}, the canonical accessor.
+   * produces, re-exported from {@link Node.Context}, the canonical accessor.
    */
   export type Context<N> = Node.Context<N>;
 
@@ -51,10 +46,9 @@ export namespace Component {
    * The callable shape returned by {@link gen} and {@link make}. Generic over
    * the caller's specific `GenP`/`GenC` so reactive prop values and reactive
    * children contribute their `E`/`R` to the resulting `Node` at the call site.
-   *
    * For function-children, `ChildrenE`/`ChildrenR` are extracted from the
-   * function's `ReturnType` — the array the caller would produce — not from
-   * the function itself.
+   * function's `ReturnType` (the array the caller would produce), not from the
+   * function itself.
    */
   export type Component<P, C extends Children, E, R> = <GenP extends P, GenC extends C>(
     props: GenP,
@@ -112,30 +106,11 @@ export namespace Component {
 
   /**
    * Defines a component whose body is a plain function returning any `Effect`
-   * (typically a {@link Node}). Use when the implementation is a one-liner or
-   * a pipe composition — no generator overhead.
-   *
-   * Same `E`/`R` propagation semantics as {@link gen}: internal `E`/`R` come
-   * from the returned effect, caller props and children contribute at the
-   * call site, and function-children are supported via the optional second
-   * argument.
-   *
-   * @example
-   * ```ts
-   * const Avatar = Component.make((props: { src: string }) =>
-   *   h.img({ src: props.src, alt: "" }),
-   * );
-   * ```
-   *
-   * @example With function-children
-   * ```ts
-   * const List = Component.make(
-   *   (
-   *     props: { items: readonly string[] },
-   *     children: (item: string) => readonly Renderable[],
-   *   ) => h.ul({}, props.items.flatMap(children)),
-   * );
-   * ```
+   * (typically a {@link Node}). Use when the implementation is a one-liner or a
+   * pipe composition, with no generator overhead. Same `E`/`R` propagation
+   * semantics as {@link gen}: internal `E`/`R` come from the returned effect,
+   * caller props and children contribute at the call site, and function-children
+   * are supported via the optional second argument.
    */
   export function make<
     Eff extends Effect.Effect<any, any, any>,

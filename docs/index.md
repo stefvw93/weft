@@ -19,12 +19,12 @@ The docs follow the [Diátaxis](https://diataxis.fr) model. Pick your entry poin
 
 ## The four quadrants
 
-|                                                   |                                                                                                                                                                                     |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Tutorial](tutorial/01-your-first-app.md)**     | Learning-oriented. One guided path, start to finish.                                                                                                                                |
+|                                                   |                                                                                                                                                                                    |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Tutorial](tutorial/01-your-first-app.md)**     | Learning-oriented. One guided path, start to finish.                                                                                                                               |
 | **[How-to guides](how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing. Plus recipes for forms, async data, keyed lists, reactive styles, refs, and lazy routing. |
-| **[Explanation](explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                                           |
-| **[Reference](reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](reference/core.md), [`@weftui/dom`](reference/dom.md), [`@weftui/router`](reference/router.md).                                    |
+| **[Explanation](explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                                          |
+| **[Reference](reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](reference/core.md), [`@weftui/dom`](reference/dom.md), [`@weftui/router`](reference/router.md).                                   |
 
 New to the model itself? Read [The Rendering Model](explanation/rendering-model.md): why there is no virtual DOM, and what "streams are the weft" means.
 

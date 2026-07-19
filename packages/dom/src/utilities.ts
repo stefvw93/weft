@@ -14,8 +14,8 @@ export function nextStreamId(): Effect.Effect<number, never, RenderContext> {
 /**
  * Generates the next unique Suspense-boundary ID.
  *
- * IDs are drawn from the same monotonic counter as stream-region IDs —
- * they only need to be unique within a single render tree.
+ * IDs are drawn from the same monotonic counter as stream-region IDs.
+ * They only need to be unique within a single render tree.
  */
 export const nextSuspenseId = nextStreamId;
 

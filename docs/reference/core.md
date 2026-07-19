@@ -174,11 +174,11 @@ The boundary resolves the rpc through the ambient [`AppRpcClientTag`](#apprpccli
 
 The reactive handle `render` receives (`A = Rpc.Success<R>`). After hydrate the region is live: `value` is seeded with the SSR payload. The client can `refetch` the same data on demand, patching the rendered subtree in place.
 
-| Field     | Type                                         | Meaning                                                                                                                                                                                   |
-| --------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field     | Type                                         | Meaning                                                                                                                                                                                  |
+| --------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `value`   | `Subscribable.Subscribable<A>`               | Current data. Seeded with the SSR `data` (await-first, emits immediately, so SSR HTML and adopted DOM are byte-identical, no fallback flash). A successful refetch pushes the new value. |
 | `refetch` | `Effect.Effect<void>`                        | Re-resolves the rpc over the network with a fresh `payload()` and sets `value`. Client only, a no-op on the server.                                                                      |
-| `pending` | `Subscribable.Subscribable<boolean>`         | `true` while a refetch is in flight (`false` on the server / before any refetch).                                                                                                         |
+| `pending` | `Subscribable.Subscribable<boolean>`         | `true` while a refetch is in flight (`false` on the server / before any refetch).                                                                                                        |
 | `error`   | `Subscribable.Subscribable<Option<unknown>>` | `Some` with the last refetch error, else `None`. A failed refetch is stale-on-error: it does **not** unmount or raise into a failure `Boundary`.                                         |
 
 ##### `RpcOptions`

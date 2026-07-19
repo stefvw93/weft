@@ -49,8 +49,8 @@ function makeFailureBoundaryNode<E, R>(
  * variant wraps a subtree and shows a fallback in response to an event.
  *
  * - **Failure boundaries** (`catch`, `catchCause`, `catchTag`,
- *   `catchTags`, `catchFilter`, `catchIf`) intercept rendering-path errors —
- *   construction-time errors and post-mount stream failures — mirroring
+ *   `catchTags`, `catchFilter`, `catchIf`) intercept rendering-path errors
+ *   (construction-time errors and post-mount stream failures), mirroring
  *   Effect's `catch*` combinators.
  * - **Suspense boundary** (`suspend`) shows a fallback while async children are
  *   pending, then swaps to the resolved children once all have settled.
@@ -63,7 +63,7 @@ function makeFailureBoundaryNode<E, R>(
  * ```ts
  * import { Boundary, h } from "@weftui/core";
  *
- * // Failure boundary wrapping a suspense boundary — the common pairing:
+ * // Failure boundary wrapping a suspense boundary, the common pairing:
  * Boundary.catch({ fallback: (e) => h.div({}, e.message) }, [
  *   Boundary.suspend({ fallback: h.div({}, "Loading…") }, [AsyncCard()]),
  * ])
@@ -83,7 +83,7 @@ export interface FailureProps {
 }
 
 /**
- * Props for the {@link suspend} boundary — used by renderers to access
+ * Props for the {@link suspend} boundary, read by renderers to access
  * `fallback` and `children` from the node descriptor.
  */
 export interface SuspenseProps {
@@ -230,7 +230,7 @@ export function catchFilter<C extends readonly Renderable[], EB, X, FE = never, 
 }
 
 /**
- * Conditionally catch — a predicate gates the fallback. If the predicate
+ * Conditionally catch: a predicate gates the fallback. If the predicate
  * returns `false`, the error is re-raised. The children's `E` is preserved
  * in the output since the boundary may not handle any given error.
  */
@@ -253,19 +253,10 @@ export function catchIf<C extends readonly Renderable[], FE = never, FR = never>
 /**
  * Creates a suspense boundary node.
  *
- * Shows `fallback` while async children are pending (have not yet emitted
- * their first value), then atomically swaps to the resolved children once
- * **all** pending children have settled.
- *
- * The renderer (`@weftui/dom`) identifies the boundary via its
- * {@link SUSPENSE_BOUNDARY} type tag.
- *
- * @example
- * ```ts
- * import { Boundary, h } from "@weftui/core";
- *
- * Boundary.suspend({ fallback: h.div({}, "Loading…") }, [AsyncCard(), AsyncSidebar()])
- * ```
+ * Shows `fallback` while async children are pending (have not yet emitted their
+ * first value), then atomically swaps to the resolved children once **all**
+ * pending children have settled. The renderer (`@weftui/dom`) identifies the
+ * boundary via its {@link SUSPENSE_BOUNDARY} type tag.
  */
 export function suspend<C extends readonly Renderable[]>(
   props: SuspenseProps,
@@ -288,7 +279,7 @@ export function suspend<C extends readonly Renderable[]>(
  *
  * On the **server** and on the **first client paint after hydrate** `value`
  * emits the SSR `data` first (await-first), so SSR HTML and the adopted DOM are
- * byte-identical — no fallback flash.
+ * byte-identical, with no fallback flash.
  *
  * @typeParam A - The loaded data shape.
  */
@@ -308,7 +299,7 @@ export interface Resource<A> {
   readonly pending: Subscribable.Subscribable<boolean>;
   /**
    * `Some` with the last refetch error, else `None`. A failed refetch leaves
-   * the previous `value` intact (stale-on-error) — it does **not** unmount the
+   * the previous `value` intact (stale-on-error). It does **not** unmount the
    * subtree or raise into an enclosing failure `Boundary`.
    */
   readonly error: Subscribable.Subscribable<Option.Option<unknown>>;
@@ -332,7 +323,7 @@ export interface RpcOptions {
  *
  * The boundary is a thin consumer of one `Rpc` from the application's merged
  * `RpcGroup`. Its data source is the ambient {@link AppRpcClient}: there is no
- * co-located `load`, no `provide`, no per-boundary `id`/registry — the rpc
+ * co-located `load`, no `provide`, no per-boundary `id`/registry. The rpc
  * **tag** is the stable identity and the rpc **payload schema** is the typed
  * input. The handler lives in the server-only rpc Layer, so nothing here needs a
  * bundler prune.
@@ -342,7 +333,7 @@ export interface RpcOptions {
  *   the rpc's `successSchema` inline as a `<script type="application/json">`
  *   payload, and renders `render(seededResource)` to HTML in place.
  * - **Hydrate**: reads the inline payload at the cursor, decodes via
- *   `successSchema`, seeds the {@link Resource}, and adopts the DOM — replaying
+ *   `successSchema`, seeds the {@link Resource}, and adopts the DOM, replaying
  *   the server result, never re-calling the rpc.
  * - **Refetch**: `Resource.refetch` calls `AppRpcClient.call(tag, payload())`
  *   over the network and patches the subtree in place (stale-on-error).
@@ -351,7 +342,7 @@ export interface RpcOptions {
  *   `render(resource)` once it resolves.
  *
  * `payload` is a thunk so a fresh payload is produced per call (SSR, refetch,
- * mount) — its return type is the rpc's decoded payload. The renderer identifies
+ * mount). Its return type is the rpc's decoded payload. The renderer identifies
  * the boundary via its {@link SERVER_BOUNDARY} type tag.
  *
  * @example
@@ -382,7 +373,7 @@ export function rpc<R extends Rpc.Any, C extends Node<any, any>>(
   // the ambient AppRpcClient and `successSchema`/`errorSchema` to decode the
   // inline SSR payload / refetch result. `payload` stays a thunk so each call
   // (SSR, refetch, mount) gets a fresh value. `Rpc.AnyWithProps` is the public
-  // accessor view of an `Rpc` instance — these fields are part of `effect/unstable/rpc`'s
+  // accessor view of an `Rpc` instance. These fields are part of `effect/unstable/rpc`'s
   // surface, so no `unknown` round-trip is needed.
   const instance = rpc as unknown as Rpc.AnyWithProps;
   // Tag the descriptor with SERVER_BOUNDARY so the renderer processes it

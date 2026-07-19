@@ -117,8 +117,8 @@ Because the SSR path seeds `value` await-first (it emits the seed immediately), 
 
 `render` receives a [`Resource<A>`](../reference/core.md#resourcea) (`A` = the rpc's decoded success), not a bare value. After hydrate the region is live:
 
-| Field     | What it gives you                                                                                    |
-| --------- | ---------------------------------------------------------------------------------------------------- |
+| Field     | What it gives you                                                                                   |
+| --------- | --------------------------------------------------------------------------------------------------- |
 | `value`   | A `Subscribable` of the current data: seeded with the SSR payload, updated on a successful refetch. |
 | `refetch` | An `Effect<void>` that re-resolves the rpc with a fresh `payload()` and pushes the new `value`.     |
 | `pending` | A `Subscribable<boolean>`: `true` while a refetch is in flight.                                     |
