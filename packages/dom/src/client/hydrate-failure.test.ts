@@ -77,14 +77,14 @@ class MissingError extends Data.TaggedError("Missing")<{ msg: string }> {}
  * A never-resolving suspended child whose error union carries
  * {@link MissingError}, so a `catchTag({ tag: "Missing" })` above it
  * type-checks. The replayed failure comes from the sentinel, never from this
- * effect — it must not run at hydrate.
+ * effect: it must not run at hydrate.
  */
 const neverChild = Effect.never as Effect.Effect<never, MissingError>;
 
 /**
  * A reactive region whose first emission is `"ok"` (matching the server
  * snapshot) and whose stream fails with {@link LateError} once `trigger`
- * resolves — a deterministic post-hydrate live failure. The error union also
+ * resolves: a deterministic post-hydrate live failure. The error union also
  * carries {@link NopeError} (never raised) so a `catchTag({ tag: "Nope" })`
  * type-checks while exercising the no-match propagation path.
  */
@@ -121,7 +121,7 @@ describe("AC-H13: failure-boundary live machinery", () => {
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // Success path: server snapshot adopted, boundary markers inserted (the only
-    // success-path DOM mutation — AC-H11 note).
+    // success-path DOM mutation: AC-H11 note).
     assert.ok(root.textContent?.includes("ok"));
     assert.ok(root.innerHTML.includes("boundary-start"));
     assert.ok(root.innerHTML.includes("boundary-end"));
@@ -225,7 +225,7 @@ describe("AC-H14: substituted-suspense failure replay", () => {
     assert.ok(root.innerHTML.includes("suspense-start-1"));
   });
 
-  it("a sentinel that fails to parse logs and skips the region — never a hard hydrate failure", async () => {
+  it("a sentinel that fails to parse logs and skips the region: never a hard hydrate failure", async () => {
     createTestDOM();
     const root = createRoot();
     root.innerHTML =
@@ -273,7 +273,7 @@ describe("AC-H15: reactive-region failure routing", () => {
     root.innerHTML = SERVER_REGION_HTML;
 
     const trigger = await Effect.runPromise(Deferred.make<void>());
-    // The failing region sits under a nested static element — the report must
+    // The failing region sits under a nested static element: the report must
     // travel through the walk to the boundary installed above it.
     const app = Boundary.catch({ fallback: () => h.p({ id: "fb" }, "routed") }, [
       h.div({}, [failAfterFirst(trigger)]),
@@ -298,7 +298,7 @@ describe("AC-H15: reactive-region failure routing", () => {
     await Effect.runPromise(Deferred.succeed(trigger, void 0));
     await waitFor(50);
 
-    // The adopted static DOM stands — no fallback, no teardown.
+    // The adopted static DOM stands: no fallback, no teardown.
     assert.ok(root.textContent?.includes("ok"));
     // The failure is reported once at Error level, attributed to the region.
     assert.equal(entries.length, 1, "Exactly one unhandled failure should be reported");

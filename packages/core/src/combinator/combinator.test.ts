@@ -7,7 +7,7 @@ import type { Renderable, ElementDescriptor } from "./types";
 
 const h = makeH();
 
-describe("createElementFn — arg normalization", () => {
+describe("createElementFn: arg normalization", () => {
   test("empty props, no children", () => {
     const node = Effect.runSync(h.div({}));
     assert.deepEqual(node, { type: "div", props: {} });

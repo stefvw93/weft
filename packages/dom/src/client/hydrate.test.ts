@@ -296,7 +296,7 @@ describe("AC-H11: flash-free resume", () => {
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitFor(50);
 
-    // Same node object survives the first emission — adopted, not re-rendered.
+    // Same node object survives the first emission: adopted, not re-rendered.
     const span = root.querySelector("span");
     assert.equal(span, serverSpan);
     assert.equal((span as unknown as { __sentinel?: boolean }).__sentinel, true);

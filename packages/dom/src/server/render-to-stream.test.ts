@@ -215,7 +215,7 @@ describe("renderToStream - function components", () => {
 });
 
 // ============================================================================
-// SSR Suspense tests — AC-SS1 through AC-SS7
+// SSR Suspense tests: AC-SS1 through AC-SS7
 // ============================================================================
 
 describe("renderToStream - Suspense SSR", () => {
@@ -228,7 +228,7 @@ describe("renderToStream - Suspense SSR", () => {
       });
   }
 
-  it("AC-SS1: renderToString emits fallback only — no markers, no patches", async () => {
+  it("AC-SS1: renderToString emits fallback only: no markers, no patches", async () => {
     const SlowChild = () => Effect.succeed(h.p({}, "resolved"));
     const html = await Effect.runPromise(
       renderToString(Boundary.suspend({ fallback: h.span({}, "loading") }, [SlowChild()])),
@@ -315,7 +315,7 @@ describe("renderToStream - Suspense SSR", () => {
     assert.ok(html.includes("<p>sync</p>"), "content in patch");
   });
 
-  it("AC-SS3: renderToStreamHydratable — patch includes stream markers for reactive children", async () => {
+  it("AC-SS3: renderToStreamHydratable: patch includes stream markers for reactive children", async () => {
     const html = await Effect.runPromise(
       Stream.mkString(
         renderToStreamHydratable(
@@ -331,7 +331,7 @@ describe("renderToStream - Suspense SSR", () => {
     assert.ok(html.includes("live"), "reactive value in patch content");
   });
 
-  it("AC-SS4: multiple boundaries — patches emitted in resolution order", async () => {
+  it("AC-SS4: multiple boundaries: patches emitted in resolution order", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const gateA = yield* Deferred.make<void>();
@@ -372,7 +372,7 @@ describe("renderToStream - Suspense SSR", () => {
     );
   });
 
-  it("AC-SS5: nested Suspense — outer patch has inner fallback; inner patch emitted separately", async () => {
+  it("AC-SS5: nested Suspense: outer patch has inner fallback; inner patch emitted separately", async () => {
     const html = await Effect.runPromise(
       Stream.mkString(
         renderToStream(
@@ -428,7 +428,7 @@ describe("renderToStream - Suspense SSR", () => {
         assert.ok(html.includes("<!-- suspense-end-1 -->"), "end marker emitted");
 
         const poll = fiber.pollUnsafe();
-        assert.ok(poll === undefined, "stream still open — patch not yet emitted");
+        assert.ok(poll === undefined, "stream still open: patch not yet emitted");
         assert.ok(!html.includes("<template"), "no patch emitted yet");
 
         yield* Fiber.interrupt(fiber);
@@ -436,7 +436,7 @@ describe("renderToStream - Suspense SSR", () => {
     );
   });
 
-  it("AC-SS7: no Suspense in tree — output identical, stream terminates immediately", async () => {
+  it("AC-SS7: no Suspense in tree: output identical, stream terminates immediately", async () => {
     const node = h.div({}, [h.span({}, "hello"), Effect.succeed("world")]);
 
     const fromOldStream = "<div><span>hello</span>world</div>";
@@ -444,7 +444,7 @@ describe("renderToStream - Suspense SSR", () => {
     assert.equal(fromNew, fromOldStream, "output identical when no Suspense");
   });
 
-  it("AC-SS7: no Suspense hydratable — output identical to pre-Suspense", async () => {
+  it("AC-SS7: no Suspense hydratable: output identical to pre-Suspense", async () => {
     const Live = () => Stream.make(h.em({}, "now"));
     const html = await Effect.runPromise(
       Stream.mkString(renderToStreamHydratable(h.div({}, [Live()]))),

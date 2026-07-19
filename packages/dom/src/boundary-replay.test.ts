@@ -16,7 +16,7 @@ const GetThing = Rpc.make("GetThing", { payload: StockKey, success: S });
 
 /**
  * Builds a `Boundary.rpc` node and returns it alongside its **live** descriptor
- * `props` object — the exact object `collectServerBoundaries` is expected to
+ * `props` object: the exact object `collectServerBoundaries` is expected to
  * return by reference (AC-BR2). `render` is a no-op subtree; it is never walked
  * (AC-BR4), so its content is irrelevant.
  */
@@ -35,7 +35,7 @@ const serverBoundary = (name: string) => {
 // AC-BR1: Pre-order, document order
 // ---------------------------------------------------------------------------
 
-describe("collectServerBoundaries — AC-BR1: pre-order, document order", () => {
+describe("collectServerBoundaries: AC-BR1: pre-order, document order", () => {
   it("returns props in depth-first document order", () => {
     const a = serverBoundary("a");
     const b = serverBoundary("b");
@@ -61,12 +61,12 @@ describe("collectServerBoundaries — AC-BR1: pre-order, document order", () => 
 // AC-BR2: Reference identity
 // ---------------------------------------------------------------------------
 
-describe("collectServerBoundaries — AC-BR2: reference identity", () => {
+describe("collectServerBoundaries: AC-BR2: reference identity", () => {
   it("returns the same object as the descriptor's live props", () => {
     const a = serverBoundary("a");
     const out = collectServerBoundaries([a.node]);
     assert.equal(out.length, 1);
-    // Reference identity (not a structural copy) — the server relies on this for
+    // Reference identity (not a structural copy): the server relies on this for
     // `indexOf(owner)`.
     assert.equal(out[0], a.props);
   });
@@ -76,7 +76,7 @@ describe("collectServerBoundaries — AC-BR2: reference identity", () => {
 // AC-BR3: Descends static container nodes
 // ---------------------------------------------------------------------------
 
-describe("collectServerBoundaries — AC-BR3: descends static containers", () => {
+describe("collectServerBoundaries: AC-BR3: descends static containers", () => {
   it("descends arrays / iterables", () => {
     const a = serverBoundary("a");
     const b = serverBoundary("b");
@@ -116,7 +116,7 @@ describe("collectServerBoundaries — AC-BR3: descends static containers", () =>
 
   it("descends a static-markup node carrying an ElementDescriptor", () => {
     const a = serverBoundary("a");
-    // `h.div(...)` is an Effect carrying its descriptor — walked, never executed.
+    // `h.div(...)` is an Effect carrying its descriptor: walked, never executed.
     const markup = h.div({}, [a.node]);
     const out = collectServerBoundaries(markup);
     assert.deepEqual(out, [a.props]);
@@ -124,7 +124,7 @@ describe("collectServerBoundaries — AC-BR3: descends static containers", () =>
 
   it("descends function components (called with their props)", () => {
     const a = serverBoundary("a");
-    // A function-component descriptor returning a *captured* node — the walk calls
+    // A function-component descriptor returning a *captured* node: the walk calls
     // it and finds the boundary inside.
     const comp = () => a.node;
     const out = collectServerBoundaries([{ type: comp, props: {} }]);
@@ -136,13 +136,13 @@ describe("collectServerBoundaries — AC-BR3: descends static containers", () =>
 // AC-BR4: Does not descend data-dependent regions
 // ---------------------------------------------------------------------------
 
-describe("collectServerBoundaries — AC-BR4: does not descend data-dependent regions", () => {
+describe("collectServerBoundaries: AC-BR4: does not descend data-dependent regions", () => {
   it("does not descend another Boundary.rpc's render output", () => {
     const inner = serverBoundary("inner");
     const outer = Boundary.rpc(
       GetThing,
       () => ({ id: 1 }),
-      // The inner boundary is only produced once the rpc resolves — not static.
+      // The inner boundary is only produced once the rpc resolves: not static.
       () => inner.node,
     );
     const out = collectServerBoundaries(outer);
@@ -178,7 +178,7 @@ describe("collectServerBoundaries — AC-BR4: does not descend data-dependent re
 // AC-BR5: Symmetry
 // ---------------------------------------------------------------------------
 
-describe("collectServerBoundaries — AC-BR5: symmetry", () => {
+describe("collectServerBoundaries: AC-BR5: symmetry", () => {
   it("two walks over the same static tree are positionally identical", () => {
     const a = serverBoundary("a");
     const b = serverBoundary("b");
@@ -192,7 +192,7 @@ describe("collectServerBoundaries — AC-BR5: symmetry", () => {
 
     assert.equal(first.length, second.length);
     for (let i = 0; i < first.length; i++) {
-      // Same length, same order, same identity — an index written by one walk
+      // Same length, same order, same identity: an index written by one walk
       // resolves to the same boundary in the other.
       assert.equal(first[i], second[i]);
     }

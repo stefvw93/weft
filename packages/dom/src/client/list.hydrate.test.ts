@@ -80,7 +80,7 @@ class PersonData extends Data.Class<{ readonly id: string; readonly name: string
 // HY1: server markers
 // ============================================================================
 
-describe("List.each hydration — HY1 server markers", () => {
+describe("List.each hydration: HY1 server markers", () => {
   it("brackets the region and each item with stream + list-item markers", async () => {
     const app = List.each({ of: [p("a"), p("b")], by: (x) => x.id }, (x) =>
       h.li({ id: x.id }, x.name),
@@ -116,7 +116,7 @@ describe("List.each hydration — HY1 server markers", () => {
 // HY2: adopt + flash-free first emission
 // ============================================================================
 
-describe("List.each hydration — HY2 flash-free adoption", () => {
+describe("List.each hydration: HY2 flash-free adoption", () => {
   it("adopts server item nodes in place (identity preserved, render once per key)", async () => {
     createTestDOM();
     let renders = 0;
@@ -166,7 +166,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
-    // Subscription attached to the adopted node — a new emission updates it.
+    // Subscription attached to the adopted node: a new emission updates it.
     await Effect.runPromise(SubscriptionRef.set(counter, 7));
     await waitForStreamUpdate();
 
@@ -195,7 +195,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     const a0 = root.querySelector("#a");
     const b0 = root.querySelector("#b");
 
-    // Insert a new key — only it renders; adopted nodes keep identity.
+    // Insert a new key: only it renders; adopted nodes keep identity.
     await Effect.runPromise(SubscriptionRef.set(ref, [p("a"), p("x"), p("b")]));
     await waitForStreamUpdate();
 
@@ -204,7 +204,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     assert.strictEqual(root.querySelector("#a"), a0, "a kept its adopted node");
     assert.strictEqual(root.querySelector("#b"), b0, "b kept its adopted node");
 
-    // Reorder — no new renders, identity preserved.
+    // Reorder: no new renders, identity preserved.
     await Effect.runPromise(SubscriptionRef.set(ref, [p("b"), p("x"), p("a")]));
     await waitForStreamUpdate();
     assert.deepEqual(itemIds(root), ["b", "x", "a"]);
@@ -272,7 +272,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
 // HY2: graceful divergence
 // ============================================================================
 
-describe("List.each hydration — HY2 divergence", () => {
+describe("List.each hydration: HY2 divergence", () => {
   it("rebuilds and logs when the server item count differs from the first emission", async () => {
     createTestDOM();
     const root = createRoot();
@@ -335,7 +335,7 @@ describe("List.each hydration — HY2 divergence", () => {
 // HY2: nested lists (depth-aware item-range adoption)
 // ============================================================================
 
-describe("List.each hydration — HY2 nested lists", () => {
+describe("List.each hydration: HY2 nested lists", () => {
   it("adopts a nested List.each inside an item without losing outer/inner identity", async () => {
     createTestDOM();
     const app = List.each({ of: [p("a"), p("b")], by: (x) => x.id }, (x) =>
@@ -356,7 +356,7 @@ describe("List.each hydration — HY2 nested lists", () => {
     await waitForStream();
 
     // `collectAdoptedItems` stepped over the nested list-item markers (depth) so
-    // each outer item's range was bounded correctly — both levels adopted in place.
+    // each outer item's range was bounded correctly: both levels adopted in place.
     assert.deepEqual(itemIds(root), ["a1", "a2", "b1", "b2"]);
     assert.strictEqual(root.querySelector("#outer-a"), outerA, "outer item adopted, not rebuilt");
     assert.strictEqual(root.querySelector("#a1"), innerA1, "nested item adopted, not rebuilt");
@@ -367,7 +367,7 @@ describe("List.each hydration — HY2 nested lists", () => {
 // HY2: marker-id stability after hydration
 // ============================================================================
 
-describe("List.each hydration — HY2 marker id stability", () => {
+describe("List.each hydration: HY2 marker id stability", () => {
   it("post-hydration inserts mint marker ids that don't collide with adopted ones", async () => {
     createTestDOM();
     const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([p("a"), p("b")]));
@@ -379,7 +379,7 @@ describe("List.each hydration — HY2 marker id stability", () => {
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
-    // Insert a new key after hydration — its fresh markers must be unique.
+    // Insert a new key after hydration: its fresh markers must be unique.
     await Effect.runPromise(SubscriptionRef.set(ref, [p("a"), p("c"), p("b")]));
     await waitForStreamUpdate();
     assert.deepEqual(itemIds(root), ["a", "c", "b"]);
@@ -398,7 +398,7 @@ describe("List.each hydration — HY2 marker id stability", () => {
 // HY2: additional source/identity coverage
 // ============================================================================
 
-describe("List.each hydration — HY2 source & identity coverage", () => {
+describe("List.each hydration: HY2 source & identity coverage", () => {
   it("hydrates an empty server region and inserts on a later emission", async () => {
     createTestDOM();
     const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([]));
@@ -492,10 +492,10 @@ describe("List.each hydration — HY2 source & identity coverage", () => {
 });
 
 // ============================================================================
-// AC-H15: no boundary — hydrated list source failure reported by the runtime
+// AC-H15: no boundary (hydrated list source failure reported by the runtime)
 // ============================================================================
 
-describe("List.each hydration — AC-H15 no-boundary failure reporting", () => {
+describe("List.each hydration: AC-H15 no-boundary failure reporting", () => {
   it("reports a post-hydrate list source failure at Error level with a hydrate:list-<id> region", async () => {
     createTestDOM();
 

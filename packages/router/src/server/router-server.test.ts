@@ -16,7 +16,7 @@ const rpc = { group: NoopRpcs, handlers: NoopLive } as const;
 const Home = () => h.h1({}, "Home page");
 const About = () => h.h1({}, "About page");
 const Gone = () => notFound("/gone");
-const NotFound = () => h.h1({}, "404 — not found");
+const NotFound = () => h.h1({}, "404: not found");
 
 /** A passthrough layout `component`: renders the injected outlet directly. */
 const passthroughLayout = Component.gen(function* () {
@@ -24,7 +24,7 @@ const passthroughLayout = Component.gen(function* () {
   return yield* outlet;
 });
 
-/** Reads its `:id` path param through the live match — proves platform-decoded path reaches render. */
+/** Reads its `:id` path param through the live match: proves platform-decoded path reaches render. */
 const User = Component.gen(function* () {
   const { id } = yield* Router.params({ id: Schema.String });
   return yield* h.h1({}, `User ${id}`);
@@ -55,7 +55,7 @@ const def = Router.router(
   { notFound: NotFound },
 );
 
-/** The document shell `component` — splices the app via the injected `Router.Outlet`. */
+/** The document shell `component`: splices the app via the injected `Router.Outlet`. */
 const document = Component.gen(function* () {
   const app = yield* Router.Outlet;
   return yield* h.html([h.head([h.title({}, "Test")]), h.body([h.div({ id: "root" }, [app])])]);
@@ -99,7 +99,7 @@ describe("RouterServer.render (dispatch via HttpApiBuilder)", () => {
       RouterServer.render(def, { document, rpc, url: "/missing" }),
     );
     assert.equal(status, 404);
-    assert.ok(html.includes("404 — not found"));
+    assert.ok(html.includes("404: not found"));
   });
 
   test("S2: a page raising RouterNotFound ⇒ not-found page with status 404", async () => {
@@ -107,7 +107,7 @@ describe("RouterServer.render (dispatch via HttpApiBuilder)", () => {
       RouterServer.render(def, { document, rpc, url: "/gone" }),
     );
     assert.equal(status, 404);
-    assert.ok(html.includes("404 — not found"));
+    assert.ok(html.includes("404: not found"));
   });
 
   test("toWebHandler: returns a text/html Response dispatched through the builder", async () => {
@@ -123,7 +123,7 @@ describe("RouterServer.render (dispatch via HttpApiBuilder)", () => {
     const res = await handler(new Request("http://localhost/missing"));
     assert.equal(res.status, 404);
     assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
-    assert.ok((await res.text()).includes("404 — not found"));
+    assert.ok((await res.text()).includes("404: not found"));
   });
 });
 
@@ -190,14 +190,14 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
     const streaming = RouterServer.toStreamingWebHandler(def, { document, rpc });
     const res = await streaming(new Request("http://localhost/missing"));
     assert.equal(res.status, 404);
-    assert.ok((await res.text()).includes("404 — not found"));
+    assert.ok((await res.text()).includes("404: not found"));
   });
 
   test("SW1: RouterNotFound raised during the shell walk is a real 404 (nothing flushed yet)", async () => {
     const streaming = RouterServer.toStreamingWebHandler(def, { document, rpc });
     const res = await streaming(new Request("http://localhost/gone"));
     assert.equal(res.status, 404);
-    assert.ok((await res.text()).includes("404 — not found"));
+    assert.ok((await res.text()).includes("404: not found"));
   });
 
   test("SW1: RouterNotFound inside Boundary.suspend after flush keeps 200 and patches in the notFound page + noindex", async () => {
@@ -217,10 +217,10 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
     assert.equal(res.status, 200);
     const body = await res.text();
     assert.ok(body.includes("loading late"));
-    assert.ok(body.includes("404 — not found"));
+    assert.ok(body.includes("404: not found"));
     assert.ok(body.includes("noindex"));
     assert.ok(body.includes("document.head.appendChild"));
-    // SW8: the patch is the failure-replay variant — sentinel script carrying the
+    // SW8: the patch is the failure-replay variant, a sentinel script carrying the
     // encoded RouterNotFound, and the suspense markers retained by the swap.
     assert.ok(body.includes("data-weft-suspense-failure>"));
     assert.ok(body.includes('"_tag":"RouterNotFound"'));
@@ -309,7 +309,7 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
     assert.ok(await Effect.runPromise(Deferred.await(interrupted)));
   });
 
-  test("SW6: Boundary.rpc blocks the shell — resolved inline, never patched (parity with the buffered handler)", async () => {
+  test("SW6: Boundary.rpc blocks the shell: resolved inline, never patched (parity with the buffered handler)", async () => {
     const Echo = Rpc.make("Echo", { payload: Schema.Void, success: Schema.String });
     const EchoRpcs = RpcGroup.make(Echo);
     const EchoLive = EchoRpcs.toLayer({ Echo: () => Effect.succeed("stock-77") });
@@ -375,7 +375,7 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
 /** An app-wide service that must reach the shell, layouts, and route leaves. */
 class Greeting extends Context.Service<Greeting, { readonly text: string }>()("test/Greeting") {}
 
-/** A leaf that reads the app service — the core failing case from the spec. */
+/** A leaf that reads the app service: the core failing case from the spec. */
 const GreetingLeaf = Component.gen(function* () {
   const g = yield* Greeting;
   return yield* h.h1({}, g.text);

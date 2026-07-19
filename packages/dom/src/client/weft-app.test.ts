@@ -89,7 +89,7 @@ function subscribeErrors<R, E>(app: WeftApp.WeftApp<R, E>) {
 }
 
 // ============================================================================
-// WA1: lazy make — no layer construction until first mount
+// WA1: lazy make (no layer construction until first mount)
 // ============================================================================
 
 describe("WA1: lazy make", () => {
@@ -117,7 +117,7 @@ describe("WA1: lazy make", () => {
 });
 
 // ============================================================================
-// WA2: mount — renders, returns RootHandle with element, layer E surfaces
+// WA2: mount (renders, returns RootHandle with element, layer E surfaces)
 // ============================================================================
 
 describe("WA2: mount", () => {
@@ -149,7 +149,7 @@ describe("WA2: mount", () => {
 });
 
 // ============================================================================
-// WA3: hydrate — adopts server DOM; adds HydrationMismatchError
+// WA3: hydrate (adopts server DOM; adds HydrationMismatchError)
 // ============================================================================
 
 describe("WA3: hydrate", () => {
@@ -183,7 +183,7 @@ describe("WA3: hydrate", () => {
 });
 
 // ============================================================================
-// WA4: root isolation — unmount A, B lives
+// WA4: root isolation (unmount A, B lives)
 // ============================================================================
 
 describe("WA4: root isolation", () => {
@@ -215,7 +215,7 @@ describe("WA4: root isolation", () => {
 });
 
 // ============================================================================
-// WA5: idempotent unmount — teardown once, runtime untouched, DOM retained
+// WA5: idempotent unmount (teardown once, runtime untouched, DOM retained)
 // ============================================================================
 
 describe("WA5: idempotent unmount", () => {
@@ -251,7 +251,7 @@ describe("WA5: idempotent unmount", () => {
 });
 
 // ============================================================================
-// WA6: dispose ordering — roots close before layers release, hub shuts last
+// WA6: dispose ordering (roots close before layers release, hub shuts last)
 // ============================================================================
 
 describe("WA6: dispose ordering", () => {
@@ -549,7 +549,7 @@ describe("WA12: event-handler errors reach the hub", () => {
 });
 
 // ============================================================================
-// WA13: default log fallback — active without subscribers, suppressed with
+// WA13: default log fallback (active without subscribers, suppressed with)
 // ============================================================================
 
 describe("WA13: default log fallback", () => {
@@ -557,7 +557,7 @@ describe("WA13: default log fallback", () => {
     createTestDOM();
     const root = createRoot();
     const { entries, logger } = makeErrorLogCapture();
-    // The logger comes from the app layer — the only context mounts see (WA17).
+    // The logger comes from the app layer: the only context mounts see (WA17).
     const app = WeftApp.make(logger);
 
     const node = h.div([
@@ -603,7 +603,7 @@ describe("WA13: default log fallback", () => {
 });
 
 // ============================================================================
-// WA14: errors stream — no replay, every subscriber sees subsequent errors
+// WA14: errors stream (no replay, every subscriber sees subsequent errors)
 // ============================================================================
 
 describe("WA14: errors stream semantics", () => {
@@ -724,7 +724,7 @@ describe("WA16: unmount owns handler-forked scoped work", () => {
 });
 
 // ============================================================================
-// WA17: no ambient capture — Effect.provide around mount is invisible
+// WA17: no ambient capture (Effect.provide around mount is invisible)
 // ============================================================================
 
 describe("WA17: no ambient context capture", () => {
@@ -756,7 +756,7 @@ describe("WA17: no ambient context capture", () => {
 });
 
 // ============================================================================
-// WA18: mount-failure cleanup — root scope only; app and other roots untouched
+// WA18: mount-failure cleanup (root scope only; app and other roots untouched)
 // ============================================================================
 
 describe("WA18: mount-failure cleanup", () => {
@@ -793,7 +793,7 @@ describe("WA18: mount-failure cleanup", () => {
 });
 
 // ============================================================================
-// WA19: hydration mechanics unchanged — markers adopt, streams patch after
+// WA19: hydration mechanics unchanged (markers adopt, streams patch after)
 // ============================================================================
 
 describe("WA19: hydration mechanics unchanged", () => {

@@ -9,7 +9,7 @@ import { RenderError } from "~/data";
 import * as WeftApp from "./weft-app";
 
 // ---------------------------------------------------------------------------
-// Test setup — client-first mount (C1): no SSR payload to replay.
+// Test setup: client-first mount (C1), with no SSR payload to replay.
 // ---------------------------------------------------------------------------
 
 function createTestDOM(): JSDOM {
@@ -71,12 +71,12 @@ const boundary = () =>
 // C1: fallback → swap
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc mount — client-first (C1)", () => {
+describe("Boundary.rpc mount: client-first (C1)", () => {
   it("renders the fallback, forks the rpc call, then swaps in render(resource)", async () => {
     createTestDOM();
     const root = createRoot();
     // Gate the resolve on a Deferred the test controls, so the forked swap
-    // provably has not happened by the time `mount` resolves — making the
+    // provably has not happened by the time `mount` resolves: making the
     // fallback observable before the live subtree swaps in (deterministic; a
     // timer-based delay races the mount under Effect 4's fiber scheduling).
     const gate = await Effect.runPromise(Deferred.make<ProductShape>());

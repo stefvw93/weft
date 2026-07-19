@@ -12,7 +12,7 @@ import type { Node } from "@weftui/core";
 import { Context, Schema } from "effect";
 import { href, Router, RouterApp, RouterParamsError } from "~/index";
 
-/** A service a page may require — used to assert requirement propagation. */
+/** A service a page may require: used to assert requirement propagation. */
 class Theme extends Context.Service<Theme, string>()("@test/Theme") {}
 
 /** A passthrough layout so a single leaf can be sealed into a router. */
@@ -27,7 +27,7 @@ const passthrough = Router.layout(
     Router.route("themed/:id", {
       path: { id: Schema.NumberFromString },
       // A lazy component that reads the live params (adds `RouterParamsError` to E) and a
-      // service (`Theme` in R) — exactly what the eager form of this page would carry.
+      // service (`Theme` in R): exactly what the eager form of this page would carry.
       component: Router.lazy(() =>
         Promise.resolve(
           Component.gen(function* () {
@@ -46,7 +46,7 @@ const themedRouter = Router.router(passthrough, { notFound: () => h.h1({}, "404"
 // ── AC-T1: the lazy component's E/R propagate up to the sealed app node ────────
 
 test("AC-T1: the lazy component's E/R propagate up to the sealed app node", () => {
-  // Should compile — `RouterParamsError` on E, `Theme | Router` on R, same as eager.
+  // Should compile: `RouterParamsError` on E, `Theme | Router` on R, same as eager.
   expect(RouterApp(themedRouter)).type.toBe<Node<RouterParamsError, Theme | Router>>();
 
   // AC-T2: the lazy component requires `Theme`, so it must appear in R;
@@ -64,7 +64,7 @@ test("AC-T1: the lazy component's E/R propagate up to the sealed app node", () =
 
 test("Assignability: a lazy slot is accepted wherever `component` is", () => {
   // A lazy component resolving a `Component.make` (no channels). The loaded value should be
-  // a `Component` — a bare `() => Node` thunk loses its channels through the loader `Promise`
+  // a `Component`: a bare `() => Node` thunk loses its channels through the loader `Promise`
   // (contextual widening), so wrap one in `Component.make`, as the real `import().then(m => m.X)`
   // path already yields a `Component`.
   const _plainLazy = Router.route("plain", {
@@ -105,7 +105,7 @@ test("AC6: the descriptor stays eager, so `href` works on a lazy route", () => {
     component: Router.lazy(() => Promise.resolve(Component.make(() => h.div({}, "order")))),
   });
 
-  // Should compile — `href` reads the eager path schema, independent of the lazy body.
+  // Should compile: `href` reads the eager path schema, independent of the lazy body.
   href(lazyOrder, { path: { oid: 1 } });
 
   // `oid` decodes from a number; a string is rejected, same as eager.

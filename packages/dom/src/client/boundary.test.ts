@@ -46,7 +46,7 @@ function getBoundaryComments(el: Element): Comment[] {
 
 /**
  * Runs `mount` with a replacement logger that records every `Error`-level log
- * entry — its `Cause`, message, and log annotations — so tests can assert that
+ * entry (its `Cause`, message, and log annotations) so tests can assert that
  * an unhandled failure was surfaced (rather than silently swallowed) and
  * attributed via the `weft.region` annotation. Returns the mount handle and the
  * captured entries (populated asynchronously as post-mount failures occur).
@@ -68,7 +68,7 @@ class BarError extends Data.TaggedError("Bar")<{ code: number }> {}
  * static type always carries both tags.
  *
  * This lets `catchTag` reference a tag the child *can* produce ("Foo") while the
- * child actually fails with the *other* tag ("Bar") — exercising the re-raise
+ * child actually fails with the *other* tag ("Bar"): exercising the re-raise
  * path with a fully type-checked `catchTag` call, no `as any` needed. (A child
  * typed `Effect<never, BarError>` would reject `catchTag({ tag: "Foo" })` at
  * compile time, since "Foo" is not in its error union.)
@@ -80,8 +80,8 @@ function failWith(which: "Foo" | "Bar"): Effect.Effect<never, FooError | BarErro
 }
 
 /**
- * A boundary child that fails *synchronously* during construction — while
- * `renderNode` walks the subtree — rather than asynchronously post-mount.
+ * A boundary child that fails *synchronously* during construction (while
+ * `renderNode` walks the subtree) rather than asynchronously post-mount.
  *
  * The public node builders (`h.*`, `Component.*`, bare `Effect`s) are all
  * consumed through the async stream path, so any error they raise surfaces
@@ -91,7 +91,7 @@ function failWith(which: "Foo" | "Bar"): Effect.Effect<never, FooError | BarErro
  * `Cause.die` at construction time, when the renderer invokes the component.
  *
  * A bare `ElementDescriptor` (`{ type, props }`) is a valid `Renderable`, so no
- * cast is needed — this drives the synchronous construction path directly.
+ * cast is needed: this drives the synchronous construction path directly.
  */
 function throwsAtConstruction(error: unknown): Renderable {
   const component = () => {
@@ -339,7 +339,7 @@ describe("AC5: BoundaryContext provided; inner boundary shadows outer", () => {
   });
 });
 
-// ── AC6: catchTag re-raise — error propagates to parent ──────────────────────
+// ── AC6: catchTag re-raise (error propagates to parent) ──────────────────────
 // The child's error union is `FooError | BarError`, so `catchTag({ tag: "Foo" })`
 // type-checks. At runtime it fails with BarError, which the inner boundary does
 // not handle, so the cause re-raises to the outer boundary.
@@ -555,13 +555,13 @@ describe("nested: inner re-raises, outer catches", () => {
   });
 });
 
-// ── AC8: no boundary — failure exit left unobserved, runtime reports it ───────
+// ── AC8: no boundary (failure exit left unobserved, runtime reports it) ───────
 // With no enclosing Boundary the subscription fiber's failure exit is left
 // unobserved; the Effect runtime logs "Fiber terminated with an unhandled
 // error" at the "Error" level (raised from the default "Debug"), annotated with
 // `weft.region` identifying the failing region/prop. Interruption stays silent.
 
-describe("AC8: no boundary — runtime reports unhandled subscription failure", () => {
+describe("AC8: no boundary: runtime reports unhandled subscription failure", () => {
   it("logs exactly one Error entry with the cause and a child:stream-<id> region for a failing stream child", async () => {
     createTestDOM();
     const root = createRoot();

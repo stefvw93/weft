@@ -4,8 +4,8 @@
  *
  * The feature adds **no public API**: the resolved-commit stash and the staged
  * match view are internal seams (`resolved-commit.ts`, not re-exported from
- * `src/index.ts`). These tests pin that internality — the stash key must not be
- * readable off the public `Router` service `Type` — and the shape of the
+ * `src/index.ts`). These tests pin that internality (the stash key must not be
+ * readable off the public `Router` service `Type`) and the shape of the
  * internal contract the outlet and the client `navigate` share.
  */
 
@@ -50,7 +50,7 @@ test("Internal function contracts", () => {
   // `takeResolvedCommit` consumes by exact committed url and may miss.
   expect(takeResolvedCommit(router, "/docs/a/b")).type.toBe<ResolvedCommitEntry | undefined>();
 
-  // `stageMatch` returns a full `Router` view — a drop-in for the live service.
+  // `stageMatch` returns a full `Router` view: a drop-in for the live service.
   expect(stageMatch(router, target)).type.toBe<Router["Service"]>();
 
   // `preRunLeaf` never fails and needs no context beyond the caller's runtime:

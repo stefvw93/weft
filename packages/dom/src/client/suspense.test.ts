@@ -58,10 +58,10 @@ function getSuspenseComments(el: Element): Comment[] {
 }
 
 // ============================================================================
-// AC1: Synchronous children — no fallback rendered
+// AC1: Synchronous children (no fallback rendered)
 // ============================================================================
 
-describe("AC1: Synchronous children — no fallback rendered", () => {
+describe("AC1: Synchronous children: no fallback rendered", () => {
   it("renders children directly without fallback or suspense markers", async () => {
     createTestDOM();
     const root = createRoot();
@@ -103,10 +103,10 @@ describe("AC1: Synchronous children — no fallback rendered", () => {
 });
 
 // ============================================================================
-// AC2: Single async child — fallback shown, then swap
+// AC2: Single async child (fallback shown, then swap)
 // ============================================================================
 
-describe("AC2: Single async child — fallback shown, then swap", () => {
+describe("AC2: Single async child: fallback shown, then swap", () => {
   it("shows fallback while pending, then swaps to resolved content", async () => {
     createTestDOM();
     const root = createRoot();
@@ -174,12 +174,12 @@ describe("AC2: Single async child — fallback shown, then swap", () => {
     // Pending
     assert.ok(root.querySelector(".fallback"));
 
-    // After first emission (+160ms) — fallback swapped out, V1 visible
+    // After first emission (+160ms): fallback swapped out, V1 visible
     await waitFor(160);
     assert.equal(root.querySelector(".fallback"), null, "Fallback removed after first emission");
     assert.ok(root.querySelector(".v1"), "First emission content should be visible");
 
-    // After second emission (+380ms total) — V2 replaces V1, no fallback re-shown
+    // After second emission (+380ms total): V2 replaces V1, no fallback re-shown
     await waitFor(220);
     assert.ok(root.querySelector(".v2"), "Second emission should update content");
     assert.equal(
@@ -192,10 +192,10 @@ describe("AC2: Single async child — fallback shown, then swap", () => {
 });
 
 // ============================================================================
-// AC3: Multiple async siblings — shared fallback, single swap
+// AC3: Multiple async siblings (shared fallback, single swap)
 // ============================================================================
 
-describe("AC3: Multiple async siblings — shared fallback, single swap", () => {
+describe("AC3: Multiple async siblings: shared fallback, single swap", () => {
   it("keeps fallback until ALL siblings have settled", async () => {
     createTestDOM();
     const root = createRoot();
@@ -243,7 +243,7 @@ describe("AC3: Multiple async siblings — shared fallback, single swap", () => 
     assert.equal(getSuspenseComments(root).length, 0, "Markers cleaned up");
   });
 
-  it("swap is atomic — all resolved children appear simultaneously", async () => {
+  it("swap is atomic: all resolved children appear simultaneously", async () => {
     createTestDOM();
     const root = createRoot();
 
@@ -275,7 +275,7 @@ describe("AC3: Multiple async siblings — shared fallback, single swap", () => 
       root,
     );
 
-    // Poll at intermediate point — A settled but B hasn't
+    // Poll at intermediate point: A settled but B hasn't
     await waitFor(150);
     snapshots.push(root.textContent ?? "");
 
@@ -295,10 +295,10 @@ describe("AC3: Multiple async siblings — shared fallback, single swap", () => 
 });
 
 // ============================================================================
-// AC4: Nested Suspense — independent boundaries
+// AC4: Nested Suspense (independent boundaries)
 // ============================================================================
 
-describe("AC4: Nested Suspense — independent boundaries", () => {
+describe("AC4: Nested Suspense: independent boundaries", () => {
   it("inner boundary resolves independently of outer boundary", async () => {
     createTestDOM();
     const root = createRoot();
@@ -348,7 +348,7 @@ describe("AC4: Nested Suspense — independent boundaries", () => {
     assert.equal(root.querySelector(".inner-fallback"), null, "Inner fallback gone");
   });
 
-  it("outer has no direct async children — outer fast-paths while inner shows its fallback", async () => {
+  it("outer has no direct async children: outer fast-paths while inner shows its fallback", async () => {
     createTestDOM();
     const root = createRoot();
 
@@ -384,10 +384,10 @@ describe("AC4: Nested Suspense — independent boundaries", () => {
 });
 
 // ============================================================================
-// AC5: Null / falsy fallback — only markers while pending
+// AC5: Null / falsy fallback (only markers while pending)
 // ============================================================================
 
-describe("AC5: Null fallback — only markers while pending", () => {
+describe("AC5: Null fallback: only markers while pending", () => {
   it("shows only comment markers when fallback is null", async () => {
     createTestDOM();
     const root = createRoot();
@@ -478,7 +478,7 @@ describe("AC6: Function component returning Effect<ElementDescriptor> triggers s
     assert.ok(root.querySelector(".content"), "Resolved content visible after settle");
   });
 
-  it("settle fires exactly once — two Effect siblings each settle independently", async () => {
+  it("settle fires exactly once: two Effect siblings each settle independently", async () => {
     createTestDOM();
     const root = createRoot();
 
@@ -515,13 +515,13 @@ describe("AC6: Function component returning Effect<ElementDescriptor> triggers s
     // Both registered → boundary pending
     assert.ok(root.querySelector(".fallback"), "Pending while both children are unresolved");
 
-    // ChildA settled (80ms) but ChildB hasn't — swap must NOT have fired yet.
+    // ChildA settled (80ms) but ChildB hasn't: swap must NOT have fired yet.
     // If settle were called twice for ChildA, pendingCount would go to -1 (≤0)
     // and allSettled would fire prematurely.
     await waitFor(130);
     assert.ok(
       root.querySelector(".fallback"),
-      "Fallback persists — ChildA settling must not trigger swap while ChildB is pending",
+      "Fallback persists: ChildA settling must not trigger swap while ChildB is pending",
     );
 
     // Both settled → single swap
@@ -534,7 +534,7 @@ describe("AC6: Function component returning Effect<ElementDescriptor> triggers s
 });
 
 // ============================================================================
-// AC7: Stream<ElementDescriptor> component — settle on first emission
+// AC7: Stream<ElementDescriptor> component (settle on first emission)
 // ============================================================================
 
 describe("AC7: Function component returning Stream<ElementDescriptor> triggers suspension", () => {
@@ -561,12 +561,12 @@ describe("AC7: Function component returning Stream<ElementDescriptor> triggers s
     // Pending
     assert.ok(root.querySelector(".fallback"), "Fallback shown before first emission");
 
-    // After first emission (100ms) — swap
+    // After first emission (100ms): swap
     await waitFor(160);
     assert.equal(root.querySelector(".fallback"), null, "Fallback removed on first emission");
     assert.ok(root.querySelector(".v1"), "First value visible");
 
-    // Second emission (250ms) — reactive update, no fallback re-shown
+    // Second emission (250ms): reactive update, no fallback re-shown
     await waitFor(200);
     assert.ok(root.querySelector(".v2"), "Second emission updates content");
     assert.equal(
@@ -661,10 +661,10 @@ describe("AC8: Non-component reactive values do not trigger suspension", () => {
 });
 
 // ============================================================================
-// AC9: Scope close while pending — clean interruption
+// AC9: Scope close while pending (clean interruption)
 // ============================================================================
 
-describe("AC9: Scope close while pending — clean interruption", () => {
+describe("AC9: Scope close while pending: clean interruption", () => {
   it("unmount while pending interrupts swap fiber without error", async () => {
     createTestDOM();
     const root = createRoot();
@@ -684,7 +684,7 @@ describe("AC9: Scope close while pending — clean interruption", () => {
     // Boundary is pending
     assert.ok(root.querySelector(".fallback"), "Boundary pending");
 
-    // Unmount — must not throw
+    // Unmount: must not throw
     await assert.doesNotReject(
       () => Effect.runPromise(handle.unmount()),
       "Unmounting while Suspense is pending must not throw",
@@ -710,7 +710,7 @@ describe("AC9: Scope close while pending — clean interruption", () => {
     await waitFor(100);
     await Effect.runPromise(handle.unmount());
 
-    // Wait past when the child would have settled — no error
+    // Wait past when the child would have settled: no error
     await waitFor(500);
     assert.ok(true, "No error after scope-close interrupts the pending boundary");
   });
@@ -750,10 +750,7 @@ describe("AC10: Sentinel prevents premature settlement", () => {
 
     // Despite FastChild being very fast, boundary should be pending
     // (SlowChild is still registered but not settled)
-    assert.ok(
-      root.querySelector(".fallback"),
-      "Fallback shown — sentinel prevented premature swap",
-    );
+    assert.ok(root.querySelector(".fallback"), "Fallback shown: sentinel prevented premature swap");
 
     await waitFor(250);
     // Both should now be resolved
@@ -792,10 +789,10 @@ describe("Round-trip: SSR → patch script → hydrate", () => {
    * 1. `renderToStringHydratable` emits fallback + comment markers + patch template/script
    * 2. JSDOM with `runScripts:"dangerously"` executes the patch script (simulates browser)
    * 3. Patch script replaces the fallback with the resolved children (stream markers intact)
-   * 4. `hydrate` adopts the resolved DOM — no HydrationMismatchError, no flicker
+   * 4. `hydrate` adopts the resolved DOM: no HydrationMismatchError, no flicker
    */
   it("SSR emits fallback+patch; script resolves DOM; hydrate adopts without mismatch", async () => {
-    // A component that returns an async Effect — triggers SSR suspension in renderToStreamHydratable.
+    // A component that returns an async Effect: triggers SSR suspension in renderToStreamHydratable.
     function Card() {
       return Effect.gen(function* () {
         yield* Effect.sleep("1 millis"); // ensures async path for SSR stream markers (v4 runs sleep(0) synchronously)
@@ -847,7 +844,7 @@ describe("Round-trip: SSR → patch script → hydrate", () => {
     const streamComments = getComments(root).filter((c) => c.data.includes("stream-"));
     assert.ok(streamComments.length >= 2, "Stream-region markers present for hydrate");
 
-    // ── 4. Hydrate — must adopt the resolved DOM without mismatch errors ──────
+    // ── 4. Hydrate: must adopt the resolved DOM without mismatch errors ──────
     // hydrate walks the JSX tree, sees the Boundary.suspend node, treats it as transparent
     // (boundary already resolved), and hydrates the children against the DOM.
     const handle = await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));

@@ -86,7 +86,7 @@ const decodeScript = (json: string) =>
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc — hydratable SSR (AC-10)", () => {
+describe("Boundary.rpc: hydratable SSR (AC-10)", () => {
   it("emits an inline JSON payload that decodes back to the resolved data", async () => {
     const html = await Effect.runPromise(
       provideRpc(renderToStringHydratable(ProductBoundary()), productHandlers),
@@ -113,7 +113,7 @@ describe("Boundary.rpc — hydratable SSR (AC-10)", () => {
   });
 });
 
-describe("Boundary.rpc — plain SSR (AC-11/AC-12)", () => {
+describe("Boundary.rpc: plain SSR (AC-11/AC-12)", () => {
   it("renderToString renders render(data) HTML with no payload script", async () => {
     const html = await Effect.runPromise(
       provideRpc(renderToString(ProductBoundary()), productHandlers),
@@ -131,7 +131,7 @@ describe("Boundary.rpc — plain SSR (AC-11/AC-12)", () => {
   });
 });
 
-describe("Boundary.rpc — same tag, different payload", () => {
+describe("Boundary.rpc: same tag, different payload", () => {
   // The payload is a typed input, not a per-entity id: two boundaries sharing the
   // rpc tag with different payloads resolve independently.
   it("resolves each boundary from its own payload", async () => {
@@ -157,7 +157,7 @@ describe("Boundary.rpc — same tag, different payload", () => {
   });
 });
 
-describe("Boundary.rpc — nesting", () => {
+describe("Boundary.rpc: nesting", () => {
   it("emits nested payloads positionally, each decodable", async () => {
     const handlers = {
       Outer: () => Effect.succeed<ProductShape>({ name: "Outer", price: 1 }),
@@ -200,7 +200,7 @@ describe("Boundary.rpc — nesting", () => {
   });
 });
 
-describe("Boundary.rpc — typed-failure replay (server emit, AC-7…AC-9)", () => {
+describe("Boundary.rpc: typed-failure replay (server emit, AC-7…AC-9)", () => {
   // A resolved rpc error is encoded by the enclosing failure `Boundary` into a
   // `data-weft-boundary-failure` payload (hydratable), or shown as the no-JS
   // fallback only (plain). A defect is never encoded.
@@ -296,7 +296,7 @@ describe("Boundary.rpc — typed-failure replay (server emit, AC-7…AC-9)", () 
   });
 });
 
-describe("Boundary.rpc — encode failure (server-side)", () => {
+describe("Boundary.rpc: encode failure (server-side)", () => {
   it("fails the hydratable render when resolved data does not satisfy the success schema", async () => {
     // The handler yields a value whose `name` is a number, violating `Product`;
     // the hydratable pass `Schema.encode`s the success, so the bad value surfaces
@@ -316,7 +316,7 @@ describe("Boundary.rpc — encode failure (server-side)", () => {
   });
 });
 
-describe("Boundary.rpc — payload escaping (XSS-safe)", () => {
+describe("Boundary.rpc: payload escaping (XSS-safe)", () => {
   it("escapes characters unsafe in an inline <script> and still round-trips", async () => {
     const Evil = Schema.Struct({ html: Schema.String });
     const EvilRpc = Rpc.make("Evil", { payload: StockKey, success: Evil });
@@ -332,7 +332,7 @@ describe("Boundary.rpc — payload escaping (XSS-safe)", () => {
       }),
     );
 
-    // The raw closing tag must not appear inside the payload — `<` is escaped.
+    // The raw closing tag must not appear inside the payload: `<` is escaped.
     assert.ok(!html.includes("</script><script>alert"));
     assert.ok(html.includes("\\u003c/script\\u003e\\u003cscript\\u003e"));
 

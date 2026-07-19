@@ -48,7 +48,7 @@ function run<A, E>(eff: Effect.Effect<A, E, Router>, url = "/"): Promise<A> {
   return Effect.runPromise(Effect.provideService(eff, Router, routerFor(match(def, url))));
 }
 
-describe("navigation — navigate / push / replace", () => {
+describe("navigation: navigate / push / replace", () => {
   test("navigate(ref, args) builds the href and pushes", async () => {
     await run(navigate(userRoute, { path: { id: 42 } }));
     assert.deepEqual(calls, [{ to: "/users/42", options: undefined }]);
@@ -75,7 +75,7 @@ describe("navigation — navigate / push / replace", () => {
   });
 });
 
-describe("navigation — setQuery / patchQuery", () => {
+describe("navigation: setQuery / patchQuery", () => {
   test("setQuery replaces the current route's query (path preserved)", async () => {
     await run(setQuery({ page: 2 }), "/search?q=hi");
     assert.deepEqual(calls, [{ to: "/search?page=2", options: undefined }]);
@@ -102,7 +102,7 @@ describe("navigation — setQuery / patchQuery", () => {
   });
 });
 
-describe("navigation — back / forward", () => {
+describe("navigation: back / forward", () => {
   let dom: JSDOM;
 
   afterEach(() => {

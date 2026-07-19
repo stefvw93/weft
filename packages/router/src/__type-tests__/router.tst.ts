@@ -13,7 +13,7 @@ const idFields = { id: Schema.NumberFromString };
 const sortFields = { sort: Schema.optional(Schema.String) };
 
 test("Router.params / Router.query: typed values + RouterParamsError in E", () => {
-  // Should compile — `params` yields the decoded Type with `RouterParamsError` in E.
+  // Should compile: `params` yields the decoded Type with `RouterParamsError` in E.
   expect(Router.params(idFields)).type.toBe<
     Effect.Effect<{ readonly id: number }, RouterParamsError, Router>
   >();
@@ -35,7 +35,7 @@ const userRoute = Router.route("users/:id", {
   component: Component.gen(function* () {
     const { id } = yield* Router.params(idFields);
     const { sort } = yield* Router.query(sortFields);
-    // Should compile — `id` is a number, `sort` is `string | undefined`.
+    // Should compile: `id` is a number, `sort` is `string | undefined`.
     expect(id).type.toBe<number>();
     expect(sort).type.toBe<string | undefined>();
     return yield* h.div({}, `${id}${sort ?? ""}`);
@@ -64,12 +64,12 @@ test("a bare Node is not accepted; the slot is a thunk `() => Node`", () => {
 
 test("Leaf handler-arg props: decoded { path, query } inferred from the route", () => {
   // The props form: `component` receives `{ path, query }` typed from the route's
-  // `path`/`query` fields — no annotation needed, the slot param is contextually typed.
+  // `path`/`query` fields: no annotation needed, the slot param is contextually typed.
   const orderRoute = Router.route("orders/:oid", {
     path: { oid: Schema.NumberFromString },
     query: { page: Schema.optional(Schema.NumberFromString) },
     component: ({ path, query }) => {
-      // Should compile — `oid` decodes to a number, `page` to `number | undefined`.
+      // Should compile: `oid` decodes to a number, `page` to `number | undefined`.
       expect(path.oid).type.toBe<number>();
       expect(query.page).type.toBe<number | undefined>();
       return h.div({}, `${path.oid}${query.page ?? ""}`);
@@ -176,11 +176,11 @@ test("Channel propagation: the sealed app surfaces a precise Node type", () => {
 // ── href argument requiredness (H1/H4) ────────────────────────────────────────
 
 test("href argument requiredness (H1/H4)", () => {
-  // Should compile — path required, query optional.
+  // Should compile: path required, query optional.
   href(userRoute, { path: { id: 1 } });
   href(userRoute, { path: { id: 1 }, query: { sort: "x" } });
 
-  // Should compile — a no-param/no-query route needs no argument.
+  // Should compile: a no-param/no-query route needs no argument.
   href(aboutRoute);
 
   // path is required when the route has path params.
@@ -196,12 +196,12 @@ test("href argument requiredness (H1/H4)", () => {
 // ── navigate(ref, args) inference (mirrors href requiredness) ──────────────────
 
 test("navigate(ref, args) inference (mirrors href requiredness)", () => {
-  // Should compile — typed args, optional trailing NavigateOptions, returns an
+  // Should compile: typed args, optional trailing NavigateOptions, returns an
   // Effect requiring only the `Router` service.
   expect(navigate(userRoute, { path: { id: 1 } })).type.toBe<Effect.Effect<void, never, Router>>();
   navigate(userRoute, { path: { id: 1 }, query: { sort: "x" } }, { replace: true });
 
-  // Should compile — a no-param/no-query route needs no args; options still allowed.
+  // Should compile: a no-param/no-query route needs no args; options still allowed.
   navigate(aboutRoute);
   navigate(aboutRoute, undefined, { replace: true });
 
@@ -248,12 +248,12 @@ const themedDef = Router.router(
 const ThemeLive = Layer.succeed(Theme, "dark");
 
 test("Render-time context seam requiredness (AC2 / AC3)", () => {
-  // Should compile — `context` supplies the residual `Theme` service (AC2 satisfied).
+  // Should compile: `context` supplies the residual `Theme` service (AC2 satisfied).
   RouterServer.render(themedDef, { document: themedDoc, url: "/themed", context: ThemeLive });
   RouterServer.toWebHandler(themedDef, { document: themedDoc, context: ThemeLive });
   RouterServer.toStreamingWebHandler(themedDef, { document: themedDoc, context: ThemeLive });
 
-  // `context` is required: the def needs `Theme` (AC2 — missing provide is a compile error).
+  // `context` is required because the def needs `Theme` (AC2: missing provide is a compile error).
   expect(RouterServer.render).type.not.toBeCallableWith(themedDef, {
     document: themedDoc,
     url: "/themed",
@@ -289,7 +289,7 @@ const staticDef = Router.router(
 );
 
 test("A no-service def: `context` is disallowed, and both seams work with none (AC3)", () => {
-  // Should compile — no residual services, so `context` may be omitted.
+  // Should compile: no residual services, so `context` may be omitted.
   RouterServer.render(staticDef, { document: themedDoc, url: "/" });
   RouterServer.toWebHandler(staticDef, { document: themedDoc });
   RouterLive(staticDef);

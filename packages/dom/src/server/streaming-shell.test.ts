@@ -9,7 +9,7 @@ import { renderToHydratableShell } from "./streaming-shell";
 import { SuspenseFailureHandlerTag, type SuspenseFailureHandler } from "./suspense-failure-handler";
 import { NoRpc } from "../__tests__/rpc-stub";
 
-/** A `type` that is neither string, FRAGMENT, nor function — fails the walk (AC-ST4 parity). */
+/** A `type` that is neither string, FRAGMENT, nor function: fails the walk (AC-ST4 parity). */
 const badNode = { type: 42, props: {} } as unknown as Renderable;
 
 /** Renders the shell and fully drains the patch stream inside one scope. */
@@ -29,7 +29,7 @@ const runShell = (node: Renderable, handler?: SuspenseFailureHandler) => {
   );
 };
 
-describe("renderToHydratableShell — shell split", () => {
+describe("renderToHydratableShell: shell split", () => {
   it("AC-SH1: shell + patches recombine to exactly the combined-stream output", async () => {
     const makeTree = () =>
       h.div({}, [
@@ -53,7 +53,7 @@ describe("renderToHydratableShell — shell split", () => {
   it("AC-SH2: an error during the main walk fails the Effect and tears down pending resolution fibers", async () => {
     // The boundary holds a resolution that never settles (`Effect.never`). If a
     // walk error let its fiber outlive the shell, the enclosing `Effect.scoped`
-    // would hang awaiting it — so the scoped Effect *completing* is the no-leak
+    // would hang awaiting it: so the scoped Effect *completing* is the no-leak
     // guarantee. (Effect 4 forks resolution fibers lazily via `Effect.forkIn`, so
     // when the walk fails before the fiber's first step it is discarded
     // un-started; an `onInterrupt` proxy on the child never fires, unlike v3.)
@@ -148,7 +148,7 @@ describe("renderToHydratableShell — shell split", () => {
   });
 });
 
-describe("SuspenseFailureHandlerTag — late-failure seam", () => {
+describe("SuspenseFailureHandlerTag: late-failure seam", () => {
   it("AC-FH1: the handler is invoked exactly once per failed boundary, with that boundary's cause", async () => {
     const causes: Array<Cause.Cause<unknown>> = [];
     const handler: SuspenseFailureHandler = {
@@ -199,7 +199,7 @@ describe("SuspenseFailureHandlerTag — late-failure seam", () => {
     assert.ok(!plain.patchHtml.includes("noindex"));
   });
 
-  it("AC-FH4: handler absent or returning None keeps the swallow default — no patch, stream still terminates", async () => {
+  it("AC-FH4: handler absent or returning None keeps the swallow default: no patch, stream still terminates", async () => {
     const tree = () =>
       h.div({}, [
         Boundary.suspend({ fallback: h.span({}, "fallback stays") }, [
@@ -217,7 +217,7 @@ describe("SuspenseFailureHandlerTag — late-failure seam", () => {
     assert.equal(declined.patchHtml, "");
   });
 
-  it("AC-FH5: a failure Boundary inside the suspended children takes precedence — the seam is not consulted", async () => {
+  it("AC-FH5: a failure Boundary inside the suspended children takes precedence: the seam is not consulted", async () => {
     let calls = 0;
     const handler: SuspenseFailureHandler = {
       handle: () => {
@@ -247,7 +247,7 @@ describe("SuspenseFailureHandlerTag — late-failure seam", () => {
     assert.equal(patchHtml, "");
   });
 
-  it("AC-FH7: a substitute with failureReplay emits the failure-replay patch — retained markers + sentinel script", async () => {
+  it("AC-FH7: a substitute with failureReplay emits the failure-replay patch: retained markers + sentinel script", async () => {
     const handler: SuspenseFailureHandler = {
       handle: () =>
         Option.some({

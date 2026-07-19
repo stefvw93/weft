@@ -72,7 +72,7 @@ function structure(root: HTMLElement): string[] {
 // Mount (MR)
 // ============================================================================
 
-describe("List.each — Mount (MR)", () => {
+describe("List.each: Mount (MR)", () => {
   it("MR1: region + item markers bracket each item, in order", async () => {
     createTestDOM();
     const root = createRoot();
@@ -145,7 +145,7 @@ describe("List.each — Mount (MR)", () => {
 // Keyed reconciliation (KR)
 // ============================================================================
 
-describe("List.each — Keyed reconciliation (KR)", () => {
+describe("List.each: Keyed reconciliation (KR)", () => {
   it("KR1: duplicate keys in one emission fail with a descriptive RenderError (caught by a Boundary)", async () => {
     createTestDOM();
     const root = createRoot();
@@ -305,7 +305,7 @@ describe("List.each — Keyed reconciliation (KR)", () => {
 // Scope & state preservation (SC)
 // ============================================================================
 
-describe("List.each — Scope & state preservation (SC)", () => {
+describe("List.each: Scope & state preservation (SC)", () => {
   it("SC1: a retained item's subscription keeps running across a reorder", async () => {
     createTestDOM();
     const root = createRoot();
@@ -332,7 +332,7 @@ describe("List.each — Scope & state preservation (SC)", () => {
     const bNode = root.querySelector("#b");
     assert.equal(bNode?.textContent, "5");
 
-    // Reorder — b moves but its scope/subscription must survive.
+    // Reorder: b moves but its scope/subscription must survive.
     await Effect.runPromise(SubscriptionRef.set(listRef, [p("c"), p("b"), p("a")]));
     await waitForStreamUpdate();
     assert.deepEqual(itemIds(root), ["c", "b", "a"]);
@@ -402,7 +402,7 @@ describe("List.each — Scope & state preservation (SC)", () => {
 
 class PersonData extends Data.Class<{ readonly id: string; readonly name: string }> {}
 
-describe("List.each — Identity (ID)", () => {
+describe("List.each: Identity (ID)", () => {
   it("ID1: with `by` omitted, structurally-equal Data items reconcile as the same key", async () => {
     createTestDOM();
     const root = createRoot();
@@ -461,7 +461,7 @@ describe("List.each — Identity (ID)", () => {
 // Errors (ER)
 // ============================================================================
 
-describe("List.each — Errors (ER)", () => {
+describe("List.each: Errors (ER)", () => {
   it("ER1: a failing rendered item surfaces on the region channel and is caught by a Boundary", async () => {
     createTestDOM();
     const root = createRoot();

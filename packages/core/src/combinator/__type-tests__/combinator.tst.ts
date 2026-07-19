@@ -46,13 +46,13 @@ declare const themeStream2: Stream.Stream<string, never, ThemeService2>;
 // h.* element tests
 // =============================================================================
 
-test("static props — Node<never, never>", () => {
+test("static props: Node<never, never>", () => {
   expect(h.div({ id: "app", class: "container" }, [h.span({ class: "title" }, "Hello")])).type.toBe<
     Node<never, never>
   >();
 });
 
-test("reactive prop — R accumulates from prop value", () => {
+test("reactive prop: R accumulates from prop value", () => {
   expect(h.div({ class: themeStream })).type.toBe<Node<never, ThemeService>>();
 });
 
@@ -60,7 +60,7 @@ test("R accumulates from child stream directly", () => {
   expect(h.div({ class: "container" }, [userStream])).type.toBe<Node<never, UserService>>();
 });
 
-test("R from reactive prop + R from child — union", () => {
+test("R from reactive prop + R from child: union", () => {
   expect(h.div({ class: themeStream }, [userStream])).type.toBe<
     Node<never, ThemeService | UserService>
   >();
@@ -70,11 +70,11 @@ test("E and R accumulate across siblings", () => {
   expect(h.div({}, [userStream, dbEffect])).type.toBe<Node<DbError, UserService | DbService>>();
 });
 
-test("plain function wrapper — R preserved on return type", () => {
+test("plain function wrapper: R preserved on return type", () => {
   expect(() => h.div({}, [userStream])).type.toBe<() => Node<never, UserService>>();
 });
 
-test("Effect.gen — yield* works, R propagates into generator", () => {
+test("Effect.gen: yield* works, R propagates into generator", () => {
   expect(
     Effect.gen(function* () {
       return yield* h.div({}, [userStream]);
@@ -82,7 +82,7 @@ test("Effect.gen — yield* works, R propagates into generator", () => {
   ).type.toBe<Effect.Effect<ElementDescriptor, never, UserService>>();
 });
 
-test("nesting — R propagates through levels", () => {
+test("nesting: R propagates through levels", () => {
   expect(h.div({}, [h.div({}, [userStream]), dbEffect])).type.toBe<
     Node<DbError, UserService | DbService>
   >();
@@ -102,11 +102,11 @@ const GenField = Component.gen(function* (_: TextFieldProps) {
   return yield* h.div({ class: "field" });
 });
 
-test("reactive prop — R propagates out", () => {
+test("reactive prop: R propagates out", () => {
   expect(GenField({ name: "email", value: userStream })).type.toBe<Node<never, UserService>>();
 });
 
-test("static props — Node<never, never>", () => {
+test("static props: Node<never, never>", () => {
   expect(GenField({ name: "email", value: "static@example.com" })).type.toBe<Node<never, never>>();
 });
 
@@ -146,7 +146,7 @@ const GenWithFnChildren = Component.gen(function* (
   return yield* h.div({ class: "field" }, children("message"));
 });
 
-test("function-as-children — E from yielded child, R from reactive prop unioned", () => {
+test("function-as-children: E from yielded child, R from reactive prop unioned", () => {
   expect(
     GenWithFnChildren({ value: userStream }, (message) => [
       h.div({}, "Static child"),
@@ -166,7 +166,7 @@ test("function-as-children — E from yielded child, R from reactive prop unione
 
 const MakeField = Component.make((_props: TextFieldProps) => h.div({ class: "field" }));
 
-test("static props — Node<never, never>", () => {
+test("static props: Node<never, never>", () => {
   expect(MakeField({ name: "email", value: "static" })).type.toBe<Node<never, never>>();
 });
 
@@ -222,7 +222,7 @@ const MakeWithFnChildren = Component.make(
   ) => h.div({ class: "field" }, children("message")),
 );
 
-test("function-as-children — E from yielded child, R from reactive prop unioned", () => {
+test("function-as-children: E from yielded child, R from reactive prop unioned", () => {
   expect(
     MakeWithFnChildren({ value: userStream }, (message) => [
       h.div({}, "Static child"),
@@ -264,7 +264,7 @@ test("a Symbol is not a Renderable", () => {
 });
 
 test("a well-formed bare ElementDescriptor IS a valid Renderable child", () => {
-  // (Renderable subsumes the renderer's descriptor shape — see types/index.ts.)
+  // (Renderable subsumes the renderer's descriptor shape: see types/index.ts.)
   expect({
     type: "span",
     props: { children: ["hello"] },
@@ -300,12 +300,12 @@ test("function-children component invoked with an array", () => {
   expect(GenFnOnly).type.not.toBeCallableWith({}, [h.span({})]);
 });
 
-test("function-children — wrong return type (string instead of Renderable[])", () => {
+test("function-children: wrong return type (string instead of Renderable[])", () => {
   // `string` is not assignable to `readonly Renderable[]`
   expect(GenFnOnly).type.not.toBeCallableWith({}, (_msg: string) => "not an array");
 });
 
-test("function-children — wrong child shape inside returned array", () => {
+test("function-children: wrong child shape inside returned array", () => {
   // `{}` is not assignable to `Renderable`
   expect(GenFnOnly).type.not.toBeCallableWith({}, (_msg: string) => [{}]);
 });
@@ -313,7 +313,7 @@ test("function-children — wrong child shape inside returned array", () => {
 // Mirror Component.make: array-only declaration rejects functions.
 const MakeArrayOnly = Component.make((_props: Record<string, never>) => h.div({}));
 
-test("Component.make array-children — function rejected", () => {
+test("Component.make array-children: function rejected", () => {
   // function not assignable to `readonly Renderable[]`
   expect(MakeArrayOnly).type.not.toBeCallableWith({}, () => [h.span({})]);
 });
@@ -323,7 +323,7 @@ const MakeFnOnly = Component.make(
   (_props: Record<string, never>, _kids: (msg: string) => readonly Renderable[]) => h.div({}),
 );
 
-test("Component.make function-children — array rejected", () => {
+test("Component.make function-children: array rejected", () => {
   // array not assignable to `(msg: string) => readonly Renderable[]`
   expect(MakeFnOnly).type.not.toBeCallableWith({}, [h.span({})]);
 });

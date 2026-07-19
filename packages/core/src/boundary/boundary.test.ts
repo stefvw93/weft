@@ -114,7 +114,7 @@ describe("AC4: catchAll match", () => {
   it("returns null for interrupt", () => {
     const node = Boundary.catch({ fallback: () => fallbackNode }, []);
     const { props } = extractDescriptor(node);
-    // Cause.empty has no failure — represents interrupt-like empty cause
+    // Cause.empty has no failure: represents interrupt-like empty cause
     assert.equal(props.match(Cause.empty), null);
   });
 });
@@ -350,7 +350,7 @@ describe("Boundary.rpc: descriptor shape", () => {
       render: unknown;
       fallback: unknown;
     };
-    // The rpc tag is the stable boundary id — there is no hand-rolled `id`.
+    // The rpc tag is the stable boundary id: there is no hand-rolled `id`.
     assert.equal(props.tag, "GetStock");
     assert.ok(props.payloadSchema, "payload schema carried for SSR/refetch encode");
     assert.ok(props.successSchema, "success schema carried to decode the inline payload");

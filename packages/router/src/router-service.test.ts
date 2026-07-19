@@ -74,8 +74,8 @@ describe("Router.params / Router.query", () => {
   });
 
   test("Router.params reads the matched leaf's decoded value directly (absent ⇒ undefined)", async () => {
-    // `/about` matches (no `:id`); direct-read returns the decoded value as-is —
-    // an absent param reads `undefined` rather than re-validating into an error.
+    // `/about` matches (no `:id`); direct-read returns the decoded value as-is,
+    // so an absent param reads `undefined` rather than re-validating into an error.
     const exit = await runAt(Router.params(idParam), "/about");
     assert.deepEqual(exit, Exit.succeed({ id: undefined }));
   });

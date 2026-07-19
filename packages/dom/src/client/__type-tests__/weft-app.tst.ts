@@ -57,7 +57,7 @@ test("mount is self-contained: R = never, error channel E | MountError", () => {
   const plain = WeftApp.make();
   const mounted = WeftApp.mount(plain, h.div({}, "ok"), root);
   expect(mounted).type.toBe<Effect.Effect<WeftApp.RootHandle, WeftApp.MountError>>();
-  // Runnable with a bare runPromise — no Effect.provide needed.
+  // Runnable with a bare runPromise: no Effect.provide needed.
   void Effect.runPromise(mounted);
 
   // The layer's error channel joins the mount error union.

@@ -84,7 +84,7 @@ test("catchTag", () => {
     ]),
   ).type.toBe<Node<BarError, never>>();
 
-  // Single match — all errors consumed
+  // Single match: all errors consumed
   expect(
     Boundary.catchTag({ tag: "Foo", fallback: (_e: FooError) => fallbackNode }, [fooChild]),
   ).type.toBe<Node<never, never>>();
@@ -119,7 +119,7 @@ test("catchTags", () => {
 // ── catchFilter ──────────────────────────────────────────────────────────────
 
 test("catchFilter", () => {
-  // The Filter's Fail channel (X) is preserved in output — a declined error is
+  // The Filter's Fail channel (X) is preserved in output: a declined error is
   // re-raised, so it stays in E (boundary may not handle the error).
   expect(
     Boundary.catchFilter(

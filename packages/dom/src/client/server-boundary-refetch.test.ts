@@ -89,7 +89,7 @@ const refetchClient = (resolve: () => Effect.Effect<unknown, unknown>) => {
 // AC-H-S8: refetch patches the region in place
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc refetch — AC-H-S8: patches in place", () => {
+describe("Boundary.rpc refetch: AC-H-S8: patches in place", () => {
   it("re-calls the rpc, takes the decoded success, and updates value (no remount)", async () => {
     createTestDOM();
     const { app, captured } = captureResource();
@@ -103,7 +103,7 @@ describe("Boundary.rpc refetch — AC-H-S8: patches in place", () => {
 
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
-    // Seeded value rendered first (no flash) — same node adopted in place.
+    // Seeded value rendered first (no flash): same node adopted in place.
     assert.equal(root.querySelector("div.product"), productBefore);
     assert.ok(productBefore?.textContent?.includes("Widget"));
 
@@ -117,7 +117,7 @@ describe("Boundary.rpc refetch — AC-H-S8: patches in place", () => {
     assert.equal(state.calls, 1);
     const value = await Effect.runPromise(resource!.value.get);
     assert.equal(value.name, "Gadget");
-    // …and the region patched in place (same node, new text — no remount).
+    // …and the region patched in place (same node, new text: no remount).
     assert.equal(root.querySelector("div.product"), productBefore);
     assert.ok(productBefore?.textContent?.includes("Gadget"));
   });
@@ -146,7 +146,7 @@ describe("Boundary.rpc refetch — AC-H-S8: patches in place", () => {
 // AC-H-S9: refetch failure is stale-on-error
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc refetch — AC-H-S9: stale-on-error", () => {
+describe("Boundary.rpc refetch: AC-H-S9: stale-on-error", () => {
   it("keeps the previous value, sets error to Some, pending back to false, no fallback flash", async () => {
     createTestDOM();
     const { app, captured } = captureResource();
@@ -173,7 +173,7 @@ describe("Boundary.rpc refetch — AC-H-S9: stale-on-error", () => {
     assert.equal(value.name, "Widget");
     assert.equal(Option.isSome(await Effect.runPromise(resource.error.get)), true);
     assert.equal(await Effect.runPromise(resource.pending.get), false);
-    // No fallback flash / remount — the same product node is still in place.
+    // No fallback flash / remount: the same product node is still in place.
     assert.equal(root.querySelector("div.product"), productBefore);
     assert.ok(productBefore?.textContent?.includes("Widget"));
 
@@ -190,12 +190,12 @@ describe("Boundary.rpc refetch — AC-H-S9: stale-on-error", () => {
 // Defect path: a dying `call` is stale-on-error, not an escaping defect
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc refetch — defect path", () => {
+describe("Boundary.rpc refetch: defect path", () => {
   it("a dying rpc call clears pending and surfaces the defect as error (stale-on-error)", async () => {
     createTestDOM();
     const { app, captured } = captureResource();
 
-    // `Effect.die` is a defect — `Effect.either` would NOT capture it; the
+    // `Effect.die` is a defect: `Effect.either` would NOT capture it; the
     // resource must still clear `pending` and keep the previous value.
     const layer = Layer.succeed(AppRpcClientTag, {
       call: () => Effect.die(new Error("transport exploded")),
@@ -222,7 +222,7 @@ describe("Boundary.rpc refetch — defect path", () => {
 // Concurrency: a refetch triggered while one is in flight is ignored
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc refetch — ignore-while-pending", () => {
+describe("Boundary.rpc refetch: ignore-while-pending", () => {
   it("a second refetch during an in-flight call is a no-op (no double call, no out-of-order clobber)", async () => {
     createTestDOM();
     const { app, captured } = captureResource();
@@ -257,7 +257,7 @@ describe("Boundary.rpc refetch — ignore-while-pending", () => {
     await waitFor(10);
     assert.equal(await Effect.runPromise(resource.pending.get), true);
 
-    // Second refetch while the first is in flight: ignored — no second call.
+    // Second refetch while the first is in flight is ignored: no second call.
     await Effect.runPromise(resource.refetch);
     assert.equal(state.calls, 1);
 
@@ -275,7 +275,7 @@ describe("Boundary.rpc refetch — ignore-while-pending", () => {
 // No transport: refetch is a no-op (router-less mount)
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc refetch — no transport", () => {
+describe("Boundary.rpc refetch: no transport", () => {
   it("is a no-op when no AppRpcClient is provided", async () => {
     createTestDOM();
     const { app, captured } = captureResource();

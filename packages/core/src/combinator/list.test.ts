@@ -14,7 +14,7 @@ const people: readonly Person[] = [
   { id: "b", name: "Bo" },
 ];
 
-describe("List.each — detection & descriptor shape", () => {
+describe("List.each: detection & descriptor shape", () => {
   test("descriptor type is the LIST symbol, readable without running the effect", () => {
     const render = (person: Person) => h.li({}, person.name);
     const node = List.each({ of: people }, render);
@@ -35,7 +35,7 @@ describe("List.each — detection & descriptor shape", () => {
     assert.equal(descriptor.props.render, render);
   });
 
-  test("by is optional — props.by is undefined when omitted", () => {
+  test("by is optional: props.by is undefined when omitted", () => {
     const node = List.each({ of: people }, (person) => h.li({}, person.name));
     const descriptor = getElementDescriptor(node)!;
     assert.equal(descriptor.props.by, undefined);

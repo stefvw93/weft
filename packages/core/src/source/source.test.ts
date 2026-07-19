@@ -107,7 +107,7 @@ describe("Source.toSubscribable", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // AC-5: stream await-first — latest value returned without waiting
+  // AC-5: stream await-first (latest value returned without waiting)
   // ─────────────────────────────────────────────────────────────────────────
 
   describe("AC-5 stream await-first (latest)", () => {
@@ -144,7 +144,7 @@ describe("Source.toSubscribable", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // AC-6: stream await-first — parks until first emission
+  // AC-6: stream await-first (parks until first emission)
   // ─────────────────────────────────────────────────────────────────────────
 
   describe("AC-6 stream await-first (pending)", () => {
@@ -155,7 +155,7 @@ describe("Source.toSubscribable", () => {
       const value = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
-          // Fork get — it should park because the gate is not yet open.
+          // Fork get: it should park because the gate is not yet open.
           const getFiber = yield* Effect.forkChild(sub.get);
           // Open the gate, supplying the first (and only) value.
           yield* Deferred.succeed(gate, "parked-value");
@@ -234,7 +234,7 @@ describe("Source.toSubscribable", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // AC-8: hot / shared — source runs once regardless of consumer count
+  // AC-8: hot / shared (source runs once regardless of consumer count)
   // ─────────────────────────────────────────────────────────────────────────
 
   describe("AC-8 hot / shared source", () => {

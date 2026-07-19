@@ -68,7 +68,7 @@ function readService(options?: Partial<RouterLiveOptions>): Promise<Router["Serv
   );
 }
 
-describe("RouterLive — derived HttpApiClient", () => {
+describe("RouterLive: derived HttpApiClient", () => {
   test("CL1: exposes the derived HttpApiClient on the Router service as Option.some", async () => {
     setupDom();
     const service = await readService();
@@ -181,7 +181,7 @@ const readMatch = (
 ): Promise<{ readonly _tag: string; readonly url?: string }> =>
   Effect.runPromise(s.currentMatch.get);
 
-describe("RouterLive — pending navigation (deferred commit)", () => {
+describe("RouterLive: pending navigation (deferred commit)", () => {
   test("AC-N1/AC-N5: a lazy nav holds match + url until the chunk resolves; navigating Idle→Navigating→Idle", async () => {
     setupDom();
     const g = gateLoader(Component.make(() => h.div({}, "lazy")));
@@ -219,7 +219,7 @@ describe("RouterLive — pending navigation (deferred commit)", () => {
     assert.equal((await readNav(service))._tag, "Idle");
   });
 
-  test("AC-N7: latest-wins — a superseded lazy nav never commits", async () => {
+  test("AC-N7: latest-wins: a superseded lazy nav never commits", async () => {
     setupDom();
     const a = gateLoader(Component.make(() => h.div({}, "a")));
     const b = gateLoader(Component.make(() => h.div({}, "b")));
@@ -281,7 +281,7 @@ function spyScrollTo(): { readonly calls: Array<readonly [number, number]> } {
   return { calls };
 }
 
-describe("RouterLive — scroll reset (scroll-reset.specs.md)", () => {
+describe("RouterLive: scroll reset (scroll-reset.specs.md)", () => {
   test("AC-S1: a path-changing push navigation scrolls the window to top", async () => {
     setupDom();
     const service = await readService();
@@ -295,7 +295,7 @@ describe("RouterLive — scroll reset (scroll-reset.specs.md)", () => {
     setupDom("http://localhost/about");
     const service = await readService();
     const spy = spyScrollTo();
-    // Same path, only the query changes — scroll is preserved.
+    // Same path, only the query changes: scroll is preserved.
     await Effect.runPromise(service.navigate("/about?tab=posts"));
     assert.equal(dom.window.location.pathname, "/about");
     assert.equal(dom.window.location.search, "?tab=posts");
@@ -366,7 +366,7 @@ function gateBody(label: string): {
   };
 }
 
-describe("RouterLive — resolve-before-commit (leaf effect pre-run)", () => {
+describe("RouterLive: resolve-before-commit (leaf effect pre-run)", () => {
   test("AC-R1/AC-R5: an async-body nav holds match + url until the body resolves; navigating Idle→Navigating→Idle", async () => {
     setupDom();
     const g = gateBody("data");
@@ -451,7 +451,7 @@ describe("RouterLive — resolve-before-commit (leaf effect pre-run)", () => {
     const fiberB = Effect.runFork(service.navigate("/b"));
     await tick();
 
-    // Superseding interrupts the in-flight pre-run (AC-R6) — no need to release a.
+    // Superseding interrupts the in-flight pre-run (AC-R6): no need to release a.
     assert.equal(a.interrupted(), true);
     assert.deepEqual(await readNav(service), { _tag: "Navigating", to: "/b" });
     assert.equal(dom.window.location.pathname, "/");
@@ -514,7 +514,7 @@ describe("RouterLive — resolve-before-commit (leaf effect pre-run)", () => {
       assert.equal(dom.window.location.pathname, "/data");
       assert.equal((await readMatch(service))._tag, "NotFound");
       // The popstate handler forks commitTo onto a detached fiber and the Navigating
-      // emit is a further forkChild behind it — poll instead of a single tick.
+      // emit is a further forkChild behind it: poll instead of a single tick.
       for (let i = 0; i < 20 && (await readNav(service))._tag !== "Navigating"; i++) {
         await tick();
       }

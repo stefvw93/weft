@@ -90,7 +90,7 @@ describe("staged match view (AC-R4)", () => {
 
     const seen = await Effect.runPromise(staged.currentMatch.get);
     assert.equal(seen, target);
-    // Live members delegate — reactive subscriptions and navigation are not staged.
+    // Live members delegate: reactive subscriptions and navigation are not staged.
     assert.equal(staged.navigate, live.navigate);
     assert.equal(staged.navigating, live.navigating);
     assert.equal(staged.httpApiClient, live.httpApiClient);
@@ -117,7 +117,7 @@ describe("leaf pre-run (AC-R1/AC-R2/AC-R7)", () => {
     const exit = await Effect.runPromise(preRunLeaf(fakeRouter(matched("/about")), target));
     assert.equal(runs, 1);
     assert.equal(Exit.isSuccess(exit), true);
-    // The slot receives the target match's decoded { path, query } — exactly
+    // The slot receives the target match's decoded { path, query }: exactly
     // what `renderLevel` passes (spec: Staged match).
     assert.deepEqual(props, { path: { id: 7 }, query: {} });
   });
@@ -137,7 +137,7 @@ describe("leaf pre-run (AC-R1/AC-R2/AC-R7)", () => {
         }),
       },
     };
-    // The live service still points at /about — the url ref has not moved.
+    // The live service still points at /about: the url ref has not moved.
     const exit = await Effect.runPromise(preRunLeaf(fakeRouter(matched("/about")), target));
     assert.equal(Exit.isSuccess(exit), true);
     assert.equal(seenId, 7);
@@ -177,7 +177,7 @@ describe("leaf pre-run (AC-R1/AC-R2/AC-R7)", () => {
         component: () => Effect.die(new Error("boom")) as never,
       },
     };
-    // `preRunLeaf` succeeds with a Failure exit — failures ride the Exit.
+    // `preRunLeaf` succeeds with a Failure exit: failures ride the Exit.
     const exit = await Effect.runPromise(preRunLeaf(fakeRouter(matched("/about")), target));
     assert.equal(Exit.isFailure(exit), true);
   });

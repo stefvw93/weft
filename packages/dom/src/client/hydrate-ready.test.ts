@@ -49,7 +49,7 @@ function waitFor(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Rejects if `p` does not settle within `ms` — proves the latch can't deadlock. */
+/** Rejects if `p` does not settle within `ms`: proves the latch can't deadlock. */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
     p,
@@ -69,7 +69,7 @@ function delayedRegion(value: Renderable, ms = 20): Stream.Stream<Renderable> {
 // ============================================================================
 
 describe("AC-R1: interactive on resolve", () => {
-  it("attaches a region's listener before hydrate resolves — first dispatch fires", async () => {
+  it("attaches a region's listener before hydrate resolves: first dispatch fires", async () => {
     const dom = createTestDOM();
     let fired = 0;
     const button = h.button(
@@ -120,7 +120,7 @@ describe("AC-R2: no flash / identity preserved", () => {
 });
 
 // ============================================================================
-// AC-R3: fast path — fully static page resolves
+// AC-R3: fast path (fully static page resolves)
 // ============================================================================
 
 describe("AC-R3: fast path (no reactive regions)", () => {
@@ -140,7 +140,7 @@ describe("AC-R3: fast path (no reactive regions)", () => {
 });
 
 // ============================================================================
-// AC-R4: transitive — nested region inside a first emission
+// AC-R4: transitive (nested region inside a first emission)
 // ============================================================================
 
 describe("AC-R4: transitive nesting", () => {
@@ -214,7 +214,7 @@ describe("AC-R5: keyed list region", () => {
 });
 
 // ============================================================================
-// AC-R6: no deadlock — infinite stream
+// AC-R6: no deadlock (infinite stream)
 // ============================================================================
 
 describe("AC-R6: infinite stream does not deadlock", () => {
@@ -235,7 +235,7 @@ describe("AC-R6: infinite stream does not deadlock", () => {
 });
 
 // ============================================================================
-// AC-R7: no deadlock — empty stream
+// AC-R7: no deadlock (empty stream)
 // ============================================================================
 
 describe("AC-R7: empty stream does not deadlock", () => {

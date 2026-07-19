@@ -3,7 +3,7 @@
  *
  * The slot, invoked by the router at render time, must await its `load` and render the
  * resolved component's node. These render through `@weftui/dom/server`'s `renderToString`
- * (node env, no DOM) — the app has no `Boundary.rpc`, so the ambient `AppRpcClientTag`
+ * (node env, no DOM): the app has no `Boundary.rpc`, so the ambient `AppRpcClientTag`
  * seam is discharged with a no-op. Flash-free hydration + client-nav are covered by the
  * browser e2e phase; here we assert the core render + loader semantics.
  */
@@ -27,7 +27,7 @@ function render(node: Node<never, never>): Promise<string> {
   return Effect.runPromise(Effect.provide(renderToString(node), NoRpc));
 }
 
-describe("Router.lazy — unit", () => {
+describe("Router.lazy: unit", () => {
   it("awaits the loader, then renders the resolved component", async () => {
     let calls = 0;
     const slot = Router.lazy(() => {
@@ -41,7 +41,7 @@ describe("Router.lazy — unit", () => {
   });
 
   it("renders a resolved component that reads its own props/params like an eager one", async () => {
-    // A component that yields an Effect before returning — mirrors a real page body.
+    // A component that yields an Effect before returning: mirrors a real page body.
     const slot = Router.lazy(() =>
       Promise.resolve(
         Component.gen(function* () {
@@ -54,7 +54,7 @@ describe("Router.lazy — unit", () => {
     assert.match(html, /from-effect/);
   });
 
-  it("memoizes the load per slot — the loader runs once across repeated renders (AC-C2)", async () => {
+  it("memoizes the load per slot: the loader runs once across repeated renders (AC-C2)", async () => {
     let calls = 0;
     const slot = Router.lazy(() => {
       calls += 1;
@@ -82,7 +82,7 @@ describe("Router.lazy — unit", () => {
     // `runSyncExit` probe succeeds → atomic swap, no blank).
     const exit = Effect.runSyncExit(slot() as unknown as Effect.Effect<unknown, never, never>);
     assert.ok(Exit.isSuccess(exit), "post-preload slot must render synchronously");
-    // The preload and the render share the single memoized load — the loader runs once.
+    // The preload and the render share the single memoized load: the loader runs once.
     assert.equal(calls, 1);
   });
 

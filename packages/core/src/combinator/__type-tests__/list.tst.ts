@@ -1,5 +1,5 @@
 /**
- * Type tests for `List.each` — item-type inference, E/R propagation across the
+ * Type tests for `List.each`: item-type inference, E/R propagation across the
  * source and the render node, and `by` key typing.
  */
 
@@ -42,7 +42,7 @@ declare const peopleSub: Subscribable.Subscribable<readonly Person[], LoadError,
 declare const nameStream: Stream.Stream<string, RowError, RowService>;
 
 // =============================================================================
-// Item-type inference — render's `item` parameter
+// Item-type inference: render's `item` parameter
 // =============================================================================
 
 test("static array ⇒ item is Person", () => {
@@ -178,7 +178,7 @@ test("render receiving the wrong item type", () => {
   });
 });
 
-test("`of` must be an Iterable source — a bare non-iterable object is rejected", () => {
+test("`of` must be an Iterable source: a bare non-iterable object is rejected", () => {
   // `{ count: number }` is not a `Source<Iterable<...>>`
   expect(List.each).type.not.toBeCallableWith({ of: { count: 1 } }, (item: unknown) =>
     h.li({}, String(item)),

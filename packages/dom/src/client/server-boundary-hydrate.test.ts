@@ -45,8 +45,8 @@ function createRoot(): HTMLElement {
 }
 
 /**
- * Renders `app` to hydratable HTML — provided the in-process rpc client `layer`
- * (the SSR seam) — and seeds it into a fresh root.
+ * Renders `app` to hydratable HTML, provided the in-process rpc client `layer`
+ * (the SSR seam), and seeds it into a fresh root.
  */
 async function seedServerHtml(
   app: Renderable,
@@ -110,7 +110,7 @@ const makeClient = (
 // AC-H-S1 / AC-H-S2: replay (decode) without re-calling the rpc
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc hydrate — replay, not retry", () => {
+describe("Boundary.rpc hydrate: replay, not retry", () => {
   it("decodes the inline payload and adopts render(data) without re-creating it", async () => {
     createTestDOM();
     const { layer } = makeClient();
@@ -123,7 +123,7 @@ describe("Boundary.rpc hydrate — replay, not retry", () => {
 
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
-    // Same node object survives — adopted in place, not re-created.
+    // Same node object survives: adopted in place, not re-created.
     assert.equal(root.querySelector("div.product"), serverDiv);
     assert.equal((serverDiv as unknown as { __sentinel?: boolean }).__sentinel, true);
     assert.equal(serverDiv?.textContent, "Widget");
@@ -163,7 +163,7 @@ describe("Boundary.rpc hydrate — replay, not retry", () => {
 // AC-H-S3: post-hydrate interactivity wired against adopted DOM
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc hydrate — interactivity", () => {
+describe("Boundary.rpc hydrate: interactivity", () => {
   it("attaches a handler inside render(data) that fires post-hydrate", async () => {
     const dom = createTestDOM();
     const { layer } = makeClient();
@@ -192,10 +192,10 @@ describe("Boundary.rpc hydrate — interactivity", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AC-H-S4: cursor stays aligned — siblings after the boundary still hydrate
+// AC-H-S4: cursor stays aligned (siblings after the boundary still hydrate)
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc hydrate — cursor alignment", () => {
+describe("Boundary.rpc hydrate: cursor alignment", () => {
   it("steps the cursor past render(data) so a following sibling hydrates", async () => {
     createTestDOM();
     const { layer } = makeClient();
@@ -260,7 +260,7 @@ describe("Boundary.rpc hydrate — cursor alignment", () => {
 // AC-H-S5: payload absence / decode failure → recoverable mismatch
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc hydrate — payload divergence", () => {
+describe("Boundary.rpc hydrate: payload divergence", () => {
   const boundaryApp = () => ProductBoundary();
 
   it("fails with HydrationMismatchError when the payload script is missing", async () => {
@@ -306,7 +306,7 @@ describe("Boundary.rpc hydrate — payload divergence", () => {
 // the SAME enclosing-failure-boundary fallback without re-calling the rpc.
 // ---------------------------------------------------------------------------
 
-describe("Boundary.rpc hydrate — typed-failure replay", () => {
+describe("Boundary.rpc hydrate: typed-failure replay", () => {
   /** A failing-rpc server boundary under a `catchAll` that renders the error. */
   const makeFailingApp = () =>
     Boundary.catch({ fallback: (e: LoadError) => h.div({ class: "fallback" }, e.reason) }, [

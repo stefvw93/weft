@@ -33,7 +33,7 @@ class FooError extends Data.TaggedError("Foo")<{ msg: string }> {}
 
 // ── AC22 non-hydratable: children succeed → transparent ──────────────────────
 
-describe("AC22 non-hydratable: children succeed — boundary is transparent", () => {
+describe("AC22 non-hydratable: children succeed: boundary is transparent", () => {
   it("renders children HTML inline with no boundary markers", async () => {
     const html = await run(
       Boundary.catch({ fallback: () => h.span({ class: "fallback" }, "err") }, [
@@ -53,7 +53,7 @@ describe("AC22 non-hydratable: children succeed — boundary is transparent", ()
 
 // ── AC22 non-hydratable: children fail → fallback HTML inline ─────────────────
 
-describe("AC22 non-hydratable: children fail — fallback HTML emitted inline", () => {
+describe("AC22 non-hydratable: children fail: fallback HTML emitted inline", () => {
   it("renders fallback HTML when child fails", async () => {
     const failingChild = Effect.fail(new FooError({ msg: "oops" }));
 
@@ -93,7 +93,7 @@ describe("AC22 non-hydratable: match returns null → stream failure", () => {
 
 // ── AC24 hydratable: success → transparent (no boundary markers) ──────────────
 
-describe("AC24 hydratable: children succeed — boundary transparent", () => {
+describe("AC24 hydratable: children succeed: boundary transparent", () => {
   it("no boundary markers emitted when children succeed", async () => {
     const html = await runHydratable(
       Boundary.catch({ fallback: () => h.span({}, "err") }, [h.div({ class: "content" }, "ok")]),
@@ -108,7 +108,7 @@ describe("AC24 hydratable: children succeed — boundary transparent", () => {
 // for both hydratable and non-hydratable (AC25 hydratable errored markers are
 // out of scope for this implementation).
 
-describe("AC25 hydratable: children fail — fallback emitted inline", () => {
+describe("AC25 hydratable: children fail: fallback emitted inline", () => {
   it("fallback HTML emitted when children fail (hydratable path)", async () => {
     const failingChild = Effect.fail(new FooError({ msg: "err" }));
 

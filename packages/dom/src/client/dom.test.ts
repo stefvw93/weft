@@ -976,7 +976,7 @@ describe("AC20 SP1/SP3: same-type patching (in-place)", () => {
     await Effect.runPromise(handle.unmount());
   });
 
-  it("SP3: UserProfile pattern — concat(loading, fromEffect) reuses the <div>, patches text in place", async () => {
+  it("SP3: UserProfile pattern: concat(loading, fromEffect) reuses the <div>, patches text in place", async () => {
     createTestDOM();
     const root = createRoot();
 
@@ -1779,7 +1779,7 @@ describe("AC28: Resource Cleanup on Mount Failure", () => {
     const root = createRoot();
 
     // An object with a numeric `type` triggers UnsupportedNodeTypeError
-    // (not a string, FRAGMENT, or function — renderNode's invalid type branch)
+    // (not a string, FRAGMENT, or function: renderNode's invalid type branch)
     const invalidNode = { type: 42, props: {} };
     const exit = await Effect.runPromiseExit(
       WeftApp.mount(WeftApp.make(), invalidNode as unknown as never, root),
@@ -1880,7 +1880,7 @@ describe("AC-10/12/13/14: toSubscribable pump scope lifetime", () => {
 
     assert.ok(!cancelled, "pump should be running while component is mounted");
 
-    // Replace the component with static content — the old content scope closes.
+    // Replace the component with static content: the old content scope closes.
     await Effect.runPromise(SubscriptionRef.set(regionRef, h.span({}, "static")));
     await waitForStreamUpdate();
 
@@ -1949,7 +1949,7 @@ describe("scope lifetime: advanced cases", () => {
         const sub = yield* Source.toSubscribable(props.val);
         const v = yield* sub.get;
         // {SubscriptionRef.changes(internalRef)} creates a reactive region *inside* the component.
-        // Re-emitting it rotates a child contentScope — the pump in instanceScope
+        // Re-emitting it rotates a child contentScope: the pump in instanceScope
         // must not be touched.
         return h.div({ class: v }, [SubscriptionRef.changes(internalRef)]);
       });
@@ -1960,7 +1960,7 @@ describe("scope lifetime: advanced cases", () => {
     await waitForStream();
     assert.ok(!cancelled, "pump should be running after mount");
 
-    // Trigger an internal re-emit — rotates a child contentScope, not instanceScope.
+    // Trigger an internal re-emit: rotates a child contentScope, not instanceScope.
     await Effect.runPromise(SubscriptionRef.update(internalRef, (n) => n + 1));
     await waitForStreamUpdate();
     assert.ok(!cancelled, "pump must survive an internal region re-emit");
@@ -1971,7 +1971,7 @@ describe("scope lifetime: advanced cases", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Transitive teardown — nested components.
+  // Transitive teardown: nested components.
   // Evicting the outer component must also cancel the inner component's pump
   // because innerInstanceScope ⊂ contentScope(outer) ⊂ outerInstanceScope.
   // ──────────────────────────────────────────────────────────────────────────
@@ -2017,7 +2017,7 @@ describe("scope lifetime: advanced cases", () => {
 
   // ──────────────────────────────────────────────────────────────────────────
   // Multiple props: every pump forked into the same instanceScope must be
-  // cancelled — not just the first one.
+  // cancelled: not just the first one.
   // ──────────────────────────────────────────────────────────────────────────
   it("all pumps are cancelled when a component with multiple Source props is removed", async () => {
     let aCancelled = false;
@@ -2066,7 +2066,7 @@ describe("scope lifetime: advanced cases", () => {
 
   // ──────────────────────────────────────────────────────────────────────────
   // Identity pass-through: when a SubscriptionRef is passed as a Source,
-  // toSubscribable returns it by reference — no pump is forked into instanceScope.
+  // toSubscribable returns it by reference: no pump is forked into instanceScope.
   // Closing instanceScope must NOT interrupt the ref, which lives in an outer scope.
   // ──────────────────────────────────────────────────────────────────────────
   it("Subscribable passed as Source is not interrupted when the component is removed", async () => {
@@ -2081,7 +2081,7 @@ describe("scope lifetime: advanced cases", () => {
 
     const Comp = (props: { val: Source.Source<string> }) =>
       Effect.gen(function* () {
-        // toSubscribable short-circuits to identity — no pump forked.
+        // toSubscribable short-circuits to identity: no pump forked.
         const sub = yield* Source.toSubscribable(props.val);
         const v = yield* sub.get;
         return h.div({}, v);
@@ -2096,7 +2096,7 @@ describe("scope lifetime: advanced cases", () => {
     const handle = await runMount(SubscriptionRef.changes(regionRef), root);
     await waitForStream();
 
-    // Remove the component — instanceScope closes, but sharedRef is external.
+    // Remove the component: instanceScope closes, but sharedRef is external.
     await Effect.runPromise(SubscriptionRef.set(regionRef, h.span({}, "replaced")));
     await waitForStreamUpdate();
 
@@ -2152,7 +2152,7 @@ describe("scope lifetime: advanced cases", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Transitive teardown — two levels of reactive regions above a component.
+  // Transitive teardown: two levels of reactive regions above a component.
   // SubscriptionRef.changes(outerRef) wraps a div with SubscriptionRef.changes(innerRef) which contains Comp.
   // Replacing the outer emission must cascade all the way down and kill the pump.
   // ──────────────────────────────────────────────────────────────────────────

@@ -3,12 +3,12 @@
  *
  * Folds in the issue #123 acceptance scenario from the deleted
  * mount-scoped.browser.test.ts: a scoped layer (acquireRelease service) must
- * outlive initial render — acquired once, alive across real click dispatches,
+ * outlive initial render: acquired once, alive across real click dispatches,
  * released only at `WeftApp.dispose`, with no DOM patching afterwards. On the
  * app model this needs no scope/Deferred dance: the app runtime owns the
  * layer's lifetime.
  *
- * Note: package browser tests import the BUILT `@weftui/dom/client` — the flat
+ * Note: package browser tests import the BUILT `@weftui/dom/client`, so the flat
  * browser config does not resolve the package's `~/*` source aliases.
  */
 
@@ -33,7 +33,7 @@ afterEach(() => {
   container.remove();
 });
 
-describe("WeftApp — scoped layer lifetime across real events (issue #123)", () => {
+describe("WeftApp: scoped layer lifetime across real events (issue #123)", () => {
   it("acquires once (lazily), survives clicks, releases only at dispose", async () => {
     let acquired = 0;
     let released = 0;
@@ -51,7 +51,7 @@ describe("WeftApp — scoped layer lifetime across real events (issue #123)", ()
     );
 
     const app = WeftApp.make(CounterLive);
-    expect(acquired).toBe(0); // WA1: make is lazy — nothing built yet
+    expect(acquired).toBe(0); // WA1: make is lazy, nothing built yet
 
     const view = h.div([
       h.div({ "data-testid": "count" }, [
@@ -84,7 +84,7 @@ describe("WeftApp — scoped layer lifetime across real events (issue #123)", ()
 
     await vi.waitFor(() => expect(count()?.textContent).toBe("0"));
 
-    // The service survives real event dispatches — no early release.
+    // The service survives real event dispatches: no early release.
     inc()?.click();
     await vi.waitFor(() => expect(count()?.textContent).toBe("1"));
     inc()?.click();
