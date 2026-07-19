@@ -42,11 +42,12 @@ export const render = () => Effect.runPromise(renderToStringHydratable(App()));
 
 ```typescript
 // client entry
-import { hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { App } from "./app";
 
-void Effect.runPromise(hydrate(App(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.hydrate(app, App(), document.getElementById("root")!));
 ```
 
 The same side-effect-free `App` is imported by both entries. For server-resolved data that replays into the client without a second request, `Boundary.rpc` extends this model — resolve an rpc on the server, serialize its result into the HTML, replay it on hydrate, then keep the region live for refetch.

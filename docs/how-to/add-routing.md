@@ -177,21 +177,21 @@ Router.route("users/:id", {
 
 ## Client setup
 
-On the client, provide the `Router` via `RouterLive(def)` and render `RouterApp(def)`. `RouterLive` is a **scoped layer** — it owns the `popstate` listener and the same-origin link-click interceptor — so it must outlive the mount. Provide it through a long-lived `ManagedRuntime` rather than `Effect.provide` at the node level:
+On the client, provide the `Router` via `RouterLive(def)` and render `RouterApp(def)`. `RouterLive` is a **scoped layer** — it owns the `popstate` listener and the same-origin link-click interceptor — so it must outlive the mount. Give it to `WeftApp.make`: the app runtime owns it for the app's lifetime, built lazily on first hydrate and released only at `WeftApp.dispose`. Do not wrap `Effect.provide` around the mount/hydrate call — services come exclusively from the app layer.
 
 ```typescript
 // entry-client.ts
-import { hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
-import { ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { App } from "./app";
 
 const root = document.getElementById("root")!;
-const runtime = ManagedRuntime.make(RouterLive(App));
-void runtime.runPromise(hydrate(RouterApp(App), root));
+const app = WeftApp.make(RouterLive(App));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
 ```
 
-For a client-only app (no SSR), swap `hydrate` for `mount` — everything else is identical.
+For a client-only app (no SSR), swap `WeftApp.hydrate` for `WeftApp.mount` — everything else is identical.
 
 ### Link interception
 

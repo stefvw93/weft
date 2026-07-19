@@ -12,16 +12,15 @@
  * memo and stay `Idle`.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "../app";
 import { DocsLive } from "../lib/docs-live";
 
 let container: HTMLElement;
-let handle: MountHandle | undefined;
-let runtime: ManagedRuntime.ManagedRuntime<never, never> | undefined;
+let app: WeftApp.WeftApp<any, any> | undefined;
 
 const GETTING_STARTED = "/docs/tutorial/01-your-first-app";
 
@@ -33,10 +32,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
-  handle = undefined;
-  runtime = undefined;
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
   window.history.replaceState(null, "", "/");
 });
@@ -45,9 +42,8 @@ afterEach(async () => {
 // (visual polish pending). Restore to `describe` when the flag flips back on.
 describe.skip("navigation progress bar (AC1/AC2)", () => {
   it("shows is-navigating during a first doc navigation and settles back to idle", async () => {
-    const rt = ManagedRuntime.make(RouterLive(App, { context: DocsLive }));
-    runtime = rt as unknown as ManagedRuntime.ManagedRuntime<never, never>;
-    handle = await rt.runPromise(mount(RouterApp(App), container));
+    app = WeftApp.make(RouterLive(App, { context: DocsLive }));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(App), container));
 
     // AC1: the bar is rendered on the landing page, idle and inert.
     await vi.waitFor(() => expect(container.querySelector("#nav-progress")).not.toBeNull());

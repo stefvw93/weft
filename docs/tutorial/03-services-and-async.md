@@ -11,12 +11,12 @@ description: Give handlers access to services from the environment, and render a
 
 ## Handlers that use services
 
-An event handler can **return an Effect**, and that Effect runs in the component's environment — so it can read any service you provide at the mount boundary:
+An event handler can **return an Effect**, and that Effect runs in the app's environment — so it can read any service the app's layer provides:
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
-import { Context, Effect, Layer, pipe } from "effect";
+import { WeftApp } from "@weftui/dom/client";
+import { Context, Effect, Layer } from "effect";
 
 class Logger extends Context.Service<Logger, { log: (message: string) => Effect.Effect<void> }>()(
   "Logger",
@@ -38,13 +38,12 @@ const LogButton = () =>
     "Log",
   );
 
-// Provide the layer at mount — every handler in the tree can now read Logger.
-void Effect.runPromise(
-  pipe(mount(LogButton(), document.getElementById("root")!), Effect.provide(LoggerLive)),
-);
+// Give the app the layer — every handler in every root can now read Logger.
+const app = WeftApp.make(LoggerLive);
+void Effect.runPromise(WeftApp.mount(app, LogButton(), document.getElementById("root")!));
 ```
 
-`Logger` entered the tree's requirement channel the moment `LogButton` read it, and you discharged it **once**, at `mount`, with `Effect.provide`. Provide too little and it is a compile error at the mount call. This is Weft's entire dependency-injection story — it is just Effect's. The deeper treatment is [Services and Context](../explanation/services-and-context.md).
+`Logger` entered the tree's requirement channel the moment `LogButton` read it, and you discharged it **once**, by passing `LoggerLive` to `WeftApp.make`. Provide too little and it is a compile error — the type of `app` (and so of `WeftApp.mount(app, LogButton(), …)`) names exactly which service is missing. Services come exclusively from the app's layer: an `Effect.provide` wrapped around the `mount` call does **not** reach components or handlers. This is Weft's entire dependency-injection story — it is just Effect's. The deeper treatment is [Services and Context](../explanation/services-and-context.md).
 
 ## Async loading states
 
@@ -52,7 +51,7 @@ A component can return a **`Stream<Node>`** to show different content over time.
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect, Stream } from "effect";
 
 const AsyncGreeting = ({ name }: { name: string }) =>
@@ -66,7 +65,10 @@ const AsyncGreeting = ({ name }: { name: string }) =>
     ),
   );
 
-void Effect.runPromise(mount(AsyncGreeting({ name: "World" }), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(
+  WeftApp.mount(app, AsyncGreeting({ name: "World" }), document.getElementById("root")!),
+);
 ```
 
 The stream emits the loading node first, then the resolved node — the renderer swaps the DOM in place on the second emission. This is the raw mechanism; for coordinating _several_ async regions with a single fallback, reach for [`Boundary.suspend`](../explanation/boundaries-and-suspense.md), which you will meet in the next step.

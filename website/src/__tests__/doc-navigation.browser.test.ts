@@ -14,16 +14,15 @@
  * on first visit to a doc) as a permanent test.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "../app";
 import { DocsLive } from "../lib/docs-live";
 
 let container: HTMLElement;
-let handle: MountHandle | undefined;
-let runtime: ManagedRuntime.ManagedRuntime<never, never> | undefined;
+let app: WeftApp.WeftApp<any, any> | undefined;
 
 const FIRST = "/docs/tutorial/01-your-first-app";
 const SECOND = "/docs/tutorial/02-reactivity";
@@ -36,20 +35,17 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
-  handle = undefined;
-  runtime = undefined;
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
   window.history.replaceState(null, "", "/");
 });
 
 describe("doc→doc navigation never blanks the content region (AC10)", () => {
   it("keeps the current doc mounted while the next doc's chunk + tree resolve", async () => {
-    const rt = ManagedRuntime.make(RouterLive(App, { context: DocsLive }));
-    runtime = rt as unknown as ManagedRuntime.ManagedRuntime<never, never>;
+    app = WeftApp.make(RouterLive(App, { context: DocsLive }));
     // Client-first mount at the first doc (no SSR markup in this test).
-    handle = await rt.runPromise(mount(RouterApp(App), container));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(App), container));
 
     // The first doc's content is rendered.
     await vi.waitFor(

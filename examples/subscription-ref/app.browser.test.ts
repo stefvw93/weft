@@ -5,13 +5,13 @@
  * basic counter, backed by a `SubscriptionRef`, increments on click.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -19,13 +19,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
 describe("subscription-ref example", () => {
   it("increments the basic counter on click", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     const counter = () => container.querySelector(".counter");
     const plus = await vi.waitFor(() => {

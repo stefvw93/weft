@@ -41,14 +41,14 @@ When mounted directly (without SSR), each `Suspense` boundary:
 
 ### Hydration path
 
-After the SSR patch scripts execute (before `hydrate()` loads), the DOM is fully resolved. `hydrate` sees `Suspense` as transparent — it hydrates the children directly from the current cursor position, adopting the resolved DOM nodes in place.
+After the SSR patch scripts execute (before `WeftApp.hydrate()` loads), the DOM is fully resolved. `WeftApp.hydrate` sees `Suspense` as transparent — it hydrates the children directly from the current cursor position, adopting the resolved DOM nodes in place.
 
 ## What to observe
 
 - **`curl -N --no-buffer http://localhost:3101`** shows the streaming SSR output: fallback HTML + comment markers in the body, then `<template>` + `<script>` patches.
 - **Slow network**: open DevTools Network → CPU throttling + disable cache. The page loads with the fallback visible first, then the patches arrive and scripts execute, resolving the UI progressively.
 - **View source**: the initial HTML is static and readable — no JavaScript needed to see the fallback content.
-- **Status indicator**: flips from `[SSR — not yet interactive]` to `[hydrated — interactive]` once `hydrate()` completes.
+- **Status indicator**: flips from `[SSR — not yet interactive]` to `[hydrated — interactive]` once `WeftApp.hydrate()` completes.
 
 ## Usage
 

@@ -23,10 +23,10 @@
  *       boundary id.
  */
 
-import { hydrate, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Router, RouterApp, RouterLive } from "@weftui/router/client";
 import { RouterServer } from "@weftui/router/server";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 import { StockLive, StockRpcs } from "./data/inventory";
@@ -37,8 +37,7 @@ import { getProduct } from "./data/products";
 const rpc = { group: StockRpcs, handlers: StockLive } as const;
 
 let container: HTMLElement;
-let handle: MountHandle;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never>;
+let app: WeftApp.WeftApp<Router> | undefined;
 let originalFetch: typeof globalThis.fetch;
 
 /** The router's own platform web handler — answers the same-origin `/_eui/rpc` hop. */
@@ -79,8 +78,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   globalThis.fetch = originalFetch;
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
   window.history.replaceState(null, "", "/");
 });
@@ -101,8 +99,8 @@ const ssrAndHydrate = async (url: string): Promise<void> => {
   window.history.replaceState(null, "", url);
   // RouterLive is scoped (owns popstate + link interceptor); a ManagedRuntime keeps
   // it alive, and also provides the network AppRpcClient that backs refetch.
-  runtime = ManagedRuntime.make(RouterLive(App, { rpc: { group: StockRpcs } }));
-  handle = await runtime.runPromise(hydrate(RouterApp(App), container));
+  app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
+  await Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), container));
 };
 
 describe("router-ssr shop — Boundary.rpc stock refetch", () => {

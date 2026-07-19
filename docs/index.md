@@ -10,7 +10,7 @@ The docs follow the [Diátaxis](https://diataxis.fr) model. Pick your entry poin
 
 **[→ Tutorial](tutorial/01-your-first-app.md)** — a four-step guided path from a static component to a server-rendered, error-handled app. Start here if you are new to Weft:
 
-1. [Your First App](tutorial/01-your-first-app.md) — `h` and `mount`
+1. [Your First App](tutorial/01-your-first-app.md) — `h` and `WeftApp`
 2. [Reactivity](tutorial/02-reactivity.md) — `SubscriptionRef` and streams
 3. [Services and Async](tutorial/03-services-and-async.md) — handlers, services, async loading
 4. [Errors and Server Rendering](tutorial/04-errors-and-server.md) — boundaries and SSR
@@ -31,7 +31,7 @@ New to the model itself? Read [The Rendering Model](explanation/rendering-model.
 Three published packages make up Weft's public API, plus one build-time plugin:
 
 - **`@weftui/core`** — element builders (`h`), components, sources/streams, and boundaries. Start here.
-- **`@weftui/dom`** — the renderer: `./client` (`mount`/`hydrate`) and `./server` (`renderToString*`).
+- **`@weftui/dom`** — the renderer: `./client` (`WeftApp.mount`/`WeftApp.hydrate`) and `./server` (`renderToString*`).
 - **`@weftui/router`** — universal nested routing, `Router.lazy`, and the rpc seam.
 - **`@weftui/vite`** — a build-time Vite plugin (tooling, not a runtime API).
 

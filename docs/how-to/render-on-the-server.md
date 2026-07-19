@@ -12,7 +12,7 @@ Weft renders on the server and **hydrates** on the client: the server produces H
 ## The two halves
 
 - **Server** — `@weftui/dom/server` renders an app node to an HTML string (or stream). The _hydratable_ variants additionally emit the inline data each reactive region and `Boundary.rpc` needs to resume on the client.
-- **Client** — `@weftui/dom/client`'s `hydrate` walks the server DOM, adopts it, wires up reactivity and event handlers, and resumes from the inline data. It does **not** re-render from scratch.
+- **Client** — `@weftui/dom/client`'s `WeftApp.hydrate` walks the server DOM, adopts it, wires up reactivity and event handlers, and resumes from the inline data. It does **not** re-render from scratch.
 
 ```typescript
 // server entry
@@ -25,12 +25,13 @@ export const render = (): Promise<string> => Effect.runPromise(renderToStringHyd
 
 ```typescript
 // client entry
-import { hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { App } from "./app";
 
 const root = document.getElementById("root")!;
-void Effect.runPromise(hydrate(App(), root));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.hydrate(app, App(), root));
 ```
 
 The same side-effect-free `App` is imported by both entries — splice the server HTML into your template's outlet, ship it, and let the client entry hydrate it.

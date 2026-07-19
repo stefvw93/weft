@@ -14,11 +14,11 @@
  */
 
 import { AppRpcClientTag, Component, h } from "@weftui/core";
-import { hydrate, mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { renderToStringHydratable } from "@weftui/dom/server";
 import type { RouterDef } from "@weftui/router";
 import { push, Router, RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, Layer, ManagedRuntime } from "effect";
+import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 // No `Boundary.rpc` here; the SSR render fns require an `AppRpcClientTag` unconditionally.
@@ -50,8 +50,7 @@ const def: RouterDef = Router.router(
 );
 
 let container: HTMLElement;
-let handle: MountHandle | undefined;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never> | undefined;
+let app: WeftApp.WeftApp<any, any> | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -60,10 +59,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
-  handle = undefined;
-  runtime = undefined;
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
   window.history.replaceState(null, "", "/");
 });
@@ -82,7 +79,8 @@ describe("Router.lazy — direct-load hydration (AC3)", () => {
     const serverEl = container.querySelector("#lazy");
 
     // Hydrate over the markup; the chunk resolves during hydrate.
-    handle = await Effect.runPromise(Effect.provide(hydrate(slot(), container), NoRpc));
+    app = WeftApp.make(NoRpc);
+    await Effect.runPromise(WeftApp.hydrate(app, slot(), container));
 
     expect(container.querySelector("#lazy")?.textContent).toContain("lazy loaded");
     expect(container.querySelector("#lazy")).toBe(serverEl);
@@ -92,8 +90,8 @@ describe("Router.lazy — direct-load hydration (AC3)", () => {
 describe("Router.lazy — client navigation (AC-C1/AC-C2)", () => {
   const mountAt = async (path: string): Promise<void> => {
     window.history.replaceState(null, "", path);
-    runtime = ManagedRuntime.make(RouterLive(def));
-    handle = await runtime.runPromise(mount(RouterApp(def), container));
+    app = WeftApp.make(RouterLive(def));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
   };
   const seeLazy = (): Promise<void> =>
     vi.waitFor(() =>
@@ -112,9 +110,9 @@ describe("Router.lazy — client navigation (AC-C1/AC-C2)", () => {
     await seeLazy();
 
     // Away and back: the revisit renders again (from the per-slot memo, no re-fetch).
-    await runtime!.runPromise(push("/"));
+    await app!.runtime.runPromise(push("/"));
     await seeHome();
-    await runtime!.runPromise(push("/lazy"));
+    await app!.runtime.runPromise(push("/lazy"));
     await seeLazy();
   });
 });

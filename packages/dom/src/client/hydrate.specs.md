@@ -10,8 +10,9 @@ already-present DOM nodes, attaches event handlers and reactive subscriptions in
 place, and only creates DOM where a reactive region later re-renders.
 
 It is the client counterpart of the hydratable server renderer and shares
-`mount`'s lifecycle: a fresh `ManagedRuntime` per call, a `Scope` that owns all
-forked subscriptions, and a `MountHandle` for teardown.
+`mount`'s lifecycle _(amended by weft-app.specs.md)_: the owning `WeftApp`'s
+shared runtime, a per-root `Scope` that owns all forked subscriptions, and a
+`RootHandle` for teardown.
 
 ## Design
 
@@ -87,7 +88,7 @@ until the fallback patch supersedes them; they are cleaned up at unmount.
   `HydrationMismatchError`.
 - **AC-H3:** Event handlers — absent from server HTML — are attached during
   hydration and fire afterward. Effect-returning handlers run on the captured
-  `ManagedRuntime` and can access services provided before `hydrate`
+  app runtime and can access services from the app layer
   (parity with `mount`).
 - **AC-H4:** A reactive child is adopted from inside its `stream-start`/
   `stream-end` markers; a subsequent stream emission patches only the nodes
@@ -103,7 +104,7 @@ until the fallback patch supersedes them; they are cleaned up at unmount.
   expected text but found an element, mismatched tag name, or a missing reactive
   marker) fails the effect with `HydrationMismatchError` carrying expected/actual
   context.
-- **AC-H9:** The returned `MountHandle.unmount()` interrupts all reactive
+- **AC-H9:** The returned `RootHandle.unmount()` (_amended_) interrupts all reactive
   subscriptions and disposes the runtime, and is idempotent (parity with
   `mount`, `dom.specs.md` AC-26/AC-27).
 - **AC-H10:** Server marker output — `renderToStringHydratable(node)` equals

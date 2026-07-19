@@ -3,7 +3,7 @@ import { Effect, Exit, Stream, SubscriptionRef } from "effect";
 import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";
 import { h, List } from "@weftui/core";
-import { hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 import { renderToStringHydratable as _renderToStringHydratable } from "~/server";
 import type { Renderable } from "@weftui/core/types";
 import { NoRpc } from "../__tests__/rpc-stub";
@@ -16,7 +16,7 @@ const renderToStringHydratable = (n: Renderable) =>
 // ============================================================================
 // hydrate-ready: interactivity barrier (hydrate-ready.specs.md, AC-R1..R9)
 //
-// Contract: when `hydrate(app, root)` resolves, every initial reactive region's
+// Contract: when `WeftApp.hydrate(WeftApp.make(), app, root)` resolves, every initial reactive region's
 // first emission has hydrated and its listeners are attached. These tests use a
 // *delayed* first emission so that, without the barrier, a post-resolve dispatch
 // would race the fork and be lost.
@@ -84,7 +84,7 @@ describe("AC-R1: interactive on resolve", () => {
     const app = h.div({}, [delayedRegion(button)]);
     const root = await seedServerHtml(app);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // No wait between resolve and dispatch: the listener must already be live.
     const el = root.querySelector("button");
@@ -110,7 +110,7 @@ describe("AC-R2: no flash / identity preserved", () => {
     assert.ok(serverSpan);
     (serverSpan as unknown as { __sentinel?: boolean }).__sentinel = true;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     const span = root.querySelector("span");
     assert.equal(span, serverSpan);
@@ -129,7 +129,11 @@ describe("AC-R3: fast path (no reactive regions)", () => {
     const app = h.div({ class: "card" }, [h.span({}, "hello")]);
     const root = await seedServerHtml(app);
 
-    await withTimeout(Effect.runPromise(hydrate(app, root)), 1000, "static hydrate");
+    await withTimeout(
+      Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+      1000,
+      "static hydrate",
+    );
 
     assert.equal(root.querySelector("span")?.textContent, "hello");
   });
@@ -158,7 +162,7 @@ describe("AC-R4: transitive nesting", () => {
     const app = h.section({}, [outer]);
     const root = await seedServerHtml(app);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     const el = root.querySelector("button");
     assert.ok(el);
@@ -198,7 +202,7 @@ describe("AC-R5: keyed list region", () => {
     ]);
     const root = await seedServerHtml(app);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     const li = root.querySelector("li#a");
     assert.ok(li);
@@ -220,7 +224,11 @@ describe("AC-R6: infinite stream does not deadlock", () => {
     const app = h.div({}, [SubscriptionRef.changes(ref)]);
     const root = await seedServerHtml(app);
 
-    await withTimeout(Effect.runPromise(hydrate(app, root)), 1000, "infinite hydrate");
+    await withTimeout(
+      Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+      1000,
+      "infinite hydrate",
+    );
 
     assert.equal(root.querySelector("span")?.textContent, "live");
   });
@@ -236,7 +244,11 @@ describe("AC-R7: empty stream does not deadlock", () => {
     const app = h.div({}, [Stream.empty as Stream.Stream<Renderable>]);
     const root = await seedServerHtml(app);
 
-    await withTimeout(Effect.runPromise(hydrate(app, root)), 1000, "empty hydrate");
+    await withTimeout(
+      Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+      1000,
+      "empty hydrate",
+    );
 
     // Region hydrates to an empty slot between its markers.
     assert.ok(root.querySelector("div"));
@@ -259,7 +271,7 @@ describe("AC-R8: errored first emission does not hang", () => {
     const app = h.div({}, [failing]);
 
     const exit = await withTimeout(
-      Effect.runPromiseExit(hydrate(app, root)),
+      Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), app, root)),
       1000,
       "errored hydrate",
     );
@@ -286,7 +298,11 @@ describe("AC-R9: recoverable divergence settles the latch", () => {
       errorCalls++;
     };
     try {
-      await withTimeout(Effect.runPromise(hydrate(app, root)), 1000, "divergent hydrate");
+      await withTimeout(
+        Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+        1000,
+        "divergent hydrate",
+      );
       await waitFor(50);
       assert.equal(root.querySelector("span")?.textContent, "NEW");
       assert.equal(errorCalls, 1);

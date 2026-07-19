@@ -6,7 +6,7 @@ import { Effect, Layer, Option, Schema, Stream } from "effect";
 import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";
 import { renderToStringHydratable } from "~/server";
-import { hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ---------------------------------------------------------------------------
 // Test setup (mirrors server-boundary-hydrate.test.ts)
@@ -101,7 +101,7 @@ describe("Boundary.rpc refetch — AC-H-S8: patches in place", () => {
     const productBefore = root.querySelector("div.product");
     assert.ok(productBefore, "server rendered the product div");
 
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     // Seeded value rendered first (no flash) — same node adopted in place.
     assert.equal(root.querySelector("div.product"), productBefore);
@@ -130,7 +130,7 @@ describe("Boundary.rpc refetch — AC-H-S8: patches in place", () => {
     );
 
     const root = await seedServerHtml(app);
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     const resource = captured.current!;
     assert.equal(await Effect.runPromise(resource.pending.get), false);
@@ -161,7 +161,7 @@ describe("Boundary.rpc refetch — AC-H-S9: stale-on-error", () => {
 
     const root = await seedServerHtml(app);
     const productBefore = root.querySelector("div.product");
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     const resource = captured.current!;
 
@@ -203,7 +203,7 @@ describe("Boundary.rpc refetch — defect path", () => {
 
     const root = await seedServerHtml(app);
     const productBefore = root.querySelector("div.product");
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     const resource = captured.current!;
 
@@ -248,7 +248,7 @@ describe("Boundary.rpc refetch — ignore-while-pending", () => {
     } satisfies AppRpcClient);
 
     const root = await seedServerHtml(app);
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     const resource = captured.current!;
 
@@ -282,7 +282,7 @@ describe("Boundary.rpc refetch — no transport", () => {
 
     const root = await seedServerHtml(app);
     // Hydrate without providing AppRpcClientTag.
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     const resource = captured.current!;
     await Effect.runPromise(resource.refetch);

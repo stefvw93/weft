@@ -4,7 +4,7 @@ import { Context, Effect, Layer, Stream } from "effect";
 import { JSDOM } from "jsdom";
 import { h } from "@weftui/core";
 import type { Renderable } from "@weftui/core/types";
-import { mount } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ============================================================================
 // Test Setup
@@ -38,7 +38,7 @@ function createRoot(): HTMLElement {
  * Helper to run mount and wait for initial render
  */
 async function runMount(app: Renderable, root: HTMLElement) {
-  const handle = await Effect.runPromise(mount(app, root));
+  const handle = await Effect.runPromise(WeftApp.mount(WeftApp.make(), app, root));
   return handle;
 }
 
@@ -223,7 +223,8 @@ describe("AC3: Effect Handler with Services", () => {
 
     // Mount with service provided
     const handle = await Effect.runPromise(
-      mount(
+      WeftApp.mount(
+        WeftApp.make(CounterServiceLive),
         h.button(
           {
             type: "button",
@@ -236,7 +237,7 @@ describe("AC3: Effect Handler with Services", () => {
           "Increment",
         ),
         root,
-      ).pipe(Effect.provide(CounterServiceLive)),
+      ),
     );
 
     const button = root.querySelector("button");

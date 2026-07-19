@@ -17,7 +17,7 @@ Then open <http://localhost:3100>.
 ## How it works
 
 - **Server** (`server.ts` → `src/entry-server.ts`): `renderToStringHydratable(App({ initialValue: 3 }))` produces HTML that includes `<!-- stream-start-N -->` / `<!-- stream-end-N -->` comment markers around the reactive `SubscriptionRef.changes(count)` region. The server renders the stream's first emission — `3` — between those markers.
-- **Client** (`src/entry-client.ts`): `hydrate(App({ initialValue: 3 }), #root)` walks the component tree in lockstep with the existing DOM, adopting nodes in place and attaching event handlers. It locates the reactive region via the markers and hydrates the stream's first emission (`3`) against the adopted node. Because server and client first emissions match, the node keeps its identity — no flash, no re-mount.
+- **Client** (`src/entry-client.ts`): `WeftApp.make()` creates the app, then `WeftApp.hydrate(app, App({ initialValue: 3 }), root)` walks the component tree in lockstep with the existing DOM, adopting nodes in place and attaching event handlers. It locates the reactive region via the markers and hydrates the stream's first emission (`3`) against the adopted node. Because server and client first emissions match, the node keeps its identity — no flash, no re-mount.
 
 ## What to observe
 

@@ -10,13 +10,13 @@
  * lands a tick after `mount` resolves, so assertions use `vi.waitFor`.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App, AppRpcClientLive } from "./app";
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp<any, any>;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -24,13 +24,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
 describe("server-boundary example", () => {
   it("shows the fallback, then swaps in the resolved product (client-first mount)", async () => {
-    handle = await Effect.runPromise(Effect.provide(mount(App(), container), AppRpcClientLive));
+    app = WeftApp.make(AppRpcClientLive);
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     // Fallback visible while the (delayed) rpc resolution is in flight.
     expect(container.querySelector(".fallback")).not.toBeNull();
@@ -48,7 +49,8 @@ describe("server-boundary example", () => {
   });
 
   it("refetches on demand, patching the region with fresh data in place", async () => {
-    handle = await Effect.runPromise(Effect.provide(mount(App(), container), AppRpcClientLive));
+    app = WeftApp.make(AppRpcClientLive);
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     const button = await vi.waitFor(() => {
       const el = container.querySelector<HTMLButtonElement>("button.refresh");

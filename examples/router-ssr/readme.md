@@ -25,12 +25,12 @@ same `App` drives both sides:
 - **Server** (`entry-server.ts`): `RouterServer` matches the request URL, renders
   the matched page to hydratable HTML inside a typed document shell, and responds
   with `text/html` (HTTP 404 for unmatched routes or a page that calls `notFound()`).
-- **Client** (`entry-client.ts`): a long-lived
-  `ManagedRuntime.make(RouterLive(App, { rpc: { group: StockRpcs } }))` provides the
-  scoped `Router` (it owns the popstate listener + link interceptor) **and** the
-  network rpc client backing `Boundary.rpc`, and
-  `runtime.runPromise(hydrate(RouterApp(App), root))` adopts the server DOM in place,
-  then takes over navigation via the History API.
+- **Client** (`entry-client.ts`): `WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs }
+}))` provides the scoped `Router` (it owns the popstate listener + link interceptor)
+  **and** the network rpc client backing `Boundary.rpc` — the app runtime owns its
+  lifetime, built lazily on first hydrate and released only at `WeftApp.dispose` — and
+  `Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root))` adopts the server DOM in
+  place, then takes over navigation via the History API.
 
 ## Problem
 

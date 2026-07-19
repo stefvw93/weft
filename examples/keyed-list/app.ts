@@ -17,7 +17,7 @@
  */
 
 import { h, List } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect, Schedule, Stream, SubscriptionRef } from "effect";
 
 interface Row {
@@ -88,6 +88,9 @@ const program = Effect.gen(function* () {
   ]);
 });
 
+const app = WeftApp.make();
 void Effect.runPromise(
-  program.pipe(Effect.flatMap((app) => mount(app, document.getElementById("root")!))),
+  program.pipe(
+    Effect.flatMap((node) => WeftApp.mount(app, node, document.getElementById("root")!)),
+  ),
 );

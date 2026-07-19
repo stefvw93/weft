@@ -10,17 +10,16 @@
  * to a new url) as a permanent regression test.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "../app";
 import { DocsLive } from "../lib/docs-live";
 
 let container: HTMLElement;
 let spacer: HTMLElement;
-let handle: MountHandle | undefined;
-let runtime: ManagedRuntime.ManagedRuntime<never, never> | undefined;
+let app: WeftApp.WeftApp<any, any> | undefined;
 
 const FIRST = "/docs/tutorial/01-your-first-app";
 const SECOND = "/docs/tutorial/02-reactivity";
@@ -37,10 +36,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
-  handle = undefined;
-  runtime = undefined;
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
   spacer.remove();
   window.scrollTo(0, 0);
@@ -53,9 +50,8 @@ const nextFrame = (): Promise<void> =>
 
 describe("client navigation to a new path resets scroll to top (AC-S1)", () => {
   it("scrolls the window back to top after navigating to a different doc", async () => {
-    const rt = ManagedRuntime.make(RouterLive(App, { context: DocsLive }));
-    runtime = rt as unknown as ManagedRuntime.ManagedRuntime<never, never>;
-    handle = await rt.runPromise(mount(RouterApp(App), container));
+    app = WeftApp.make(RouterLive(App, { context: DocsLive }));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(App), container));
 
     // First doc rendered.
     await vi.waitFor(

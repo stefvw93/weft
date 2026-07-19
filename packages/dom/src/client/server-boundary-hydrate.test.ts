@@ -7,7 +7,7 @@ import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";
 import { HydrationMismatchError } from "~/data";
 import { renderToStringHydratable } from "~/server";
-import { hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 import type { Renderable } from "@weftui/core/types";
 
 /**
@@ -121,7 +121,7 @@ describe("Boundary.rpc hydrate — replay, not retry", () => {
     assert.ok(serverDiv, "server should have rendered the product div");
     (serverDiv as unknown as { __sentinel?: boolean }).__sentinel = true;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // Same node object survives — adopted in place, not re-created.
     assert.equal(root.querySelector("div.product"), serverDiv);
@@ -140,7 +140,7 @@ describe("Boundary.rpc hydrate — replay, not retry", () => {
     state.calls = 0;
 
     // Provide the same client to hydrate; replay must not invoke it.
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     assert.equal(state.calls, 0);
   });
@@ -153,7 +153,7 @@ describe("Boundary.rpc hydrate — replay, not retry", () => {
     const root = await seedServerHtml(app, layer);
     assert.ok(root.querySelector('script[type="application/json"]'), "payload present pre-hydrate");
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     assert.equal(root.querySelector('script[type="application/json"]'), null);
   });
@@ -180,7 +180,7 @@ describe("Boundary.rpc hydrate — interactivity", () => {
     );
 
     const root = await seedServerHtml(app, layer);
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     const button = root.querySelector("button");
     assert.ok(button);
@@ -213,7 +213,7 @@ describe("Boundary.rpc hydrate — cursor alignment", () => {
     assert.ok(serverAfter);
     (serverAfter as unknown as { __sentinel?: boolean }).__sentinel = true;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // The sibling was adopted (cursor aligned past the boundary's payload + HTML).
     assert.equal(root.querySelector("p.after"), serverAfter);
@@ -247,7 +247,7 @@ describe("Boundary.rpc hydrate — cursor alignment", () => {
     );
 
     const root = await seedServerHtml(app, handlers);
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     assert.equal(root.querySelector("span.inner")?.textContent, "Inner");
     assert.ok(root.querySelector("div.outer")?.textContent?.includes("Outer"));
@@ -269,7 +269,7 @@ describe("Boundary.rpc hydrate — payload divergence", () => {
     // Server HTML without the leading payload script (e.g. produced by plain SSR).
     root.innerHTML = '<div class="product">Widget</div>';
 
-    const exit = await Effect.runPromiseExit(hydrate(boundaryApp(), root));
+    const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), boundaryApp(), root));
 
     assert.ok(Exit.isFailure(exit));
     assert.ok(Cause.squash(exit.cause) instanceof HydrationMismatchError);
@@ -281,7 +281,7 @@ describe("Boundary.rpc hydrate — payload divergence", () => {
     root.innerHTML =
       '<script type="application/json">not json</script><div class="product">Widget</div>';
 
-    const exit = await Effect.runPromiseExit(hydrate(boundaryApp(), root));
+    const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), boundaryApp(), root));
 
     assert.ok(Exit.isFailure(exit));
     assert.ok(Cause.squash(exit.cause) instanceof HydrationMismatchError);
@@ -294,7 +294,7 @@ describe("Boundary.rpc hydrate — payload divergence", () => {
     root.innerHTML =
       '<script type="application/json">{"name":"Widget","price":"nine"}</script><div class="product">Widget</div>';
 
-    const exit = await Effect.runPromiseExit(hydrate(boundaryApp(), root));
+    const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), boundaryApp(), root));
 
     assert.ok(Exit.isFailure(exit));
     assert.ok(Cause.squash(exit.cause) instanceof HydrationMismatchError);
@@ -329,7 +329,7 @@ describe("Boundary.rpc hydrate — typed-failure replay", () => {
     (serverFallback as unknown as { __sentinel?: boolean }).__sentinel = true;
     state.calls = 0;
 
-    await Effect.runPromise(Effect.provide(hydrate(app, root), layer));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     // The rpc is NOT re-called; the same fallback node is adopted in place.
     assert.equal(state.calls, 0, "client never calls the rpc (replay, not retry)");
@@ -348,7 +348,9 @@ describe("Boundary.rpc hydrate — typed-failure replay", () => {
     root.innerHTML =
       '<script type="application/json" data-weft-boundary-failure>not json</script><div class="fallback">db down</div>';
 
-    const exit = await Effect.runPromiseExit(hydrate(makeFailingApp(), root));
+    const exit = await Effect.runPromiseExit(
+      WeftApp.hydrate(WeftApp.make(), makeFailingApp(), root),
+    );
 
     assert.ok(Exit.isFailure(exit));
     assert.ok(Cause.squash(exit.cause) instanceof HydrationMismatchError);

@@ -9,13 +9,13 @@
  * Post-mount content lands a tick after `mount` resolves, so assertions use `vi.waitFor`.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -23,13 +23,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
 describe("type-augmentation example", () => {
   it("renders the augmented custom element with a static name", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     const badge = await vi.waitFor(() => {
       const el = container.querySelector(".static greeting-badge");
@@ -41,7 +42,8 @@ describe("type-augmentation example", () => {
   });
 
   it("drives the custom element's attribute reactively from a stream", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     const badge = await vi.waitFor(() => {
       const el = container.querySelector(".reactive greeting-badge");

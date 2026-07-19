@@ -15,7 +15,7 @@ Use Effect's `SubscriptionRef` for component-local state. `SubscriptionRef.chang
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect, SubscriptionRef } from "effect";
 
 const Counter = () =>
@@ -29,7 +29,8 @@ const Counter = () =>
     ]);
   });
 
-void Effect.runPromise(mount(Counter(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.mount(app, Counter(), document.getElementById("root")!));
 ```
 
 `Effect.gen` lets you `yield*` the `SubscriptionRef` to set up state **before** building the tree. Because a `Node` is an `Effect`, the component body is an ordinary generator — no hooks, no dependency arrays.

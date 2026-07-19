@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";
 import { h } from "@weftui/core";
 import { HydrationMismatchError } from "~/data";
-import { hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 import {
   renderToString as _renderToString,
   renderToStringHydratable as _renderToStringHydratable,
@@ -88,7 +88,7 @@ describe("AC-H1/AC-H2: static adoption", () => {
     const serverSpan = serverDiv.firstChild as HTMLElement;
     (serverDiv as unknown as { __sentinel?: boolean }).__sentinel = true;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // Same node objects survive hydration (root not cleared).
     assert.equal(root.firstChild, serverDiv);
@@ -120,7 +120,7 @@ describe("AC-H3: event handlers", () => {
     // Server HTML carries no handler attribute.
     assert.equal(root.innerHTML, "<button>click</button>");
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     const button = root.querySelector("button");
     assert.ok(button);
@@ -145,7 +145,7 @@ describe("AC-H4: reactive children", () => {
     const before = div.firstChild as Text; // "x"
     const after = div.lastChild as Text; // "y"
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitFor(50);
 
     // Sibling text nodes are the same objects (untouched by the region update).
@@ -172,7 +172,7 @@ describe("AC-H5: reactive attributes", () => {
     const serverDiv = root.firstChild as HTMLElement;
     assert.equal(serverDiv.id, "a"); // server collapsed to first/current emission
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitFor(50);
 
     // Same element, subscription drove it to the stream's last emission.
@@ -194,7 +194,7 @@ describe("AC-H6: adjacent text splitting", () => {
     const div = root.firstChild as HTMLElement;
     assert.equal(div.childNodes.length, 1); // server coalesced "a"+"b" into one node
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     assert.equal(div.textContent, "ab");
     assert.equal(div.childNodes.length, 2); // split into two adopted text nodes
@@ -211,7 +211,7 @@ describe("AC-H7: empty reactive region", () => {
     const app = h.div({}, [h.span({}, "keep"), Stream.empty]);
     const root = await seedServerHtml(app);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitFor(50);
 
     const div = root.firstChild as HTMLElement;
@@ -232,7 +232,9 @@ describe("AC-H8: structural mismatch", () => {
     const root = createRoot();
     root.innerHTML = "<span>hi</span>";
 
-    const exit = await Effect.runPromiseExit(hydrate(h.div({}, "hi"), root));
+    const exit = await Effect.runPromiseExit(
+      WeftApp.hydrate(WeftApp.make(), h.div({}, "hi"), root),
+    );
     assert.ok(Exit.isFailure(exit));
     const error = Cause.squash(exit.cause);
     assert.ok(error instanceof HydrationMismatchError);
@@ -244,7 +246,9 @@ describe("AC-H8: structural mismatch", () => {
     const root = createRoot();
     root.innerHTML = "<div>plain</div>"; // no markers
 
-    const exit = await Effect.runPromiseExit(hydrate(h.div({}, [Stream.make("x")]), root));
+    const exit = await Effect.runPromiseExit(
+      WeftApp.hydrate(WeftApp.make(), h.div({}, [Stream.make("x")]), root),
+    );
     assert.ok(Exit.isFailure(exit));
     const error = Cause.squash(exit.cause);
     assert.ok(error instanceof HydrationMismatchError);
@@ -261,7 +265,7 @@ describe("AC-H9: unmount", () => {
     const app = h.div({ id: Stream.make("a", "b") }, "hi");
     const root = await seedServerHtml(app);
 
-    const handle = await Effect.runPromise(hydrate(app, root));
+    const handle = await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     // Effect 4 forks the reactive-prop subscription lazily, so let it drain the
     // synchronous stream (settling the id to "b") before unmount tears it down.
     await waitFor(50);
@@ -289,7 +293,7 @@ describe("AC-H11: flash-free resume", () => {
     assert.ok(serverSpan);
     (serverSpan as unknown as { __sentinel?: boolean }).__sentinel = true;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitFor(50);
 
     // Same node object survives the first emission — adopted, not re-rendered.
@@ -320,7 +324,7 @@ describe("AC-H12: graceful divergence", () => {
     };
 
     try {
-      const exit = await Effect.runPromiseExit(hydrate(app, root));
+      const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), app, root));
       await waitFor(50);
 
       // No HydrationMismatchError surfaced: the region is recoverable.

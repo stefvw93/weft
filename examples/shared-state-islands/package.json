@@ -1,0 +1,16 @@
+{
+  "name": "shared-state-islands",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@types/node": "catalog:",
+    "@weftui/core": "workspace:*",
+    "@weftui/dom": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

@@ -31,7 +31,7 @@ Weft tracks Effect 4's beta line. This release is built and tested against `effe
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect, SubscriptionRef } from "effect";
 
 const Counter = () =>
@@ -45,7 +45,8 @@ const Counter = () =>
     ]);
   });
 
-void Effect.runPromise(mount(Counter(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.mount(app, Counter(), document.getElementById("root")!));
 ```
 
 ## Documentation

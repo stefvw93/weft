@@ -2,123 +2,101 @@
 title: Provide Services
 order: 12
 section: how-to
-description: Provide plain and scoped Layers to a mounted app — the direct mount for value layers, mountScoped plus a shutdown signal for scoped layers, and a ManagedRuntime as an alternative.
+description: Provide plain and scoped Layers to a WeftApp — app layers for the common case, scoped layers that just work, memoMap sharing, and binding an app's lifetime to a scope.
 ---
 
 # Provide Services
 
-**Goal:** provide a `Layer` to the mounted app so its components can read services with `yield* Service`.
+**Goal:** provide a `Layer` to a `WeftApp` so its components can read services with `yield* Service`.
 
-Which recipe to reach for depends on whether the layer has anything to release. Both plain and scoped layers are built with `Layer.succeed` or `Layer.effect` — the distinction is whether the layer's effect acquires releasable resources (`acquireRelease`, or a scope finalizer added directly). A plain value layer (`Layer.succeed`, or `Layer.effect` whose effect has no `acquireRelease`) can be provided directly at the mount — there is nothing to leak. A **scoped** layer (`Layer.effect` whose effect is backed by `acquireRelease`) needs the mount to outlive the effect's own resolution — see [Layer lifetime at the mount](../explanation/services-and-context.md#layer-lifetime-at-the-mount) for why.
+## Recipe 1 — app layers
 
-## Recipe 1 — plain value layers with `mount`
-
-Provide the layer directly around `mount` and run with `runPromise`. This is the common case and needs nothing else.
+Pass the layer to `WeftApp.make`. This is the common case and needs nothing else — the layer builds lazily on first mount, and every component, event handler, and stream subscription in every root mounted from `app` can read it.
 
 ```typescript
-import { mount } from "@weftui/dom/client";
-import { Effect, pipe } from "effect";
+import { WeftApp } from "@weftui/dom/client";
+import { Effect } from "effect";
 import { App } from "./app";
 import { ThemeServiceLive } from "./theme-service";
 
 const root = document.getElementById("root")!;
 
-const program = pipe(mount(App(), root), Effect.provide(ThemeServiceLive));
-
-Effect.runPromise(program);
+const app = WeftApp.make(ThemeServiceLive);
+void Effect.runPromise(WeftApp.mount(app, App(), root));
 ```
 
-## Recipe 2 — scoped layers with `mountScoped`
+## Recipe 2 — scoped layers just work
 
-Provide the scoped layer **outside** a long-lived scoped region, mount inside that region with `mountScoped`, and keep the region open with `Effect.never` or `Deferred.await` on a shutdown signal. Drive the whole thing with `runFork`, not `runPromise` — the program never settles on its own.
+A **scoped** layer — `Layer.effect` backed by `acquireRelease`, or anything else that owns a subscription, listener, or registry — needs nothing different from Recipe 1. The app owns one lazy `ManagedRuntime`: the layer builds on first mount and releases only at `WeftApp.dispose(app)`, not when any individual mount's render effect resolves. There is no `mountScoped`, no `Effect.never`, no manual scope threading.
+
+`AtomRegistry.layer` (from `effect/unstable/reactivity`) is a real scoped layer — its atom subscriptions are fibers forked for the app's whole lifetime:
 
 ```typescript
-import { mountScoped } from "@weftui/dom/client";
-import { Deferred, Effect, Fiber, pipe } from "effect";
+import { WeftApp } from "@weftui/dom/client";
+import { Effect } from "effect";
+import { AtomRegistry } from "effect/unstable/reactivity";
 import { App } from "./app";
+
+const app = WeftApp.make(AtomRegistry.layer);
+void Effect.runPromise(WeftApp.mount(app, App(), document.getElementById("root")!));
+```
+
+`RouterLive` (from `@weftui/router/client`) is another — it owns the `popstate` listener and the same-origin link-click interceptor for as long as the app runs:
+
+```typescript
+const app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
+```
+
+Both examples are runnable in full at [examples/effect-atom](../../examples/effect-atom) and [examples/router-ssr](../../examples/router-ssr).
+
+## Recipe 3 — sharing layer memoization with `memoMap`
+
+`WeftApp.make(layer, { memoMap })` accepts an explicit `Layer.MemoMap`, so multiple `WeftApp` instances can share layer construction — for example, building one app per test case while reusing an expensive shared dependency's memoized build across them:
+
+```typescript
+import { WeftApp } from "@weftui/dom/client";
+import { Layer } from "effect";
+
+const memoMap = Layer.makeMemoMap();
+
+const appA = WeftApp.make(SharedLive, { memoMap });
+const appB = WeftApp.make(SharedLive, { memoMap });
+```
+
+Most apps have exactly one `WeftApp` and never need this option.
+
+## Recipe 4 — binding an app's lifetime to a scope
+
+There is deliberately no `makeScoped`. To tie an app's disposal to a `Scope` you already manage — a framework integration or a test harness that owns one — compose it yourself with `Effect.acquireRelease`:
+
+```typescript
+import { Effect } from "effect";
+import { WeftApp } from "@weftui/dom/client";
 import { AppLive } from "./app-live";
 
-const root = document.getElementById("root")!;
-
-const program = pipe(
-  Effect.scoped(
-    Effect.gen(function* () {
-      yield* mountScoped(App(), root);
-      yield* Effect.never; // keeps the region — and AppLive — alive
-    }),
-  ),
-  Effect.provide(AppLive), // OUTSIDE the scoped region: outlives initial render
+const acquireApp = Effect.acquireRelease(
+  Effect.sync(() => WeftApp.make(AppLive)),
+  (app) => WeftApp.dispose(app),
 );
-
-const fiber = Effect.runFork(program);
-
-// later, e.g. on a "sign out" action or test teardown:
-// await Effect.runPromise(Fiber.interrupt(fiber));
 ```
 
-Interrupting `fiber` closes the inner scope first — running `mountScoped`'s finalizer, which calls `unmount` — and only then releases `AppLive`. Swap `Effect.never` for `Deferred.await(shutdown)` when something in the app should be able to request shutdown itself:
+`acquireApp` yields a `WeftApp` and registers `WeftApp.dispose` as a finalizer on whatever scope the surrounding effect runs in — closing that scope tears the app down the same way `WeftApp.dispose` normally would (roots, then layers, then the error hub).
+
+## Anti-pattern: `Effect.provide` around the mount call
 
 ```typescript
-const shutdown = await Effect.runPromise(Deferred.make<void>());
-
-const program = pipe(
-  Effect.scoped(
-    Effect.gen(function* () {
-      yield* mountScoped(App(), root);
-      yield* Deferred.await(shutdown); // resolves when shutdown is signalled
-    }),
-  ),
-  Effect.provide(AppLive),
-);
-Effect.runFork(program);
-
-// elsewhere, to request shutdown:
-// await Effect.runPromise(Deferred.succeed(shutdown, undefined));
+// ❌ does nothing useful: WeftApp.mount's R is always `never`, and services
+// come exclusively from the app layer — a wrapped Effect.provide never
+// reaches components, handlers, or stream subscriptions
+Effect.runPromise(pipe(WeftApp.mount(app, App(), root), Effect.provide(SomeLayer)));
 ```
 
-`hydrateScoped` is the SSR counterpart — same composition, swap `mountScoped` for `hydrateScoped`.
-
-## Recipe 3 — `ManagedRuntime` with plain `mount`
-
-Build a `ManagedRuntime` from the scoped layer and mount with plain `mount`, running through the runtime instead of `Effect.runPromise` directly. The layer lives until `runtime.dispose()` — an explicit call, rather than a scope closing.
-
-```typescript
-import { mount } from "@weftui/dom/client";
-import { ManagedRuntime } from "effect";
-import { App } from "./app";
-import { AppLive } from "./app-live";
-
-const root = document.getElementById("root")!;
-const runtime = ManagedRuntime.make(AppLive);
-
-await runtime.runPromise(mount(App(), root));
-
-// later:
-// await runtime.dispose();
-```
-
-This reads closer to Recipe 1 at the call site and is a good fit when the surrounding app (a framework integration, a test harness) already manages a runtime's lifecycle for you.
-
-## Anti-patterns
-
-Both of these compile and both dispose the scoped layer while the app is still running — the mounted tree keeps its subscriptions and handlers, but they now read from a released service.
-
-```typescript
-// ❌ plain mount: the layer releases the instant runPromise settles
-Effect.runPromise(mount(App(), root).pipe(Effect.provide(SomeScopedLayer)));
-```
-
-```typescript
-// ❌ mountScoped, but the scoped region closes as soon as the mount effect
-// resolves — nothing keeps it open, so this is no better than plain mount
-Effect.runPromise(mountScoped(App(), root).pipe(Effect.provide(SomeScopedLayer), Effect.scoped));
-```
-
-In both cases the tell is the same: nothing in the composition keeps a scope open past the point where the mount Effect itself resolves. Recipe 2's `Effect.never` (or `Deferred.await`) is doing the one piece of work these anti-patterns are missing.
+`WeftApp.mount`/`WeftApp.hydrate` return an effect whose requirement channel is always `never` — there is no `R` left for `Effect.provide` to discharge. Any service a component needs must be in the layer passed to `WeftApp.make`.
 
 ## See also
 
-- [Layer lifetime at the mount](../explanation/services-and-context.md#layer-lifetime-at-the-mount) — why the mount effect resolving early matters for scoped layers
-- [Services and Context](../explanation/services-and-context.md) — how `R` accumulates and discharges at the mount
-- [`mountScoped` / `hydrateScoped` reference](../reference/dom.md#mountscoped) — signatures and error unions
-- [examples/effect-atom](../../examples/effect-atom) — a real scoped layer (`AtomRegistry.layer` from `effect/unstable/reactivity`) mounted with this composition
+- [Services and Context](../explanation/services-and-context.md) — how `R` accumulates and discharges at `WeftApp.make`, and why scoped layers no longer need special handling
+- [`WeftApp` reference](../reference/dom.md) — full signatures for `make`, `mount`, `hydrate`, `dispose`
+- [examples/effect-atom](../../examples/effect-atom) — a real scoped layer (`AtomRegistry.layer`)
+- [examples/shared-state-islands](../../examples/shared-state-islands) — one app layer shared by reference across multiple mounted roots

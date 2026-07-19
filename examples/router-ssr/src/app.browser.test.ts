@@ -19,19 +19,18 @@
  * `refetch.browser.test.ts`.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import type { RouterDef } from "@weftui/router";
 import { Router, RouterApp, RouterLive } from "@weftui/router/client";
 import { RouterServer } from "@weftui/router/server";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 import { StockLive, StockRpcs } from "./data/inventory";
 import { documentShell } from "./entry-server";
 
 let container: HTMLElement;
-let handle: MountHandle;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never>;
+let app: WeftApp.WeftApp<Router> | undefined;
 let originalFetch: typeof globalThis.fetch;
 
 /** The router's own platform web handler — answers the same-origin `/_eui/rpc` hop. */
@@ -71,16 +70,15 @@ beforeEach(() => {
 
 afterEach(async () => {
   globalThis.fetch = originalFetch;
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
   window.history.replaceState(null, "", "/");
 });
 
 const mountAt = async (path: string, def: RouterDef = App): Promise<void> => {
   window.history.replaceState(null, "", path);
-  runtime = ManagedRuntime.make(RouterLive(def, { rpc: { group: StockRpcs } }));
-  handle = await runtime.runPromise(mount(RouterApp(def), container));
+  app = WeftApp.make(RouterLive(def, { rpc: { group: StockRpcs } }));
+  await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
 };
 
 /** Finds a rendered link by its trimmed text. */

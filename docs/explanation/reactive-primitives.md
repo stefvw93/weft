@@ -147,7 +147,7 @@ When a `Stream` prop ends before emitting, the renderer raises a `NoPropValue` t
 // Handle at the mount boundary if needed. `Effect.catchTag` matches the error
 // by its string tag, so no `NoPropValue` import is required here.
 pipe(
-  mount(App(), root),
+  WeftApp.mount(app, App(), root),
   Effect.catchTag("NoPropValue", (e) =>
     Effect.logWarning(`Prop stream ended before emitting: ${e.key}`),
   ),

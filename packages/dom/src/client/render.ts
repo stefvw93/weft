@@ -1,14 +1,11 @@
 import {
   Cause,
-  Context,
   Deferred,
   Effect,
   Exit,
   Fiber,
   HashMap,
   HashSet,
-  Layer,
-  ManagedRuntime,
   Option,
   Ref,
   Schema,
@@ -30,15 +27,7 @@ import {
   SUSPENSE_BOUNDARY,
   toStream,
 } from "@weftui/core";
-import type {
-  AppRpcClient,
-  AssertNoServerOnly,
-  Boundary,
-  ElementDescriptor,
-  Node as CoreNode,
-  Renderable,
-  ServerOnlyLeak,
-} from "@weftui/core";
+import type { AppRpcClient, Boundary, ElementDescriptor, Renderable } from "@weftui/core";
 import {
   BoundaryContext,
   HydrationMismatchError,
@@ -340,26 +329,28 @@ function camelToKebab(str: string): string {
  *
  * With an enclosing Boundary, failure causes are routed to
  * `BoundaryContext.reportError` (unchanged behavior). Without one, the exit is
- * observed here and a failure is logged at the `"Error"` level via `Effect.logError`,
- * annotated with `weft.region` so it is visible and attributable by default.
+ * observed here and the failure is published to the owning app's
+ * unhandled-error hub via `reportUnhandled` (default: `Effect.logError`
+ * annotated with `weft.region` while the hub has no subscribers).
  * Interruption (unmount teardown) is never reported.
  *
  * @param effect - The subscription effect to fork (e.g. a `Stream.runForEach` pump).
  * @param scope - The scope owning the forked fiber's lifetime.
- * @param errorContext - Region/prop identifier used as the `weft.region` log annotation (e.g. `attribute:<name>`, `child:stream-<id>`).
+ * @param errorContext - Region/prop identifier published as the hub region (e.g. `attribute:<name>`, `child:stream-<id>`).
+ * @param reportUnhandled - The owning root's `RenderContext.reportUnhandled`.
  */
 function forkSupervised<A, E, R>(
   effect: Effect.Effect<A, E, R>,
   scope: Scope.Scope,
   errorContext: string,
+  reportUnhandled: (cause: Cause.Cause<unknown>, region: string) => Effect.Effect<void>,
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> {
   return Effect.gen(function* () {
     const boundaryCtx = yield* Effect.serviceOption(BoundaryContext);
     if (Option.isNone(boundaryCtx)) {
       // No enclosing Boundary: observe the forked fiber's exit ourselves and
-      // report an unhandled failure at the `"Error"` level, annotated with
-      // `weft.region` so it is visible and attributable by default. Interruption
-      // (unmount teardown) is never reported. Effect 4 removed the
+      // publish an unhandled failure to the app hub. Interruption (unmount
+      // teardown) is never reported. Effect 4 removed the
       // unhandled-error-log-level FiberRef (and `withUnhandledErrorLogLevel`), so
       // the report is explicit here rather than deferred to the runtime — which
       // mirrors the with-Boundary branch below and is deterministic (exactly once).
@@ -368,7 +359,7 @@ function forkSupervised<A, E, R>(
         Fiber.await(fiber),
         Effect.flatMap((exit) =>
           Exit.isFailure(exit) && !Cause.hasInterruptsOnly(exit.cause)
-            ? pipe(Effect.logError(exit.cause), Effect.annotateLogs("weft.region", errorContext))
+            ? reportUnhandled(exit.cause, errorContext)
             : Effect.void,
         ),
         Effect.forkIn(scope),
@@ -400,7 +391,7 @@ function subscribeToStream<A>(
     const context = yield* RenderContext;
 
     const effect = Stream.runForEach(stream, (value) => Effect.sync(() => void onValue(value)));
-    yield* forkSupervised(effect, context.scope, errorContext);
+    yield* forkSupervised(effect, context.scope, errorContext, context.reportUnhandled);
   });
 }
 
@@ -443,15 +434,22 @@ function setEventHandler(
       currentListener = (event: Event) => {
         const result = handler(event);
         if (Effect.isEffect(result)) {
+          // Provide the root scope as the ambient `Scope.Scope` so scoped work a
+          // handler forks (`Effect.forkScoped`, `acquireRelease`, …) is owned by
+          // the root and interrupted at `unmount`. Observe the full exit
+          // (failures AND defects) and publish it to the app's unhandled-error
+          // hub — identical in development and production. Interruption is never
+          // reported.
           context.runtime.runFork(
             pipe(
               result as Effect.Effect<void, unknown, never>,
-              Effect.catch((error) => {
-                if (process.env.NODE_ENV !== "development") {
-                  return Effect.void;
-                }
-                return Effect.logError(`Event handler error: ${name}`, { error });
-              }),
+              Effect.provideService(Scope.Scope, context.rootScope),
+              Effect.exit,
+              Effect.flatMap((exit) =>
+                Exit.isFailure(exit) && !Cause.hasInterruptsOnly(exit.cause)
+                  ? context.reportUnhandled(exit.cause, `event:${name}`)
+                  : Effect.void,
+              ),
             ),
           );
         }
@@ -484,7 +482,8 @@ function setEventHandler(
  * deferred, closes the subtree scope, and swaps the nodes between the boundary
  * markers for the fallback returned by `props.match`. A `match` returning
  * `null` propagates the cause to the nearest parent boundary (spec AC15); with
- * no parent the cause is logged as an unhandled boundary failure.
+ * no parent the cause is published to the app's unhandled-error hub with
+ * region `boundary:outermost`.
  */
 function boundaryRecoveryEffect(
   props: Boundary.FailureProps,
@@ -499,6 +498,7 @@ function boundaryRecoveryEffect(
   RenderContext
 > {
   return Effect.gen(function* () {
+    const context = yield* RenderContext;
     // The deferred is only ever failed (via reportError), never succeeded, so
     // flip's residual success-as-error path is dead — discharge it.
     const cause = yield* Deferred.await(errorDeferred).pipe(
@@ -513,8 +513,8 @@ function boundaryRecoveryEffect(
         // Propagate to the nearest parent boundary (spec AC15).
         return yield* parentBoundary.value.reportError(cause);
       }
-      // No parent boundary: surface as an unhandled boundary failure.
-      return yield* Effect.logError("Unhandled error escaped the outermost Boundary", cause);
+      // No parent boundary: publish to the app's unhandled-error hub.
+      return yield* context.reportUnhandled(cause, "boundary:outermost");
     }
 
     removeNodesBetweenMarkers(startMarker, endMarker);
@@ -1199,7 +1199,12 @@ function handleStreamChild(
     // Subscription fiber lives in the enclosing context.scope (not content scope).
     // Failures route to the nearest BoundaryContext, or are reported by the
     // Effect runtime when no boundary encloses the region (AC8).
-    yield* forkSupervised(effect, context.scope, `child:stream-${streamId}`);
+    yield* forkSupervised(
+      effect,
+      context.scope,
+      `child:stream-${streamId}`,
+      context.reportUnhandled,
+    );
 
     // AC19: Return markers to be inserted.
     // Content will be updated asynchronously by the daemon fiber.
@@ -1562,7 +1567,7 @@ function renderList(
 
     // Subscription fiber lives in the region scope; failures route to a
     // boundary, or are reported by the Effect runtime when none encloses (AC8).
-    yield* forkSupervised(effect, regionScope, `list:stream-${streamId}`);
+    yield* forkSupervised(effect, regionScope, `list:stream-${streamId}`, context.reportUnhandled);
 
     return [startMarker, endMarker] as const;
   });
@@ -1826,310 +1831,6 @@ function longestIncreasingSubsequence(seq: readonly number[]): Set<number> {
 }
 
 // ============================================================================
-// Mount
-// ============================================================================
-
-/**
- * Cleanup handle returned from {@link mount} / {@link hydrate}.
- *
- * The handle owns the mount's lifetime: its runtime, forked subscriptions, and
- * event handlers stay live until `unmount`. `unmount` interrupts subscriptions,
- * removes listeners, and disposes the runtime — it does **not** remove the DOM
- * nodes from the root.
- */
-export interface MountHandle {
-  /**
-   * Unmounts the rendered tree and cleans up all resources.
-   * Returns an Effect that completes when cleanup is done.
-   * Safe to call multiple times (idempotent).
-   */
-  unmount(): Effect.Effect<void>;
-}
-
-/**
- * Mounts a Weft node tree to a DOM element with full reactive support.
- *
- * - Clears the root element's existing children
- * - Renders the node tree to DOM nodes
- * - Sets up reactive subscriptions for Stream/Effect values
- * - Returns an Effect that completes after initial render (streams run in background)
- * - Creates a fresh `ManagedRuntime` per mount
- * - Returns a {@link MountHandle} to unmount and dispose resources
- *
- * ## Lifetime
- *
- * The mount's runtime (streams, event handlers, forked work) lives until
- * `unmount`, **not** until the mount Effect resolves — the Effect completes right
- * after initial render. Because of this, providing a **scoped** layer the obvious
- * way disposes it too early:
- *
- * ```ts
- * // ❌ the layer is released the moment runPromise settles, while the app runs on
- * Effect.runPromise(mount(App(), root).pipe(Effect.provide(SomeScopedLayer)));
- * ```
- *
- * Provide scoped layers via a {@link ManagedRuntime} that outlives the mount, or
- * use {@link mountScoped} to bind the mount lifetime to an ambient `Scope`.
- *
- * **Ambient scope:** if `mount` runs inside a region that supplies a `Scope.Scope`
- * (e.g. under `Effect.scoped`), `unmount` is auto-registered on that scope, so the
- * mount is torn down when the scope closes. With no ambient scope, behavior is
- * unchanged. Scoped work forked from event handlers (`Effect.forkScoped`,
- * `acquireRelease`) attaches to the mount's internal scope, so `unmount` owns it.
- *
- * @param app - node tree to render (built with `h.*`; components are plain
- *   functions that are called, e.g. `App()`)
- * @param root - HTMLElement to mount to
- * @returns Effect that yields a {@link MountHandle} for cleanup
- *
- * @example
- * ```ts
- * const root = document.getElementById("root")!;
- * const handle = await Effect.runPromise(mount(App(), root));
- * // Later: cleanup
- * await Effect.runPromise(handle.unmount());
- * ```
- */
-export function mount(
-  app: Renderable,
-  root: HTMLElement,
-): Effect.Effect<MountHandle, UnsupportedNodeTypeError | StreamSubscriptionError | RenderError> {
-  return Effect.gen(function* () {
-    // Capture current Effect context (includes any provided services) so event
-    // handlers can access services provided via Effect.provide(layer).
-    const effectContext = yield* Effect.context<never>();
-
-    // Hardening: if the caller supplies an ambient `Scope.Scope`, `unmount` is
-    // auto-registered on it below so the mount is torn down at scope close. No
-    // ambient scope → behavior is unchanged.
-    const ambientScope = yield* Effect.serviceOption(Scope.Scope);
-
-    const scope = yield* Scope.make();
-
-    // AC24: Create fresh ManagedRuntime per mount. Override `Scope.Scope` in the
-    // captured context with the mount's internal `scope`: this runtime backs the
-    // event-handler fibers (`context.runtime.runFork`), so any scoped work a
-    // handler forks (`Effect.forkScoped`, `acquireRelease`, …) attaches to the
-    // internal scope — which `unmount` closes — instead of to a caller's ambient
-    // scope, which would leak that work past `unmount`.
-    const runtime = ManagedRuntime.make(
-      Layer.succeedContext(Context.add(effectContext, Scope.Scope, scope)),
-    );
-
-    // Create the RenderContext service implementation
-    const context = {
-      runtime,
-      scope,
-      streamIdCounter: { current: 0 },
-    };
-
-    // AC28: Cleanup effect — runs only on failure to avoid leaking runtime/scope
-    const cleanup = Effect.andThen(
-      Scope.close(scope, Exit.void),
-      Effect.promise(() => runtime.dispose()),
-    );
-
-    // AC1: Clear root element's existing children
-    root.innerHTML = "";
-
-    // AC1: Render the JSX tree with the provided context.
-    // AC28: tapError ensures runtime/scope are disposed if renderNode fails.
-    // Scope.Scope is provided alongside RenderContext so that any top-level
-    // Component.gen body (which calls forkScoped) has an ambient scope to
-    // fork its prop-pump fibers into.
-    const result = yield* renderNode(app).pipe(
-      Effect.provideService(RenderContext, context),
-      Effect.provideService(Scope.Scope, scope),
-      Effect.tapError(() => cleanup),
-    );
-
-    // AC1: Append rendered nodes to root
-    if (result !== null) {
-      if (Array.isArray(result)) {
-        for (const node of result) {
-          root.appendChild(node);
-        }
-      } else {
-        root.appendChild(result as Node);
-      }
-    }
-
-    // AC27: Return cleanup handle
-    // Track if already unmounted for idempotency
-    let unmounted = false;
-
-    const handle = {
-      unmount: () =>
-        Effect.gen(function* () {
-          // AC27: Make unmount idempotent
-          if (unmounted) {
-            return;
-          }
-          unmounted = true;
-
-          // AC26: Close scope to cancel all running streams
-          // All fibers forked with Effect.forkIn will be automatically interrupted
-          yield* Scope.close(scope, Exit.void);
-
-          // AC26: Dispose the ManagedRuntime
-          // ManagedRuntime.dispose returns a Promise, so we need to wrap it
-          yield* Effect.promise(() => runtime.dispose());
-        }),
-    } satisfies MountHandle;
-
-    // Hardening: auto-register unmount on the caller's ambient scope when present.
-    // `unmount` is idempotent, so a later explicit `handle.unmount()` (or the
-    // `mountScoped` finalizer) makes this a no-op the second time.
-    if (Option.isSome(ambientScope)) {
-      yield* Scope.addFinalizer(ambientScope.value, handle.unmount());
-    }
-
-    return handle;
-  });
-}
-
-// ============================================================================
-// Hydrate
-// ============================================================================
-
-/**
- * Continues, on the client, the DOM produced on the server by
- * `renderToStringHydratable`/`renderToStreamHydratable`.
- *
- * Unlike {@link mount}, `hydrate` does **not** clear the root: it walks the JSX
- * tree in lockstep with the existing server DOM, adopting nodes in place,
- * attaching event handlers and reactive subscriptions without re-creating the
- * static structure. Reactive (`Stream`/`Effect`) regions are located via the
- * `<!-- stream-start-N -->` / `<!-- stream-end-N -->` comment markers emitted by
- * the hydratable server renderer. The stream's **first** emission is hydrated
- * against that server-rendered content in place (no re-render, node identity
- * preserved); only subsequent emissions patch the region — see
- * `hydrate.specs.md`.
- *
- * Shares {@link mount}'s lifecycle and lifetime rules: a fresh `ManagedRuntime`
- * per call, a `Scope` owning all forked subscriptions, and a {@link MountHandle}
- * for teardown. Like `mount`, the runtime lives until `unmount` (not until the
- * Effect resolves); it auto-registers `unmount` on an ambient `Scope.Scope` when
- * present; and scoped work forked from handlers is owned by the internal scope.
- * Use {@link hydrateScoped} to bind the hydrated mount's lifetime to an ambient
- * `Scope`, or a {@link ManagedRuntime} for scoped layers (see `mount`).
- *
- * Hydration is a **client-only** operation: the app's requirement channel `R`
- * must be free of server-only dependencies. A {@link Boundary.server} discharges
- * its `load`'s server requirements via `provide`, so they never reach here — but
- * a server-only `ServerTag` accidentally referenced in client (`render`) code
- * stays in `R`, and {@link AssertNoServerOnly} turns that into a compile error
- * (the return type degrades to the {@link ServerOnlyLeak} sentinel).
- *
- * @param app - node tree to hydrate (must match the tree rendered on the server)
- * @param root - HTMLElement whose children were produced by the server renderer
- * @returns Effect that yields a MountHandle for cleanup
- *
- * @example
- * ```ts
- * const root = document.getElementById("root")!;
- * // root.innerHTML already contains server output
- * const handle = await Effect.runPromise(hydrate(App(), root));
- * ```
- */
-export function hydrate<A extends Renderable>(
-  app: A,
-  root: HTMLElement,
-): [AssertNoServerOnly<CoreNode.Context<A>>] extends [CoreNode.Context<A>]
-  ? Effect.Effect<
-      MountHandle,
-      UnsupportedNodeTypeError | StreamSubscriptionError | RenderError | HydrationMismatchError
-    >
-  : ServerOnlyLeak;
-export function hydrate(
-  app: Renderable,
-  root: HTMLElement,
-): Effect.Effect<
-  MountHandle,
-  UnsupportedNodeTypeError | StreamSubscriptionError | RenderError | HydrationMismatchError
-> {
-  return Effect.gen(function* () {
-    // Capture current Effect context so event handlers can access provided services.
-    const effectContext = yield* Effect.context<never>();
-
-    // Hardening: auto-register unmount on the caller's ambient scope when present
-    // (see `mount`). No ambient scope → behavior unchanged.
-    const ambientScope = yield* Effect.serviceOption(Scope.Scope);
-
-    const scope = yield* Scope.make();
-
-    // Override `Scope.Scope` in the captured context with the mount's internal
-    // `scope` so handler-forked scoped work attaches to it and is torn down by
-    // `unmount` (see `mount` for the full rationale).
-    const runtime = ManagedRuntime.make(
-      Layer.succeedContext(Context.add(effectContext, Scope.Scope, scope)),
-    );
-
-    // Interactivity barrier: each forked first-emission region registers before
-    // its fork and settles once its first emission has hydrated; `hydrate` awaits
-    // the latch before returning the handle, so the page is interactive on
-    // resolve (hydrate-ready.specs.md).
-    const hydrationReady = yield* makeHydrationReady();
-
-    const context = {
-      runtime,
-      scope,
-      streamIdCounter: { current: 0 },
-      hydrationReady,
-    };
-
-    // Advance the id counter past every marker already in the server DOM, so ids
-    // minted for content inserted after hydration (new list items, rebuilt
-    // regions) never collide with adopted markers.
-    seedStreamIdCounter(root, context.streamIdCounter);
-
-    // AC28: Cleanup effect — runs only on failure to avoid leaking runtime/scope
-    const cleanup = Effect.andThen(
-      Scope.close(scope, Exit.void),
-      Effect.promise(() => runtime.dispose()),
-    );
-
-    // Adopt the existing server DOM rather than clearing the root.
-    // AC28: tapError ensures runtime/scope are disposed if hydrateNode fails.
-    // Scope.Scope provided alongside RenderContext — same rule as mount.
-    yield* hydrateNode(app, root.firstChild, "root").pipe(
-      Effect.provideService(RenderContext, context),
-      Effect.provideService(Scope.Scope, scope),
-      Effect.tapError(() => cleanup),
-    );
-
-    // Release the sentinel, then wait for every registered first emission to
-    // hydrate. Fast path (no reactive regions): count is already 0, resolves
-    // immediately. Bounded: each region settles after its FIRST emission, never
-    // on stream completion, so infinite/empty streams can't deadlock.
-    yield* hydrationReady.settle;
-    yield* hydrationReady.awaitReady;
-
-    let unmounted = false;
-
-    const handle = {
-      unmount: () =>
-        Effect.gen(function* () {
-          if (unmounted) {
-            return;
-          }
-          unmounted = true;
-          yield* Scope.close(scope, Exit.void);
-          yield* Effect.promise(() => runtime.dispose());
-        }),
-    } satisfies MountHandle;
-
-    // Hardening: auto-register unmount on the caller's ambient scope when present.
-    // Idempotent unmount makes any later explicit teardown a no-op the second time.
-    if (Option.isSome(ambientScope)) {
-      yield* Scope.addFinalizer(ambientScope.value, handle.unmount());
-    }
-
-    return handle;
-  });
-}
-
-// ============================================================================
 // Hydrate — adopt walk
 // ============================================================================
 
@@ -2143,7 +1844,7 @@ type HydrateError =
  * Hydrates a single Renderable against the DOM, consuming the node(s) starting at
  * `cursor` and returning the next unconsumed sibling.
  */
-function hydrateNode(
+export function hydrateNode(
   node: Renderable,
   cursor: ChildNode | null,
   path: string,
@@ -2295,7 +1996,7 @@ function hydrateText(
  * returns to zero. Generalizes the Suspense readiness latch
  * (`renderSuspenseBoundary`).
  */
-function makeHydrationReady(): Effect.Effect<HydrationReady> {
+export function makeHydrationReady(): Effect.Effect<HydrationReady> {
   return Effect.gen(function* () {
     const pendingRef = yield* Ref.make(1);
     const allSettled = yield* Deferred.make<void>();
@@ -2403,7 +2104,12 @@ function hydrateReactive(
     // unobserved so the Effect runtime reports it when no boundary encloses
     // (AC-H15, parity with handleStreamChild). Covers post-hydrate live
     // failures such as a page failing after client-side navigation.
-    yield* forkSupervised(effect, context.scope, `hydrate:stream-${parsed.id} (${path})`);
+    yield* forkSupervised(
+      effect,
+      context.scope,
+      `hydrate:stream-${parsed.id} (${path})`,
+      context.reportUnhandled,
+    );
 
     return endMarker.nextSibling;
   });
@@ -3035,7 +2741,12 @@ function hydrateList(
     // Subscription fiber lives in the region scope; failures route to a
     // boundary, or are reported by the Effect runtime when none encloses
     // (AC-H15).
-    yield* forkSupervised(effect, regionScope, `hydrate:list-${parsed.id} (${path})`);
+    yield* forkSupervised(
+      effect,
+      regionScope,
+      `hydrate:list-${parsed.id} (${path})`,
+      context.reportUnhandled,
+    );
 
     return endMarker.nextSibling;
   });
@@ -3264,7 +2975,7 @@ const SHOW_COMMENT = 128;
  * markers — harmless for location (markers are matched positionally / by depth)
  * but it leaves duplicate ids in the live DOM.
  */
-function seedStreamIdCounter(root: Node, counter: { current: number }): void {
+export function seedStreamIdCounter(root: Node, counter: { current: number }): void {
   const walker = document.createTreeWalker(root, SHOW_COMMENT);
   let max = counter.current;
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {

@@ -203,7 +203,7 @@ RouterApp<E, R>(def: RouterDef<E, R>): Node<Exclude<E, RouterNotFound>, R | Rout
 
 The universal router root node — render this on both server and client. Wraps the nested outlet in the router's internal not-found boundary, so a `RouterNotFound` raised by a page renders the configured `notFound` page in place. Server dispatch runs through `HttpApiBuilder`: a page-raised `RouterNotFound` and a no-match surface their 404 through the platform request pipeline.
 
-`RouterApp` requires `Router` in its environment — provide it via `RouterLive` (client) or `RouterServer` (server), not `Effect.provide` at the node level (that would release the scoped layer immediately).
+`RouterApp` requires `Router` in its environment — provide it via `RouterLive` (client) or `RouterServer` (server), not `Effect.provide` at the node level — services under `WeftApp` come exclusively from the app's layer, not ambient `Effect.provide`.
 
 ### `outletNode` (a.k.a. `RouterOutlet`)
 
@@ -224,11 +224,11 @@ RouterLive(
 ): Layer.Layer<Router | AppRpcClientTag>;
 ```
 
-The client `Router` layer, backed by the History API. Seeds a `SubscriptionRef` from `window.location`, listens for `popstate`, installs the same-origin link-click interceptor, and derives the `HttpApiClient` exposed as `Router.httpApiClient` (over `FetchHttpClient`; `baseUrl` defaults to same-origin). Alongside `Router` it also provides the core [`AppRpcClientTag`](../reference/core.md#apprpcclienttag) seam — a **network** flat rpc client over the app's merged `RpcGroup` (`RpcClient.make` → `POST /_eui/rpc`) — so `@weftui/dom` can resolve a [`Boundary.rpc`](../reference/core.md#boundaryrpc) (hydrated refetch and client-first SPA mount) without depending on this package or `effect/unstable/rpc`. Pass the same merged `group` the server wires into [`RouterServer`](#routerserver). **Scoped** — it must outlive the mount, so provide it through a `ManagedRuntime`:
+The client `Router` layer, backed by the History API. Seeds a `SubscriptionRef` from `window.location`, listens for `popstate`, installs the same-origin link-click interceptor, and derives the `HttpApiClient` exposed as `Router.httpApiClient` (over `FetchHttpClient`; `baseUrl` defaults to same-origin). Alongside `Router` it also provides the core [`AppRpcClientTag`](../reference/core.md#apprpcclienttag) seam — a **network** flat rpc client over the app's merged `RpcGroup` (`RpcClient.make` → `POST /_eui/rpc`) — so `@weftui/dom` can resolve a [`Boundary.rpc`](../reference/core.md#boundaryrpc) (hydrated refetch and client-first SPA mount) without depending on this package or `effect/unstable/rpc`. Pass the same merged `group` the server wires into [`RouterServer`](#routerserver). **Scoped** — it must outlive the mount; give it to `WeftApp.make` and the app runtime owns its lifetime (built lazily on first mount, released at `WeftApp.dispose`):
 
 ```typescript
-const runtime = ManagedRuntime.make(RouterLive(App, { rpc: { group: StockRpcs } }));
-void runtime.runPromise(hydrate(RouterApp(App), root));
+const app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
 ```
 
 ### Programmatic navigation

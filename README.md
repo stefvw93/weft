@@ -26,7 +26,7 @@ Weft is a reactive DOM library where every node _is_ an Effect. Components are p
 Weft is a monorepo with three packages:
 
 - **`@weftui/core`**: Element builders and combinators. Exports `h` (with `h.fragment`), `Component` (`Component.gen` / `Component.make`), `Boundary` (six failure-catch variants, `Boundary.suspend`, `Boundary.rpc`), `List` (`List.each`), and the `Node<E, R>` / `Source<A, E, R>` types.
-- **`@weftui/dom`**: The renderer. `mount` and `hydrate` for the browser (`@weftui/dom/client`); `renderToString`, `renderToStringHydratable`, `renderToStream`, and `renderToStreamHydratable` for the server (`@weftui/dom/server`).
+- **`@weftui/dom`**: The renderer. `WeftApp.mount` and `WeftApp.hydrate` for the browser (`@weftui/dom/client`); `renderToString`, `renderToStringHydratable`, `renderToStream`, and `renderToStreamHydratable` for the server (`@weftui/dom/server`).
 - **`@weftui/router`**: Universal nested router. Authors a route tree with `Router.route` / `Router.layout` / `Router.router`, splits it with `Router.lazy`, and renders it on the server (`@weftui/router/server`) and the client (`@weftui/router/client`), with type-safe `href`s and dependency-injected params.
 
 ## Installation
@@ -43,7 +43,7 @@ Weft tracks Effect 4's beta line. This release is built and tested against `effe
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect, SubscriptionRef } from "effect";
 
 const Counter = () =>
@@ -57,7 +57,8 @@ const Counter = () =>
     ]);
   });
 
-void Effect.runPromise(mount(Counter(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.mount(app, Counter(), document.getElementById("root")!));
 ```
 
 ## Documentation

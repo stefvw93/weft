@@ -5,8 +5,9 @@
  * browser test can import and mount into its own container.
  */
 
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { App } from "./app";
 
-void Effect.runPromise(mount(App(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.mount(app, App(), document.getElementById("root")!));

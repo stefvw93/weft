@@ -1,11 +1,11 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "vite-plus/test";
-import { Cause, Data, Deferred, Effect, Filter, pipe, Result, Stream } from "effect";
+import { Cause, Data, Deferred, Effect, Filter, Result, Stream } from "effect";
 import { Boundary, h, List } from "@weftui/core";
 import type { Renderable } from "@weftui/core";
 import { JSDOM } from "jsdom";
 import { makeErrorLogCapture } from "../__tests__/log-capture";
-import { mount } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ function createRoot(): HTMLElement {
 }
 
 function runMount(app: Renderable, root: HTMLElement) {
-  return Effect.runPromise(mount(app, root));
+  return Effect.runPromise(WeftApp.mount(WeftApp.make(), app, root));
 }
 
 function waitFor(ms: number): Promise<void> {
@@ -53,7 +53,7 @@ function getBoundaryComments(el: Element): Comment[] {
  */
 async function runMountCapturingErrors(app: Renderable, root: HTMLElement) {
   const { entries, logger } = makeErrorLogCapture();
-  const handle = await Effect.runPromise(pipe(mount(app, root), Effect.provide(logger)));
+  const handle = await Effect.runPromise(WeftApp.mount(WeftApp.make(logger), app, root));
   return { handle, entries };
 }
 

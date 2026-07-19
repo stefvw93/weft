@@ -10,16 +10,16 @@
  */
 
 import * as assert from "node:assert/strict";
-import { type MountHandle, mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, describe, it, vi } from "vite-plus/test";
 import { ReactiveCounter } from "./reactive-counter";
 
-let handle: MountHandle | undefined;
+let app: WeftApp.WeftApp | undefined;
 
 afterEach(async () => {
-  if (handle) await Effect.runPromise(handle.unmount());
-  handle = undefined;
+  if (app) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
 });
 
 describe("reactive-counter (jsdom interaction)", () => {
@@ -27,7 +27,8 @@ describe("reactive-counter (jsdom interaction)", () => {
     const container = document.createElement("div");
     document.body.append(container);
 
-    handle = await Effect.runPromise(mount(ReactiveCounter(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, ReactiveCounter(), container));
 
     const value = () => container.querySelector(".counter-value");
     // The mounted tree is appended a tick after `mount` resolves.

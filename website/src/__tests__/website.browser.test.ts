@@ -10,7 +10,7 @@
  */
 
 import { AppRpcClientTag, Component, h } from "@weftui/core";
-import { type MountHandle, hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { renderToStringHydratable } from "@weftui/dom/server";
 import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -60,7 +60,7 @@ const tree: HastRoot = {
 const DemoDocPage = () => h.article({ class: "docs-content" }, renderHast(tree));
 
 let container: HTMLElement;
-let handle: MountHandle | undefined;
+let app: WeftApp.WeftApp | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -68,8 +68,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle) await Effect.runPromise(handle.unmount());
-  handle = undefined;
+  if (app) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
 });
 
@@ -90,7 +90,8 @@ describe("website DocPage + live demo (browser)", () => {
     expect(value()?.textContent).toContain("0");
 
     // 4. Hydrate over the server markup; the demo becomes interactive in place.
-    handle = await Effect.runPromise(hydrate(DemoDocPage(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.hydrate(app, DemoDocPage(), container));
     const increment = [...container.querySelectorAll("button")].find(
       (b) => b.getAttribute("aria-label") === "Increment",
     );
@@ -155,7 +156,8 @@ describe("per-route doc-data split — flash-free lazy hydration (browser)", () 
     const serverP = container.querySelector("p");
 
     // Hydrate over the markup; the async body resolves during hydrate.
-    handle = await Effect.runPromise(Effect.provide(hydrate(IntroRoute(), container), NoRpc));
+    app = WeftApp.make(NoRpc);
+    await Effect.runPromise(WeftApp.hydrate(app, IntroRoute(), container));
 
     // Content is unchanged and the original DOM node was adopted (not re-created) → no flash.
     expect(bodyText()).toContain("Lazily loaded body.");

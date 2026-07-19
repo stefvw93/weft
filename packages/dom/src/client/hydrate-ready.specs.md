@@ -12,7 +12,8 @@
 ## Overview
 
 `hydrate` (`render.ts:1818`) adopts the server DOM, attaches event handlers and
-reactive subscriptions in place, and resolves to a `MountHandle`. Today the
+reactive subscriptions in place, and resolves to a handle (now `RootHandle`,
+see weft-app.specs.md). Today the
 returned promise resolving does **not** mean the page is fully interactive:
 reactive regions are hydrated in **forked fibers**, so their event listeners (and
 nested regions) finish attaching _after_ `hydrate` returns.
@@ -33,7 +34,7 @@ forks. Concretely: a `button.click()` / `dispatchEvent` issued immediately after
 gap is normally sub-millisecond (the first-emission work is synchronous: decode →
 build → attach), but:
 
-1. It makes `MountHandle` a misleading "done" signal — `await hydrate(...);
+1. It makes the returned handle a misleading "done" signal — `await hydrate(...);
 el.click()` races. (This is exactly what forced the Stage-7 test to re-dispatch
    the click inside `vi.waitFor`.)
 2. The gap grows with nesting depth and with any genuinely-async first emission.
@@ -64,7 +65,7 @@ early.
   by `Ref<number>` + `Deferred<void>` exactly like `suspenseService`.
 - `hydrate` seeds the latch at **1** (sentinel) before the adopt-walk, runs the
   walk, releases the sentinel (`settle`), then `await`s the latch **before**
-  constructing/returning the `MountHandle` (`render.ts:1852-1860`). Fast path: if
+  constructing/returning the handle (now in `weft-app.ts` `hydrate`). Fast path: if
   the count is already 0 after the sentinel release, `await` returns immediately
   (no extra tick), preserving today's behaviour for fully-static pages.
 - Each forked first-emission region **`register`s before `Effect.forkIn`** and

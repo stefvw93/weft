@@ -20,12 +20,14 @@ Weft tracks Effect 4's beta line. This release is built and tested against `effe
 
 ### `@weftui/dom/client`
 
-| Export                          | What it does                                                                             |
-| ------------------------------- | ---------------------------------------------------------------------------------------- |
-| `mount(node, target)`           | Renders a node into `target` for a fresh (non-SSR) page and starts all streams.          |
-| `hydrate(node, target)`         | Adopts server-rendered DOM **in place** and resumes reactivity — the flash-free path.    |
-| `mountScoped` / `hydrateScoped` | Scope-aware variants that register teardown as a finalizer on an ambient `Scope`.        |
-| `MountHandle`                   | Handle returned by mount/hydrate; `unmount()` tears the reactive tree down (idempotent). |
+| Export                             | What it does                                                                                                                                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WeftApp.make(layer?)`             | Creates an app: one lazily-built `ManagedRuntime` (the layer), one root `Scope`, one error hub. Synchronous — the layer builds on first mount.                                           |
+| `WeftApp.mount(app, node, root)`   | Renders a node into `root` as a new root of `app`, starting all streams. Returns `Effect<RootHandle, …>` with `R = never` — runs via bare `Effect.runPromise`.                           |
+| `WeftApp.hydrate(app, node, root)` | Adopts server-rendered DOM **in place** as a new root of `app` and resumes reactivity — the flash-free path.                                                                             |
+| `WeftApp.errors(app)`              | `Stream` of errors that escaped every user-level handler (stream failures, outermost-boundary escapes, event-handler failures/defects). Subscribing suppresses the default log fallback. |
+| `WeftApp.dispose(app)`             | Tears down every root, then releases the app layer, then shuts the error hub down. Idempotent.                                                                                           |
+| `RootHandle`                       | Returned by `mount`/`hydrate`. `unmount()` closes that root's scope only — other roots and the app runtime are untouched. Idempotent.                                                    |
 
 ### `@weftui/dom/server`
 
@@ -42,7 +44,7 @@ The package root re-exports the renderer error types: `HydrationMismatchError`, 
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect, SubscriptionRef } from "effect";
 
 const Counter = () =>
@@ -53,7 +55,8 @@ const Counter = () =>
     ]);
   });
 
-void Effect.runPromise(mount(Counter(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.mount(app, Counter(), document.getElementById("root")!));
 ```
 
 ## Documentation

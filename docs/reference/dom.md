@@ -2,7 +2,7 @@
 title: "@weftui/dom"
 order: 2
 section: reference
-description: Full API surface for @weftui/dom — the client renderer (mount, hydrate) and the server renderer (renderToString and streaming variants).
+description: Full API surface for @weftui/dom — the WeftApp client runtime (make, mount, hydrate, errors, dispose) and the server renderer (renderToString and streaming variants).
 ---
 
 # @weftui/dom API Reference
@@ -14,70 +14,191 @@ for a narrative walkthrough.
 
 ## `@weftui/dom/client`
 
-### `mount`
+`WeftApp` is the client entry point's app namespace (`export * as WeftApp from
+"./weft-app"`). One `WeftApp` value is one lazily-built `ManagedRuntime` (the app
+layer) + one root `Scope` + one unhandled-error hub. Each `WeftApp.mount` /
+`WeftApp.hydrate` call creates a child **root scope** under the app scope;
+layer-built services are shared **by reference** across every root mounted from the
+same app (layer memoization), which is what makes cross-island reactive state work
+(see [examples/shared-state-islands](../../examples/shared-state-islands)). The
+barrel also re-exports `MountError`, `HydrateError`, `RootHandle`, `UnhandledError`,
+and the `WeftApp` interface's type as `WeftAppType` (renamed on export to avoid
+colliding with the `WeftApp` namespace import).
+
+### `WeftApp.make`
 
 ```ts
-mount(node: Renderable, target: Element): Effect<MountHandle, RenderError, R>
+const make: {
+  (): WeftApp<never, never>;
+  <R, E>(
+    layer: Layer.Layer<R, E, never>,
+    options?: { readonly memoMap?: Layer.MemoMap },
+  ): WeftApp<R, E>;
+};
 ```
 
-Renders a Weft `node` into `target` for a fresh (non-SSR) page, building real DOM
-and starting every reactive stream. Returns a `MountHandle` whose scope owns the
-mounted tree; closing it tears the tree down. Use `mount` for purely client-rendered
-apps; use `hydrate` when the markup already exists from SSR.
+Creates a `WeftApp` from an app layer. Synchronous and side-effect-free with
+respect to the layer: the layer builds **lazily** on the first `mount` / `hydrate`
+(or the first direct `app.runtime` run) — `ManagedRuntime.make` semantics. A layer
+whose construction has an observable side effect shows that effect only after the
+first mount, never at `make` time. `options.memoMap` shares layer memoization
+across multiple `WeftApp` instances.
 
-### `hydrate`
+There is deliberately no `makeScoped`. To bind an app's lifetime to a scope,
+compose it yourself:
 
 ```ts
-hydrate(node: Renderable, target: Element): Effect<MountHandle, HydrationMismatchError | RenderError, R>
+const acquireApp = Effect.acquireRelease(
+  Effect.sync(() => WeftApp.make(AppLive)),
+  (app) => WeftApp.dispose(app),
+);
 ```
 
-Adopts server-rendered DOM **in place** inside `target` and resumes reactivity
-without re-creating elements. The `node` must produce a tree structurally identical
-to what the server rendered; a divergence fails with `HydrationMismatchError`. This
-is the flash-free path: no second render, the existing nodes simply become live.
-
-### `mountScoped`
+### `WeftApp.mount`
 
 ```ts
-mountScoped(app: Renderable, root: HTMLElement): Effect<MountHandle, UnsupportedNodeTypeError | StreamSubscriptionError | RenderError, Scope.Scope>
+const mount: <R, E>(
+  app: WeftApp<R, E>,
+  node: Renderable,
+  root: HTMLElement,
+) => Effect.Effect<RootHandle, E | MountError>;
 ```
 
-Scope-aware `mount`: identical behavior, but requires an ambient `Scope.Scope` in
-`R` and registers `unmount` as a finalizer on it, so the mount lives until that
-scope closes rather than only until the mount effect resolves. Provide any scoped
-layer **outside** a long-lived scoped region so it outlives initial render — see
-[Provide Services](../how-to/provide-services.md) for the composition and
-[Layer lifetime at the mount](../explanation/services-and-context.md#layer-lifetime-at-the-mount)
-for why.
+Mounts `node` into `root` as a new root of `app`. Self-contained — the returned
+effect's requirement channel is `never`, so it runs with a bare `Effect.runPromise`;
+services come exclusively from the app layer, and an `Effect.provide` wrapped around
+this call does not reach components. Clears `root`'s existing children, renders,
+appends the result. Completes after initial render; streams keep running in the
+background, owned by the root's scope (a child of the app scope). The app layer
+builds lazily here on first mount; its error channel `E` surfaces at that point. On
+render failure the root scope is closed before the error propagates; the app
+runtime and other roots are untouched. Mounting on a disposed app fails — it does
+not hang.
 
-### `hydrateScoped`
+### `WeftApp.hydrate`
 
 ```ts
-hydrateScoped(app: Renderable, root: HTMLElement): Effect<MountHandle, UnsupportedNodeTypeError | StreamSubscriptionError | RenderError | HydrationMismatchError, Scope.Scope>
+function hydrate<A extends Renderable, R = never, E = never>(
+  app: WeftApp<R, E>,
+  node: A,
+  root: HTMLElement,
+): [AssertNoServerOnly<CoreNode.Context<A>>] extends [CoreNode.Context<A>]
+  ? Effect.Effect<RootHandle, E | HydrateError>
+  : ServerOnlyLeak;
 ```
 
-Scope-aware `hydrate` — same relationship as `mountScoped` to `mount`, with
-`hydrate`'s error union (`HydrationMismatchError` added) and the same client-only
-compile-time guard: a server-only requirement left in `app`'s `R` degrades the
-return type to `ServerOnlyLeak` via `AssertNoServerOnly`.
+Continues, on the client, the DOM produced on the server by
+`renderToStringHydratable` / `renderToStreamHydratable`, as a new root of `app`.
+Unlike `mount`, does **not** clear `root`: it walks the node tree in lockstep with
+the existing server DOM, adopting nodes in place. Error channel is `E |
+HydrateError` (adds `HydrationMismatchError` on top of everything `mount` can fail
+with). Preserves the compile-time `AssertNoServerOnly` → `ServerOnlyLeak` guard: a
+server-only requirement left in `node`'s context degrades the return type to the
+`ServerOnlyLeak` sentinel (compile error at the call site) instead of a runtime
+failure. Hydration mechanics — the readiness barrier, stream-id seeding — are
+otherwise unchanged from `mount`.
 
-### `MountHandle`
+### `WeftApp.errors`
 
-The handle returned by `mount`, `hydrate`, `mountScoped`, and `hydrateScoped`. Its
-`unmount()` interrupts every subscription and event handler and disposes the
-mount's `ManagedRuntime`; it does **not** remove the mounted DOM nodes from `root`.
-`unmount` is idempotent — safe to call more than once, including once
-automatically and once explicitly.
+```ts
+const errors: <R, E>(app: WeftApp<R, E>) => Stream.Stream<UnhandledError>;
+```
 
-The runtime backing the handle lives until `unmount` runs, not until the
-`mount`/`hydrate` effect resolves — that effect completes right after initial
-render, while streams and handlers keep running in the background. If `mount` or
-`hydrate` runs inside a region that supplies an ambient `Scope.Scope` (e.g. under
-`Effect.scoped`), `unmount` is auto-registered on that scope as a finalizer, so the
-mount tears down when the scope closes; with no ambient scope, behavior is
-unchanged and `unmount` must be called explicitly. `mountScoped`/`hydrateScoped`
-register the same finalizer explicitly, so the typed variant does not silently
-depend on this auto-registration.
+The app's unhandled-error stream. While at least one subscriber exists, the default
+`Effect.logError` fallback is suppressed and every `UnhandledError` is delivered to
+all subscribers. With zero subscribers, each unhandled error runs the default log
+(annotated with `weft.region`) instead. No replay — a subscriber sees only errors
+published after it subscribed; multiple concurrent subscribers each receive every
+subsequent error. When the last subscriber unsubscribes, the default log resumes.
+
+### `WeftApp.dispose`
+
+```ts
+const dispose: <R, E>(app: WeftApp<R, E>) => Effect.Effect<void>;
+```
+
+Disposes the app: closes every root scope (in mount order), then releases the
+runtime's layers (`runtime.disposeEffect`), then shuts the error hub down.
+Idempotent — teardown effects run once. Subsequent `mount` / `hydrate` calls fail.
+
+### `WeftApp<R, E>` (`WeftAppType`)
+
+```ts
+interface WeftApp<in R = never, out E = never> {
+  readonly [TypeId]: typeof TypeId;
+  readonly runtime: ManagedRuntime.ManagedRuntime<R, E>;
+}
+```
+
+Re-exported from the barrel as `WeftAppType`. `runtime` is the app's
+`ManagedRuntime`, for running app-level effects against the shared layer outside any
+root — e.g. `app.runtime.runFork(trackPageviews)` (see
+`website/src/entry-client.ts`) or `app.runtime.runPromise(Router.push("/about"))`.
+
+### `RootHandle`
+
+```ts
+interface RootHandle {
+  readonly element: HTMLElement;
+  unmount(): Effect.Effect<void>;
+}
+```
+
+Returned by `mount` / `hydrate`. `element` is the DOM element the root was mounted
+into. `unmount()` closes **this root's scope only**: it interrupts its stream
+subscriptions and any scoped work forked from its event handlers. It does **not**
+dispose the app runtime, touch other roots, or remove the rendered DOM nodes from
+`element`. Idempotent — teardown side effects fire once.
+
+### `UnhandledError`
+
+```ts
+interface UnhandledError {
+  readonly cause: Cause.Cause<unknown>;
+  readonly region: string;
+  readonly root: RootHandle;
+}
+```
+
+An error that escaped every user-level handler and reached the app's
+unhandled-error hub, published on `WeftApp.errors(app)`. `region` identifies where
+in the render tree the error escaped. Sources (one entry per failing occurrence):
+
+- a rendered stream subscription failing or dying with **no enclosing `Boundary`**
+  (region e.g. `"attribute:class"`, `"child:stream-3"`),
+- an error escaping the **outermost** `Boundary` recovery (region
+  `"boundary:outermost"`),
+- an event-handler effect **failing or dying** (region `"event:onClick"`) — reported
+  in development and production alike; there is no `NODE_ENV`-gated swallow.
+
+Interrupt-only causes are never published. Errors handled by a nested `Boundary`
+never reach the hub.
+
+### `MountError`
+
+```ts
+type MountError = UnsupportedNodeTypeError | StreamSubscriptionError | RenderError;
+```
+
+Errors `mount` can fail with, beyond the app layer's own error channel `E`.
+
+### `HydrateError`
+
+```ts
+type HydrateError = MountError | HydrationMismatchError;
+```
+
+Everything `MountError` covers, plus `HydrationMismatchError` when the server DOM
+and the node tree diverge.
+
+### `TypeId`
+
+```ts
+const TypeId: unique symbol; // Symbol.for("@weftui/dom/WeftApp")
+```
+
+The unique brand for `WeftApp` values. Internal identity marker; rarely referenced
+directly.
 
 ## `@weftui/dom/server`
 
@@ -136,7 +257,7 @@ Re-exports the renderer error types:
 ## See also
 
 - [Render on the Server](../how-to/render-on-the-server.md) — a narrative walkthrough of the server/client split
-- [Provide Services](../how-to/provide-services.md) — recipes for value layers, `mountScoped`, and `ManagedRuntime`
+- [Provide Services](../how-to/provide-services.md) — recipes for app layers, scoped layers, and binding an app's lifetime to an external scope
 - [The Rendering Model](../explanation/rendering-model.md) — hydrate-in-place and why there is no virtual DOM
-- [Services and Context](../explanation/services-and-context.md#layer-lifetime-at-the-mount) — why scoped layers need the mount to outlive initial render
+- [Services and Context](../explanation/services-and-context.md) — how services flow from the app layer to every root
 - [`@weftui/core` reference](./core.md) · [`@weftui/router` reference](./router.md)

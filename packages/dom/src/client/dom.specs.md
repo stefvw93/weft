@@ -1,5 +1,13 @@
 # DOM Mount Feature Specification
 
+> **Amended by `weft-app.specs.md` (WeftApp refactor):** the standalone
+> `mount`/`hydrate` exports and per-mount runtimes described below were
+> replaced by the `WeftApp` API — one shared lazy `ManagedRuntime` per app,
+> one root `Scope` per `WeftApp.mount`/`WeftApp.hydrate` call, and an
+> app-level unhandled-error hub. AC24 is **reversed**, AC26–AC28 are amended,
+> and the AC26/AC27 ambient-scope amendment is **removed** (see the notes at
+> each criterion). Rendering behavior (AC2–AC23, AC25) is unchanged.
+
 ## Overview
 
 Build a reactive DOM mounting system that renders JSX to HTML elements with support for Effect and Stream-based reactivity. Components are ephemeral - executed once to set up their reactive side effects. Streams and Effects drive updates over time, similar to SolidJS's reactive model.
@@ -19,8 +27,9 @@ Enable declarative, reactive UI rendering in the browser by mounting JSX trees t
   - Renders the JSX tree to DOM nodes
   - Appends rendered nodes to root
   - Completes after initial render (streams run in background)
-  - Creates a fresh ManagedRuntime per mount
-  - Logs warning about runtime leaks (cleanup not yet implemented)
+  - _(Amended)_ Runs against the owning `WeftApp`'s shared runtime — see
+    weft-app.specs.md WA2; the historical fresh-runtime-per-mount behavior is
+    reversed by WA-AC24 below.
 
 ### AC2: Primitive Renderable Rendering
 
@@ -242,15 +251,12 @@ Enable declarative, reactive UI rendering in the browser by mounting JSX trees t
   - `RenderError` - general rendering failures
   - All errors include useful context for debugging
 
-### AC24: Runtime Management
+### AC24: Runtime Management — REVERSED by weft-app.specs.md
 
-- **Given** mount is called
-- **When** creating runtime
-- **Then**:
-  - Create fresh `ManagedRuntime` per mount
-  - Use `ManagedRuntime.make(Layer.empty)` or similar
-  - Runtime must be properly disposed on unmount
-  - No warnings about runtime leaks when properly cleaned up
+- ~~Create fresh `ManagedRuntime` per mount~~ **Reversed:** one shared, lazy
+  `ManagedRuntime` per `WeftApp` serves every root (weft-app.specs.md WA1/WA2).
+  The runtime is disposed by `WeftApp.dispose`, never by a root's `unmount`
+  (WA5/WA6).
 
 ### AC25: Scope Management
 
@@ -261,37 +267,34 @@ Enable declarative, reactive UI rendering in the browser by mounting JSX trees t
   - Fork streams in Scope context
   - All scopes closed on unmount
 
-### AC26: Unmount Function
+### AC26: Unmount Function — amended by weft-app.specs.md WA5
 
 - **Given** a mounted JSX tree
-- **When** `unmount()` is called on the cleanup function
+- **When** `unmount()` is called on the root handle
 - **Then**:
-  - Dispose the ManagedRuntime properly using `ManagedRuntime.dispose`
-  - Close all Scopes to cancel running streams
-  - Stop all stream subscriptions
+  - Close the **root scope only** to cancel running streams and handler-forked
+    work (_amended_: the shared app runtime is NOT disposed — that is
+    `WeftApp.dispose`'s job)
+  - Stop all of this root's stream subscriptions
   - Returns an Effect that completes when cleanup is done
-  - No runtime leak warnings after proper cleanup
 
-### AC27: Mount Return Value
+### AC27: Mount Return Value — amended by weft-app.specs.md WA2/WA5
 
-- **Given** mount function is called
+- **Given** `WeftApp.mount` is called
 - **When** the mount Effect completes
 - **Then**:
-  - Returns a cleanup function object with `unmount()` method
-  - The cleanup function can be called to properly dispose resources
+  - Returns a `RootHandle` (_amended from `MountHandle`_) with an `unmount()`
+    method and the mounted `element`
   - Calling unmount multiple times is safe (idempotent)
 
-### AC26/AC27 amendment: ambient-scope auto-unmount
+### AC26/AC27 amendment: ambient-scope auto-unmount — REMOVED
 
-- **Given** `mount`/`hydrate` is invoked inside an Effect region that supplies an
-  ambient `Scope.Scope` in context (e.g. under `Effect.scoped`)
-- **When** the mount Effect completes
-- **Then** `unmount` is auto-registered as a finalizer on that ambient scope, so
-  the mount is torn down when the scope closes. This reuses the same idempotent
-  `handle.unmount()` (AC26) and does not change the `MountHandle` contract (AC27).
-- **And** with no ambient `Scope.Scope` in context, behavior is unchanged.
-- See `mount-scoped.specs.md` (AC-S8, AC-S9) and the scope-aware variants
-  `mountScoped` / `hydrateScoped` for the typed, explicit form.
+- **Removed by weft-app.specs.md WA17:** ambient context capture no longer
+  exists; `WeftApp.mount`/`WeftApp.hydrate` never read an ambient
+  `Scope.Scope` and never auto-register `unmount` on one. Root lifetimes are
+  owned by the app scope (`WeftApp.dispose`) or explicit `handle.unmount()`.
+  The scope-aware variants `mountScoped`/`hydrateScoped` were deleted
+  (mount-scoped.specs.md superseded).
 
 ## Technical Requirements
 
@@ -327,13 +330,13 @@ Enable declarative, reactive UI rendering in the browser by mounting JSX trees t
 - HMR support
 - Keyed children and reconciliation
 
-### AC28: Resource Cleanup on Mount Failure
+### AC28: Resource Cleanup on Mount Failure — amended by weft-app.specs.md WA18
 
-- **Given** a `mount` call where `renderNode` fails (e.g. unsupported Renderable type)
+- **Given** a `WeftApp.mount` call where `renderNode` fails (e.g. unsupported Renderable type)
 - **When** the failure propagates
 - **Then**:
-  - The internal `ManagedRuntime` is disposed before the error surfaces
-  - The internal `Scope` is closed before the error surfaces
+  - The **root scope** is closed before the error surfaces (_amended_: the app
+    runtime and other roots are untouched)
   - The original error is propagated unchanged
   - The root element remains mountable (no zombie resources)
 

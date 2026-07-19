@@ -56,7 +56,7 @@ The return type here is `Effect.Effect<Node, never, never>` — itself a valid `
 Every component instance is rendered under its own **instance scope** — a child of the
 mount scope created fresh for that instance. Anything bound to the instance scope lives
 exactly as long as the component is mounted and is torn down automatically when the
-component unmounts (or when the whole tree unmounts via the `MountHandle`). The renderer
+component unmounts (or when its root unmounts via `RootHandle.unmount()`). The renderer
 provides this scope as the ambient `Scope.Scope` while it evaluates the component body,
 so it is already in context when you need it.
 
@@ -235,12 +235,14 @@ const UserAvatar = Component.gen(function* (props: { userId: string }) {
 const avatar = UserAvatar({ userId: "123" });
 ```
 
-Provide the service at the mount boundary:
+Give the service to the app layer:
 
 ```typescript
-void Effect.runPromise(
-  mount(App(), document.getElementById("root")!).pipe(Effect.provide(UserServiceLive)),
-);
+import { WeftApp } from "@weftui/dom/client";
+import { Effect } from "effect";
+
+const app = WeftApp.make(UserServiceLive);
+void Effect.runPromise(WeftApp.mount(app, App(), document.getElementById("root")!));
 ```
 
 ## Returning fragments

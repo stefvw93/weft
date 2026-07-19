@@ -46,9 +46,9 @@ This also fixes the update _shape_. Because the structure is fixed, an update is
 The same component tree renders on the server and the client:
 
 - On the **server**, the tree renders to an HTML string (or a streaming response) via `@weftui/dom/server`. The _hydratable_ renderers additionally emit the inline data each reactive region needs to resume.
-- On the **client**, `hydrate()` walks that server-rendered DOM and **adopts it in place** — it wires up reactivity and event handlers on the existing nodes rather than re-rendering. The first client production matches the adopted DOM exactly, so nothing is mutated and there is no flash.
+- On the **client**, `WeftApp.hydrate` walks that server-rendered DOM and **adopts it in place** — it wires up reactivity and event handlers on the existing nodes rather than re-rendering. The first client production matches the adopted DOM exactly, so nothing is mutated and there is no flash.
 
-Because the same `Node<E, R>` describes both passes, there is nothing to keep in sync: the server output and the client's first render are the _same tree_ run in two environments. Services flow from the mount (or the router's render-time context) through the tree to wherever a component reads them, on both sides. The mechanics of the two-sided render live in [Render on the Server](../how-to/render-on-the-server.md); the service flow is [Services and Context](./services-and-context.md).
+Because the same `Node<E, R>` describes both passes, there is nothing to keep in sync: the server output and the client's first render are the _same tree_ run in two environments. Services flow from the app layer (or the router's render-time context) through the tree to wherever a component reads them, on both sides. The mechanics of the two-sided render live in [Render on the Server](../how-to/render-on-the-server.md); the service flow is [Services and Context](./services-and-context.md).
 
 ## Why this matters
 

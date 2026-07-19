@@ -5,7 +5,7 @@ import { Component, h, Source, Subscribable } from "@weftui/core";
 import type { Renderable } from "@weftui/core/types";
 import { UnsupportedNodeTypeError } from "~/data";
 import { JSDOM } from "jsdom";
-import { mount } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ============================================================================
 // Test Setup
@@ -38,7 +38,7 @@ function createRoot(): HTMLElement {
  * Returns the mount handle for cleanup
  */
 async function runMount(app: unknown, root: HTMLElement) {
-  const handle = await Effect.runPromise(mount(app as never, root));
+  const handle = await Effect.runPromise(WeftApp.mount(WeftApp.make(), app as never, root));
   return handle;
 }
 
@@ -1781,7 +1781,9 @@ describe("AC28: Resource Cleanup on Mount Failure", () => {
     // An object with a numeric `type` triggers UnsupportedNodeTypeError
     // (not a string, FRAGMENT, or function — renderNode's invalid type branch)
     const invalidNode = { type: 42, props: {} };
-    const exit = await Effect.runPromiseExit(mount(invalidNode as unknown as never, root));
+    const exit = await Effect.runPromiseExit(
+      WeftApp.mount(WeftApp.make(), invalidNode as unknown as never, root),
+    );
 
     assert.ok(Exit.isFailure(exit));
     const error = Cause.squash(exit.cause);
@@ -1794,10 +1796,14 @@ describe("AC28: Resource Cleanup on Mount Failure", () => {
 
     // Fail once
     const invalidNode = { type: 42, props: {} };
-    await Effect.runPromiseExit(mount(invalidNode as unknown as never, root));
+    await Effect.runPromiseExit(
+      WeftApp.mount(WeftApp.make(), invalidNode as unknown as never, root),
+    );
 
     // A second mount to the same root must succeed without errors
-    const handle = await Effect.runPromise(mount(h.div({}, "recovered"), root));
+    const handle = await Effect.runPromise(
+      WeftApp.mount(WeftApp.make(), h.div({}, "recovered"), root),
+    );
     assert.equal(root.querySelector("div")?.textContent, "recovered");
     await Effect.runPromise(handle.unmount());
   });
@@ -1808,7 +1814,9 @@ describe("AC28: Resource Cleanup on Mount Failure", () => {
     root.innerHTML = "<p>old</p>";
 
     const invalidNode = { type: 42, props: {} };
-    await Effect.runPromiseExit(mount(invalidNode as unknown as never, root));
+    await Effect.runPromiseExit(
+      WeftApp.mount(WeftApp.make(), invalidNode as unknown as never, root),
+    );
 
     // mount clears root.innerHTML before renderNode runs, so it stays empty on failure
     assert.equal(root.innerHTML, "");

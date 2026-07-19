@@ -3,7 +3,7 @@ import { describe, it } from "vite-plus/test";
 import { Effect, Queue, Stream } from "effect";
 import { Boundary, h } from "@weftui/core";
 import { JSDOM } from "jsdom";
-import { mount, hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 import { renderToStringHydratable as _renderToStringHydratable } from "~/server/render-to-string";
 import type { Renderable } from "@weftui/core/types";
 import { NoRpc } from "../__tests__/rpc-stub";
@@ -34,7 +34,7 @@ function createRoot(): HTMLElement {
 }
 
 async function runMount(app: unknown, root: HTMLElement) {
-  return Effect.runPromise(mount(app as never, root));
+  return Effect.runPromise(WeftApp.mount(WeftApp.make(), app as never, root));
 }
 
 function waitFor(ms: number): Promise<void> {
@@ -823,7 +823,7 @@ describe("Round-trip: SSR → patch script → hydrate", () => {
       { runScripts: "dangerously" },
     );
 
-    // Point Node globals to the JSDOM window so DOM APIs in hydrate() work.
+    // Point Node globals to the JSDOM window so DOM APIs in WeftApp.hydrate(WeftApp.make(), ) work.
     global.document = dom.window.document;
     global.HTMLElement = dom.window.HTMLElement;
     global.Comment = dom.window.Comment;
@@ -850,7 +850,7 @@ describe("Round-trip: SSR → patch script → hydrate", () => {
     // ── 4. Hydrate — must adopt the resolved DOM without mismatch errors ──────
     // hydrate walks the JSX tree, sees the Boundary.suspend node, treats it as transparent
     // (boundary already resolved), and hydrates the children against the DOM.
-    const handle = await Effect.runPromise(hydrate(app, root));
+    const handle = await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // DOM structure unchanged after hydration (node identity preserved)
     assert.ok(root.querySelector(".card"), "Card still in DOM after hydrate");
@@ -902,7 +902,7 @@ describe("Round-trip: SSR → patch script → hydrate", () => {
     assert.equal(root.querySelectorAll('template[id^="ef-s-"]').length, 0, "All templates removed");
 
     // Hydrate
-    const handle = await Effect.runPromise(hydrate(app, root));
+    const handle = await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     assert.ok(root.querySelector(".inner-content"), "Inner content still present after hydrate");
 
     await Effect.runPromise(handle.unmount());

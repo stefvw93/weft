@@ -6,13 +6,13 @@
  * the element's inline style and updates over time.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -20,13 +20,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
 describe("reactive-styles example", () => {
   it("applies and updates a stream-driven inline style", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     // First .demo-box is AnimatedHue, whose backgroundColor cycles every 50ms.
     const box = await vi.waitFor(() => {
@@ -41,7 +42,8 @@ describe("reactive-styles example", () => {
   });
 
   it("applies a whole-object style stream while preserving a static property", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     // Third .demo-box is StyleSwitcher, whose entire style object is a stream.
     // Each emit replaces all properties, so the static `transition` must survive

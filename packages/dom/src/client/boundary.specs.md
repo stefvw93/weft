@@ -25,7 +25,7 @@ Errors are reported via a `Cause<unknown>` so that `catchCause` can access defec
 ### `subscribeToStream` modification
 
 7. The stream subscription fiber is forked via `Effect.forkIn` and supervised: a watcher fiber (`Fiber.await` on the subscription fiber, itself forked into the same scope) observes its exit.
-8. Before forking, check for `BoundaryContext` via `Effect.serviceOption`. If present, the watcher routes any failure exit to `ctx.reportError(cause)`. If absent, the watcher reports the failure **explicitly** — Effect 4 removed the unhandled-error-log-level `FiberRef`, so nothing is deferred to the runtime: `Effect.logError(cause)` with a `weft.region` log annotation identifying the region/prop (e.g. `attribute:<name>`, `child:stream-<id>`, `list:stream-<id>`), so both typed failures and defects surface exactly once at Error level with the pretty-printed cause. Interruption-only causes (unmount teardown) stay silent (`Cause.hasInterruptsOnly` guard).
+8. Before forking, check for `BoundaryContext` via `Effect.serviceOption`. If present, the watcher routes any failure exit to `ctx.reportError(cause)`. If absent, the watcher reports the failure **explicitly** — Effect 4 removed the unhandled-error-log-level `FiberRef`, so nothing is deferred to the runtime: _(amended by weft-app.specs.md WA10)_ the cause is published to the owning app's unhandled-error hub via `RenderContext.reportUnhandled(cause, region)` with the region/prop identifier (e.g. `attribute:<name>`, `child:stream-<id>`, `list:stream-<id>`); with no `WeftApp.errors` subscribers this falls back to `Effect.logError(cause)` annotated with `weft.region`, so both typed failures and defects surface exactly once. Interruption-only causes (unmount teardown) stay silent (`Cause.hasInterruptsOnly` guard).
 9. This modification applies only to the subscription fiber — not to the synchronous stream setup path.
 
 ### `renderBoundary` — construction-time path
@@ -44,12 +44,12 @@ Errors are reported via a `Cause<unknown>` so that `catchCause` can access defec
     a. Closes the subtree scope — cancels all child fibers and prop pumps within the boundary.
     b. Calls `props.match(cause)`:
     - If `match` returns a `Node`: remove all DOM nodes between the boundary markers, render the fallback in a fresh scope, insert it between the markers.
-    - If `match` returns `null`: call the parent `BoundaryContext`'s `reportError` with the same cause (propagate to nearest parent boundary). If no parent exists, the cause is surfaced as an **unhandled boundary failure** — the recovery fiber logs it via `Effect.logError(message, cause)` so it is observable rather than silently swallowed. Unlike the construction-time path (AC11), this cannot reject the `mount` Effect, which has already resolved by the time a post-mount error occurs; logging is the terminal surfacing mechanism.
+    - If `match` returns `null`: call the parent `BoundaryContext`'s `reportError` with the same cause (propagate to nearest parent boundary). If no parent exists, the cause is surfaced as an **unhandled boundary failure** — _(amended by weft-app.specs.md WA11)_ the recovery fiber publishes it to the app's unhandled-error hub with region `boundary:outermost` (default `Effect.logError` fallback when unsubscribed), so it is observable rather than silently swallowed. Unlike the construction-time path (AC11), this cannot reject the `mount` Effect, which has already resolved by the time a post-mount error occurs; logging is the terminal surfacing mechanism.
 
 > **Sync vs. async surfacing of unhandled errors.** When the outermost boundary cannot handle an error and has no parent:
 >
 > - **Construction-time (synchronous, AC11):** the error occurs before `mount` resolves, so it re-raises out of `renderBoundary` as an Effect failure and **rejects** the `mount` Effect.
-> - **Post-mount (asynchronous stream failure, AC15):** the error occurs after `mount` has resolved, so it is **logged** as an unhandled boundary failure via `Effect.logError`.
+> - **Post-mount (asynchronous stream failure, AC15):** the error occurs after `mount` has resolved, so it is **published to the app's unhandled-error hub** as `boundary:outermost` (logged via the default fallback when the hub has no subscribers).
 >
 > Both apply equally whether the error arose synchronously at construction or asynchronously while consuming a stream — the renderer routes stream-fiber failures to the nearest `BoundaryContext` (AC7–9), so a boundary catches async stream errors in its subtree exactly as it catches construction-time errors.
 
@@ -128,4 +128,4 @@ Errors are reported via a `Cause<unknown>` so that `catchCause` can access defec
 
 type-tests: not applicable — `forkSupervised` (AC8 unobserved-exit supervision) is a non-exported module-internal helper in `render.ts`, unreachable from `__type-tests__`; its generics are plain pass-through with no overloads or conditional types, fully enforced by the main typecheck at its call sites.
 
-e2e: not applicable — AC8 no-boundary failure reporting is an explicit `Effect.logError` path inside `forkSupervised` (a watcher fiber observing the subscription fiber's exit), not browser-observable behavior beyond what jsdom reproduces faithfully; DOM effects (markers, adopted content standing) are covered by the jsdom unit tests, and the existing browser suite was run green as a renderer regression check.
+e2e: not applicable — AC8 no-boundary failure reporting is an explicit `reportUnhandled` publish (default-log fallback) inside `forkSupervised` (a watcher fiber observing the subscription fiber's exit), not browser-observable behavior beyond what jsdom reproduces faithfully; DOM effects (markers, adopted content standing) are covered by the jsdom unit tests, and the existing browser suite was run green as a renderer regression check.

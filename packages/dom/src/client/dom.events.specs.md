@@ -31,9 +31,15 @@ Enable declarative event handling in JSX where handlers can optionally return Ef
 
 ### AC4: Effect Handler Error Handling
 
-- **Given** an element with a handler that returns a failing Effect
+- **Given** an element with a handler that returns a failing **or dying** Effect
 - **When** the event fires
-- **Then** the error is logged and the UI stays responsive (no crash)
+- **Then** _(amended by weft-app.specs.md WA12)_ the full cause is published to
+  the owning app's unhandled-error hub (`WeftApp.errors`) with region
+  `event:<name>`, exactly once per dispatch, in development and production
+  alike; with no hub subscribers it falls back to the default `Effect.logError`
+  (annotated `weft.region`). The UI stays responsive (no crash). Interrupt-only
+  causes are not published. The historical `NODE_ENV`-gated production swallow
+  is deleted.
 
 ### AC5: Reactive Handler (Stream)
 
@@ -90,9 +96,9 @@ type EventHandler<T, E extends Event> =
 
 ### Error Handling Strategy
 
-- Effect-returning handlers that fail have their errors logged
+- Effect-returning handlers that fail or die publish to the app error hub (log fallback when unsubscribed)
 - The UI continues to function (catch and log, don't crash)
-- Use `Effect.catch` with `Effect.logError` for error reporting
+- Observe the handler's `Effect.exit` and route non-interrupt failures to `RenderContext.reportUnhandled`
 
 ### Runtime Context
 

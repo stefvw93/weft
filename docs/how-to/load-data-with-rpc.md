@@ -88,11 +88,13 @@ export const render = (url: string) =>
 
 ```typescript
 // entry-client.ts — network client posting to /_eui/rpc
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
+import { Effect } from "effect";
 import { StockRpcs } from "./data/inventory";
 
-const runtime = ManagedRuntime.make(RouterLive(App, { rpc: { group: StockRpcs } }));
-void runtime.runPromise(hydrate(RouterApp(App), root));
+const app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
 ```
 
 - **Server** ([`RouterServer`](../reference/router.md#routerserver)) mounts the handler Layer at `POST /_eui/rpc` (so a client refetch re-runs it on the server) **and** exposes an in-process client over the same handlers for SSR resolution — never a network hop.

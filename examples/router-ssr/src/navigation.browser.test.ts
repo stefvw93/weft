@@ -13,7 +13,7 @@
  */
 
 import { Component, h } from "@weftui/core";
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import type { RouterDef } from "@weftui/router";
 import {
   back,
@@ -27,7 +27,7 @@ import {
   RouterLive,
 } from "@weftui/router/client";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
-import { Effect, ManagedRuntime, Schema, Stream } from "effect";
+import { Effect, Schema, Stream } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /** Minimal rpc group: this local tree has no `Boundary.rpc`, but `rpc` is required. */
@@ -63,8 +63,7 @@ const def: RouterDef = Router.router(
 );
 
 let container: HTMLElement;
-let handle: MountHandle;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never>;
+let app: WeftApp.WeftApp<Router> | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -73,16 +72,15 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
   window.history.replaceState(null, "", "/");
 });
 
 const mountAt = async (path: string): Promise<void> => {
   window.history.replaceState(null, "", path);
-  runtime = ManagedRuntime.make(RouterLive(def, { rpc: { group: NoopRpcs } }));
-  handle = await runtime.runPromise(mount(RouterApp(def), container));
+  app = WeftApp.make(RouterLive(def, { rpc: { group: NoopRpcs } }));
+  await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
 };
 
 /** Waits until the `#tab` reactive reader shows `value`. */
@@ -99,14 +97,14 @@ describe("router programmatic navigation", () => {
     await waitForHome();
 
     // Programmatic navigation to the search route with a typed query arg.
-    await runtime.runPromise(navigate(searchRoute, { query: { tab: "x" } }));
+    await app!.runtime.runPromise(navigate(searchRoute, { query: { tab: "x" } }));
     await waitForTab("x");
 
     // Back → home; forward → search again (popstate resyncs the router).
-    await runtime.runPromise(back());
+    await app!.runtime.runPromise(back());
     await waitForHome();
 
-    await runtime.runPromise(forward());
+    await app!.runtime.runPromise(forward());
     await waitForTab("x");
   });
 
@@ -114,14 +112,14 @@ describe("router programmatic navigation", () => {
     await mountAt("/");
     await waitForHome();
 
-    await runtime.runPromise(push("/search?tab=1"));
+    await app!.runtime.runPromise(push("/search?tab=1"));
     await waitForTab("1");
 
     // Replace the current (tab=1) entry; back must now skip it and land on home.
-    await runtime.runPromise(replace("/search?tab=2"));
+    await app!.runtime.runPromise(replace("/search?tab=2"));
     await waitForTab("2");
 
-    await runtime.runPromise(back());
+    await app!.runtime.runPromise(back());
     await waitForHome();
   });
 
@@ -132,7 +130,7 @@ describe("router programmatic navigation", () => {
     expect(tabEl).not.toBeNull();
 
     // Query-only change: the leaf stays mounted, the reactive reader updates.
-    await runtime.runPromise(patchQuery({ tab: "b" }));
+    await app!.runtime.runPromise(patchQuery({ tab: "b" }));
     await waitForTab("b");
 
     // Same DOM node — no remount, just a reactive text update.

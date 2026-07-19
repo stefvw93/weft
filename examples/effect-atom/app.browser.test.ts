@@ -1,12 +1,11 @@
-import { mountScoped } from "@weftui/dom/client";
-import { Deferred, Effect, Fiber } from "effect";
+import { WeftApp } from "@weftui/dom/client";
+import { Effect } from "effect";
 import { AtomRegistry } from "effect/unstable/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 
 let container: HTMLElement;
-let shutdown: Deferred.Deferred<void>;
-let fiber: Fiber.Fiber<void, unknown> | undefined;
+let app: WeftApp.WeftApp<any, any> | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -14,28 +13,18 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  // Signal the scoped region to close (unmount → AtomRegistry.layer release), then
-  // await the fiber so the runtime is fully torn down before the next test.
-  await Effect.runPromise(Deferred.succeed(shutdown, undefined));
-  if (fiber) await Effect.runPromise(Fiber.join(fiber));
-  fiber = undefined;
+  // Dispose the app: root scope closes (unmount), then AtomRegistry.layer releases.
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
 });
 
-// Mount via the recommended composition: `AtomRegistry.layer` (scoped) is provided
-// OUTSIDE a long-lived scoped region, so it lives for the app's whole lifetime;
-// `mountScoped` registers unmount on the region's scope; `runFork` drives it and
-// `Deferred.await` keeps the region open until `afterEach` signals shutdown.
+// The scoped `AtomRegistry.layer` is owned by the app runtime: built on first
+// mount, alive across every interaction, released only at `WeftApp.dispose` —
+// no scope/Deferred lifetime dance needed.
 const mountApp = async () => {
-  shutdown = await Effect.runPromise(Deferred.make<void>());
-  fiber = Effect.runFork(
-    Effect.scoped(
-      Effect.gen(function* () {
-        yield* mountScoped(App(), container);
-        yield* Deferred.await(shutdown);
-      }),
-    ).pipe(Effect.provide(AtomRegistry.layer)),
-  );
+  app = WeftApp.make(AtomRegistry.layer);
+  await Effect.runPromise(WeftApp.mount(app, App(), container));
 };
 
 const byTestId = (id: string) => container.querySelector<HTMLElement>(`[data-testid="${id}"]`);
@@ -92,11 +81,11 @@ describe("effect-atom example", () => {
     );
   });
 
-  // Issue #123: the previously-broken composition now works. With the scoped
-  // `AtomRegistry.layer` provided outside the region, the registry stays alive across
-  // interactions (updates keep flowing); after shutdown the mount is unmounted and
-  // post-shutdown clicks no longer patch the DOM.
-  it("keeps the registry alive across interactions, then stops after shutdown", async () => {
+  // Issue #123: the previously-broken composition now works. The registry is
+  // owned by the app runtime, so it stays alive across interactions (updates
+  // keep flowing); after `WeftApp.dispose` the roots are unmounted and
+  // post-dispose clicks no longer patch the DOM.
+  it("keeps the registry alive across interactions, then stops after dispose", async () => {
     await mountApp();
     await vi.waitFor(() => expect(byTestId("count")?.textContent).toBe("0"));
 
@@ -105,12 +94,11 @@ describe("effect-atom example", () => {
     byTestId("increment")?.click();
     await vi.waitFor(() => expect(byTestId("count")?.textContent).toBe("2"));
 
-    // Shut down: unmount runs at scope close, then the registry layer releases.
-    await Effect.runPromise(Deferred.succeed(shutdown, undefined));
-    await Effect.runPromise(Fiber.join(fiber!));
+    // Dispose: root scopes close (unmount), then the registry layer releases.
+    await Effect.runPromise(WeftApp.dispose(app!));
 
-    // Nodes remain (unmount does not clear the root) but the handler is gone, so a
-    // further click no longer updates the atom-driven DOM.
+    // Nodes remain (unmount does not clear the root) but the handler work is
+    // interrupted, so a further click no longer updates the atom-driven DOM.
     const frozen = byTestId("count")?.textContent;
     expect(frozen).toBe("2");
     byTestId("increment")?.click();

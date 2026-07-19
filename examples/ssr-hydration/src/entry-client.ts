@@ -6,7 +6,7 @@
  * indicator from `[SSR]` to `[hydrated]` so the transition is visible.
  */
 
-import { hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { App } from "./app";
 
@@ -15,7 +15,8 @@ if (root === null) {
   throw new Error("#root not found");
 }
 
-void Effect.runPromise(hydrate(App({ initialValue: 3 }), root)).then(() => {
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.hydrate(app, App({ initialValue: 3 }), root)).then(() => {
   const status = document.getElementById("status");
   if (status !== null) {
     status.textContent = "[hydrated — interactive]";

@@ -4,7 +4,7 @@ import { Cause, Data, Deferred, Effect, pipe, Stream, SubscriptionRef } from "ef
 import { h, List } from "@weftui/core";
 import type { Renderable } from "@weftui/core/types";
 import { JSDOM } from "jsdom";
-import { hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 import {
   renderToString as _renderToString,
   renderToStringHydratable as _renderToStringHydratable,
@@ -135,7 +135,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     // Discount the server-side render invocations; count only client hydration.
     renders = 0;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
     assert.deepEqual(itemIds(root), ["a", "b"]);
@@ -163,7 +163,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     assert.ok(serverA);
     assert.equal(serverA.textContent, "0");
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
     // Subscription attached to the adopted node — a new emission updates it.
@@ -187,7 +187,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     // Discount server-side render invocations; count only client-side work.
     renders = 0;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
     assert.deepEqual(itemIds(root), ["a", "b"]);
     assert.equal(renders, 2, "only the adopted items rendered so far");
@@ -232,7 +232,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     // the first value; clear that so we observe only client-side teardown.
     cancelled.clear();
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
     assert.deepEqual(itemIds(root), ["a", "b", "c"]);
     assert.equal(cancelled.size, 0, "adopted subscriptions stay live after hydration");
@@ -259,7 +259,7 @@ describe("List.each hydration — HY2 flash-free adoption", () => {
     // Server `runHead` already fired each finalizer; observe only client teardown.
     cancelled.clear();
 
-    const handle = await Effect.runPromise(hydrate(app, root));
+    const handle = await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
     assert.equal(cancelled.size, 0, "adopted subscriptions stay live after hydration");
 
@@ -292,7 +292,7 @@ describe("List.each hydration — HY2 divergence", () => {
       errorCalls++;
     };
     try {
-      const exit = await Effect.runPromiseExit(hydrate(app, root));
+      const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), app, root));
       await waitForStream();
       assert.ok(exit._tag === "Success", "divergence is recoverable (no failure)");
       assert.deepEqual(itemIds(root), ["a", "b"], "region rebuilt to the correct first emission");
@@ -319,7 +319,7 @@ describe("List.each hydration — HY2 divergence", () => {
       errorCalls++;
     };
     try {
-      const exit = await Effect.runPromiseExit(hydrate(app, root));
+      const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), app, root));
       await waitForStream();
       assert.ok(exit._tag === "Success");
       assert.deepEqual(itemIds(root), ["a"], "item patched to the correct element");
@@ -352,7 +352,7 @@ describe("List.each hydration — HY2 nested lists", () => {
     const innerA1 = root.querySelector("#a1");
     assert.ok(outerA && innerA1);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
     // `collectAdoptedItems` stepped over the nested list-item markers (depth) so
@@ -376,7 +376,7 @@ describe("List.each hydration — HY2 marker id stability", () => {
     );
     const root = await seedServerHtml(app);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
     // Insert a new key after hydration — its fresh markers must be unique.
@@ -408,7 +408,7 @@ describe("List.each hydration — HY2 source & identity coverage", () => {
     const root = await seedServerHtml(app);
     assert.equal(commentData(root).filter((d) => d.includes("list-item-start")).length, 0);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
     assert.deepEqual(itemIds(root), []);
 
@@ -430,7 +430,7 @@ describe("List.each hydration — HY2 source & identity coverage", () => {
     const root = await seedServerHtml(app);
     renders = 0;
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
     assert.equal(renders, 1, "render invoked once per key during hydration");
     const a0 = root.querySelector("#a");
@@ -452,7 +452,7 @@ describe("List.each hydration — HY2 source & identity coverage", () => {
     const a0 = root.querySelector("#a");
     assert.ok(a0);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
     assert.deepEqual(itemIds(root), ["a", "b"]);
@@ -471,7 +471,7 @@ describe("List.each hydration — HY2 source & identity coverage", () => {
     );
     const root = await seedServerHtml(app);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await waitForStream();
 
     // Interact with the adopted input, then reorder.
@@ -523,7 +523,7 @@ describe("List.each hydration — AC-H15 no-boundary failure reporting", () => {
     );
 
     const { entries, logger } = makeErrorLogCapture();
-    await Effect.runPromise(pipe(hydrate(app, root), Effect.provide(logger)));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(logger), app, root));
     await waitForStream();
     assert.deepEqual(itemIds(root), ["a"], "snapshot adopted before the failure");
 

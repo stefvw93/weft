@@ -6,13 +6,13 @@
  * simulated async work completes.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -20,13 +20,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
 describe("async-data-loading example", () => {
   it("shows a loading state, then the resolved data", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     // Loading placeholder is present on initial render.
     await vi.waitFor(() => expect(container.querySelector(".loading")).not.toBeNull());

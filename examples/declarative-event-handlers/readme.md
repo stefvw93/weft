@@ -46,7 +46,7 @@ h.button({ onclick: handlerStream }, "Reactive Handler");
 2. Static handlers are attached directly via `addEventListener`
 3. Effect-returning handlers are detected at runtime and run via `runFork`
 4. Stream/Effect-wrapped handlers are subscribed to, updating the listener on each emission
-5. Services provided via `Effect.provide()` at mount are accessible in handlers
+5. Services provided to `WeftApp.make(layer)` are accessible in handlers
 
 ## Benefits
 
@@ -91,8 +91,9 @@ h.button(
   "Save",
 );
 
-// At mount:
-mount(App(), root).pipe(Effect.provide(DatabaseLive));
+// At app creation:
+const app = WeftApp.make(DatabaseLive);
+Effect.runPromise(WeftApp.mount(app, App(), root));
 ```
 
 ### Conditional Handler

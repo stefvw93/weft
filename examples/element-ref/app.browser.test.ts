@@ -15,13 +15,13 @@
  * state is asserted with `vi.waitFor` rather than synchronously.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -29,13 +29,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
 describe("element-ref example", () => {
   it("auto-focuses the input once its ref captures the mounted element", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     const input = await vi.waitFor(() => {
       const el = container.querySelector<HTMLInputElement>('input[placeholder="I\'m focused!"]');
@@ -48,7 +49,8 @@ describe("element-ref example", () => {
   });
 
   it("measures the box and reports its dimensions once mounted", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     // The test page lacks the example CSS, so don't assert pixel values — assert
     // the "Measuring..." → measured transition and the reported format instead.
@@ -64,7 +66,8 @@ describe("element-ref example", () => {
   });
 
   it("captures the DOM node so the handler can scroll it into view", async () => {
-    handle = await Effect.runPromise(mount(App(), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.mount(app, App(), container));
 
     const button = await vi.waitFor(() => {
       const el = [...container.querySelectorAll("button")].find(

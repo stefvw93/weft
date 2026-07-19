@@ -35,11 +35,11 @@ boundary under that layer exercises the client-first mount end to end.
    call and patch the subtree in place (the in-process client increments a `restocks`
    counter so you can see fresh data arrive).
 
-The seam is provided at the **mount call site**
-(`Effect.provide(mount(App(), root), AppRpcClientLive)`), not inside `App`, because the
-renderer drains the boundary's forked call in the mount's context — providing it ambiently
-around the node would not reach that inner drain. `app.ts` stays side-effect-free and
-exports `App` + `AppRpcClientLive`; `main.ts` is the thin entry.
+The seam is provided as **the app's layer** (`WeftApp.make(AppRpcClientLive)`), not inside
+`App`: services come exclusively from the app layer, so this is the only place that reaches
+the boundary's forked rpc call — an `Effect.provide` wrapped around the mount call would not
+reach it. `app.ts` stays side-effect-free and exports `App` + `AppRpcClientLive`; `main.ts`
+is the thin entry.
 
 ## When to use
 

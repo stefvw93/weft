@@ -12,9 +12,9 @@
  * client bundle), so client navigation resolves docs locally with no extra request.
  */
 
-import { hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
-import { ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { App } from "./app";
 import { DocsLive } from "./lib/docs-live";
 import { trackPageviews } from "./lib/goatcounter";
@@ -25,10 +25,10 @@ if (root === null) {
 }
 
 // `RouterLive` is a scoped layer (it owns the popstate listener + link click
-// interceptor), so it must outlive `hydrate`. A `ManagedRuntime` keeps it alive
-// for the page's lifetime; `hydrate` captures the `Router` service from it.
-const runtime = ManagedRuntime.make(RouterLive(App, { context: DocsLive }));
-void runtime.runPromise(hydrate(RouterApp(App), root));
+// interceptor), so it must outlive `hydrate`. The app runtime owns it: built on
+// first hydrate, released only at `WeftApp.dispose`.
+const app = WeftApp.make(RouterLive(App, { context: DocsLive }));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
 
 // GoatCounter only counts full page loads; report SPA navigations manually.
-runtime.runFork(trackPageviews);
+app.runtime.runFork(trackPageviews);

@@ -1,11 +1,11 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "vite-plus/test";
-import { Cause, Data, Deferred, Effect, pipe, Stream } from "effect";
+import { Cause, Data, Deferred, Effect, Stream } from "effect";
 import { Boundary, h } from "@weftui/core";
 import type { Renderable } from "@weftui/core";
 import { JSDOM } from "jsdom";
 import { makeErrorLogCapture } from "../__tests__/log-capture";
-import { hydrate } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ async function capturingConsoleError<A>(run: () => Promise<A>): Promise<{
  */
 async function runHydrateCapturingErrors(app: Renderable, root: HTMLElement) {
   const { entries, logger } = makeErrorLogCapture();
-  const handle = await Effect.runPromise(pipe(hydrate(app, root), Effect.provide(logger)));
+  const handle = await Effect.runPromise(WeftApp.hydrate(WeftApp.make(logger), app, root));
   return { handle, entries };
 }
 
@@ -118,7 +118,7 @@ describe("AC-H13: failure-boundary live machinery", () => {
       h.div({}, [failAfterFirst(trigger)]),
     ]);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     // Success path: server snapshot adopted, boundary markers inserted (the only
     // success-path DOM mutation — AC-H11 note).
@@ -147,7 +147,7 @@ describe("AC-H13: failure-boundary live machinery", () => {
     );
     const app = Boundary.catch({ fallback: () => h.p({ id: "outer" }, "outer") }, [inner]);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await Effect.runPromise(Deferred.succeed(trigger, void 0));
 
     await until(() => root.querySelector("#outer") !== null);
@@ -163,7 +163,7 @@ describe("AC-H13: failure-boundary live machinery", () => {
 
     const app = Boundary.catch({ fallback: () => h.p({ id: "fb" }, "nope") }, [h.div({}, "right")]);
 
-    const exit = await Effect.runPromiseExit(hydrate(app, root));
+    const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), app, root));
     assert.equal(exit._tag, "Failure");
     assert.equal(root.querySelector("#fb"), null);
   });
@@ -197,7 +197,7 @@ describe("AC-H14: substituted-suspense failure replay", () => {
     );
 
     // Resolves without HydrationMismatchError; the suspended child never runs.
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
 
     await until(() => root.querySelector("#fb") !== null);
     // The whole boundary extent (layout chrome + substituted region) is swapped.
@@ -215,7 +215,9 @@ describe("AC-H14: substituted-suspense failure replay", () => {
       Boundary.suspend({ fallback: h.span({}, "loading") }, [neverChild]),
     ]);
 
-    const { errors } = await capturingConsoleError(() => Effect.runPromise(hydrate(app, root)));
+    const { errors } = await capturingConsoleError(() =>
+      Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+    );
     await waitFor(30);
 
     assert.ok(errors.length >= 1);
@@ -237,7 +239,9 @@ describe("AC-H14: substituted-suspense failure replay", () => {
       ]),
     ]);
 
-    const { errors } = await capturingConsoleError(() => Effect.runPromise(hydrate(app, root)));
+    const { errors } = await capturingConsoleError(() =>
+      Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+    );
     await waitFor(30);
 
     assert.ok(errors.length >= 1);
@@ -255,7 +259,7 @@ describe("AC-H14: substituted-suspense failure replay", () => {
       Boundary.suspend({ fallback: h.span({}, "loading") }, [h.p({}, "resolved")]),
     ]);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     assert.equal(root.querySelector("p")?.textContent, "resolved");
   });
 });
@@ -275,7 +279,7 @@ describe("AC-H15: reactive-region failure routing", () => {
       h.div({}, [failAfterFirst(trigger)]),
     ]);
 
-    await Effect.runPromise(hydrate(app, root));
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
     await Effect.runPromise(Deferred.succeed(trigger, void 0));
 
     await until(() => root.querySelector("#fb") !== null);

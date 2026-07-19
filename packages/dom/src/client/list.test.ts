@@ -3,7 +3,7 @@ import { describe, it } from "vite-plus/test";
 import { Data, Effect, Stream, SubscriptionRef } from "effect";
 import { Boundary, h, List } from "@weftui/core";
 import { JSDOM } from "jsdom";
-import { mount } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ============================================================================
 // Test Setup (mirrors dom.test.ts)
@@ -26,7 +26,7 @@ function createRoot(): HTMLElement {
 }
 
 async function runMount(app: unknown, root: HTMLElement) {
-  return await Effect.runPromise(mount(app as never, root));
+  return await Effect.runPromise(WeftApp.mount(WeftApp.make(), app as never, root));
 }
 
 function waitFor(ms: number): Promise<void> {

@@ -8,7 +8,7 @@
  */
 
 import { AppRpcClientTag } from "@weftui/core";
-import { hydrate, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { renderToStringHydratable } from "@weftui/dom/server";
 import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -21,7 +21,7 @@ const NoRpc = Layer.succeed(AppRpcClientTag, {
 });
 
 let container: HTMLElement;
-let handle: MountHandle;
+let app: WeftApp.WeftApp;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -29,7 +29,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await Effect.runPromise(handle.unmount());
+  await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
 });
 
@@ -46,7 +46,8 @@ describe("ssr-hydration example", () => {
     expect(count()?.textContent).toContain("3");
 
     // 3. Hydrate over the server markup; the buttons become interactive.
-    handle = await Effect.runPromise(hydrate(App({ initialValue: 3 }), container));
+    app = WeftApp.make();
+    await Effect.runPromise(WeftApp.hydrate(app, App({ initialValue: 3 }), container));
 
     const plus = [...container.querySelectorAll("button")].find((b) => b.textContent === "+");
     expect(plus).toBeDefined();

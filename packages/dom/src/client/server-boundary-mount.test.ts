@@ -6,7 +6,7 @@ import { Cause, Deferred, Effect, Exit, Layer, Schema } from "effect";
 import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";
 import { RenderError } from "~/data";
-import { mount } from "./render";
+import * as WeftApp from "./weft-app";
 
 // ---------------------------------------------------------------------------
 // Test setup — client-first mount (C1): no SSR payload to replay.
@@ -82,7 +82,7 @@ describe("Boundary.rpc mount — client-first (C1)", () => {
     const gate = await Effect.runPromise(Deferred.make<ProductShape>());
     const layer = client(() => Deferred.await(gate));
 
-    await Effect.runPromise(Effect.provide(mount(boundary(), root), layer));
+    await Effect.runPromise(WeftApp.mount(WeftApp.make(layer), boundary(), root));
 
     // Fallback is visible while the (gated) rpc resolution is still in flight.
     assert.ok(root.querySelector("div.fallback"), "fallback rendered while pending");
@@ -102,7 +102,7 @@ describe("Boundary.rpc mount — client-first (C1)", () => {
     const root = createRoot();
     const layer = client(() => Effect.fail(new Error("network down")));
 
-    await Effect.runPromise(Effect.provide(mount(boundary(), root), layer));
+    await Effect.runPromise(WeftApp.mount(WeftApp.make(layer), boundary(), root));
 
     await waitFor(30);
     // Stale-on-error: no prior value to keep, so the fallback stays.
@@ -115,7 +115,7 @@ describe("Boundary.rpc mount — client-first (C1)", () => {
     const root = createRoot();
 
     // Router-less mount: no AppRpcClientTag provided.
-    const exit = await Effect.runPromiseExit(mount(boundary(), root));
+    const exit = await Effect.runPromiseExit(WeftApp.mount(WeftApp.make(), boundary(), root));
 
     assert.ok(Exit.isFailure(exit));
     const error = Cause.squash(exit.cause);

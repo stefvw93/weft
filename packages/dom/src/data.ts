@@ -95,7 +95,7 @@ export type RenderResult = Node | readonly Node[] | null;
  * and {@link settle} exactly once when its first emission has hydrated (matched,
  * recoverable-divergence patched, or errored via `ensuring`). `hydrate` seeds a
  * sentinel slot, runs the adopt walk, releases the sentinel, then awaits the
- * latch before returning the `MountHandle`, so the page is interactive when the
+ * latch before returning the `RootHandle`, so the page is interactive when the
  * promise settles.
  *
  * Hydrate-only: `mount` does not provide it (a blanket mount barrier deadlocks on
@@ -118,6 +118,12 @@ export type HydrationReady = {
 export class RenderContext extends Context.Service<
   RenderContext,
   {
+    /**
+     * The owning `WeftApp`'s shared runtime (one per app, not per root). Typed
+     * app-agnostically as `ManagedRuntime<never, never>`; the single widening
+     * cast lives at the `weft-app.ts` boundary. Used to run event-handler
+     * effects against the app layer's services.
+     */
     readonly runtime: ManagedRuntime.ManagedRuntime<never, never>;
     /**
      * The current enclosing reactive scope. All forked fibers and prop pumps
@@ -126,6 +132,21 @@ export class RenderContext extends Context.Service<
      * point at the same scope.
      */
     readonly scope: Scope.Scope;
+    /**
+     * The root's own scope (a child of the app scope). Unlike {@link scope},
+     * this never changes as boundaries fork subtree scopes. Event handlers
+     * provide it as the ambient `Scope.Scope`, so handler-forked scoped work
+     * (`forkScoped`, `acquireRelease`) is owned by the root and dies at
+     * `unmount`.
+     */
+    readonly rootScope: Scope.Scope;
+    /**
+     * Publishes an error that escaped every user-level handler to the owning
+     * app's unhandled-error hub (see `WeftApp.errors`). `region` identifies the
+     * escape site, e.g. `attribute:class`, `child:stream-3`, `event:onclick`,
+     * `boundary:outermost`.
+     */
+    readonly reportUnhandled: (cause: Cause.Cause<unknown>, region: string) => Effect.Effect<void>;
     readonly streamIdCounter: { current: number };
     /**
      * Hydration interactivity-barrier latch (see {@link HydrationReady}).

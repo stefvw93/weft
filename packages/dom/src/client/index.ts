@@ -1,3 +1,8 @@
-export type { MountHandle } from "./render";
-export { mount, hydrate } from "./render";
-export { mountScoped, hydrateScoped } from "./mount-scoped";
+export * as WeftApp from "./weft-app";
+export type {
+  HydrateError,
+  MountError,
+  RootHandle,
+  UnhandledError,
+  WeftApp as WeftAppType,
+} from "./weft-app";

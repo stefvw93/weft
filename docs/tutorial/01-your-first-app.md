@@ -27,14 +27,15 @@ A **component is a plain function you call** — there is no JSX and no `<Compon
 
 ```typescript
 import { h } from "@weftui/core";
-import { mount } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
 
 function App() {
   return h.div({ class: "app" }, [h.h1("Hello, Weft"), h.p("A minimal app.")]);
 }
 
-void Effect.runPromise(mount(App(), document.getElementById("root")!));
+const app = WeftApp.make();
+void Effect.runPromise(WeftApp.mount(app, App(), document.getElementById("root")!));
 ```
 
 The `h` namespace is the entry point: every property (`h.div`, `h.h1`, `h.button`, …) is a builder for that HTML tag. A builder takes optional props and children, and returns a `Node`.
@@ -42,7 +43,7 @@ The `h` namespace is the entry point: every property (`h.div`, `h.h1`, `h.button
 ## What just happened
 
 - `App()` returns a **`Node<never, never>`** — the two type parameters are the error channel (`E`) and the requirement channel (`R`), both `never` here because this component neither fails nor needs a service. As your app grows, those channels accumulate what it can fail with and what it depends on. That is the whole point of Weft's types — see [The Rendering Model](../explanation/rendering-model.md).
-- `mount(node, target)` renders the node into `target`, building real DOM and starting any reactive streams. It returns an `Effect<MountHandle>`; run it with your Effect runtime (`Effect.runPromise` is fine for a script).
+- `WeftApp.make()` creates a Weft app — synchronously, with no layer to build yet. `WeftApp.mount(app, node, target)` renders the node into `target`, building real DOM and starting any reactive streams. It returns `Effect<RootHandle, …>` with `R = never`, so a bare `Effect.runPromise` runs it — no `Effect.provide` needed. You will give `WeftApp.make` a `Layer` once components need services — see [Services and Async](./03-services-and-async.md).
 - The component function runs **once**. Nothing here re-runs on a timer or a state change — because there is no state yet. That comes next.
 
 ## Next

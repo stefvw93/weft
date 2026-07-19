@@ -22,11 +22,11 @@
  */
 
 import { Component, Boundary, h } from "@weftui/core";
-import { hydrate, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { notFound, type RouterDef } from "@weftui/router";
 import { Router, RouterApp, RouterLive } from "@weftui/router/client";
 import { RouterServer } from "@weftui/router/server";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /** Counts client-side runs of the suspended loader — must stay at 0 on hydrate. */
@@ -74,8 +74,7 @@ const documentShell = Component.gen(function* () {
 });
 
 let container: HTMLElement;
-let handle: MountHandle;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never>;
+let app: WeftApp.WeftApp<Router> | undefined;
 
 beforeEach(() => {
   loaderRuns = 0;
@@ -85,8 +84,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
   document.head.querySelector('meta[name="robots"]')?.remove();
   window.history.replaceState(null, "", "/");
@@ -153,8 +151,8 @@ describe("router-ssr — streamed soft-404 hydration (SW8)", () => {
       // loader once; reset so the counter observes only client-side re-runs.
       loaderRuns = 0;
       window.history.replaceState(null, "", "/late");
-      runtime = ManagedRuntime.make(RouterLive(def));
-      handle = await runtime.runPromise(hydrate(RouterApp(def), container));
+      app = WeftApp.make(RouterLive(def));
+      await Effect.runPromise(WeftApp.hydrate(app, RouterApp(def), container));
 
       // (a) The boundary swap converges on the canonical client notFound page:
       //     the server layout chrome disappears, the notFound page remains.

@@ -7,16 +7,15 @@
  * resulting card order for two different `?sort=` values.
  */
 
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { patchQuery, Router, RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { App } from "./app";
 import { StockRpcs } from "./data/inventory";
 
 let container: HTMLElement;
-let handle: MountHandle;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never>;
+let app: WeftApp.WeftApp<Router> | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -25,16 +24,15 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
   window.history.replaceState(null, "", "/");
 });
 
 const mountAt = async (path: string): Promise<void> => {
   window.history.replaceState(null, "", path);
-  runtime = ManagedRuntime.make(RouterLive(App, { rpc: { group: StockRpcs } }));
-  handle = await runtime.runPromise(mount(RouterApp(App), container));
+  app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
+  await Effect.runPromise(WeftApp.mount(app, RouterApp(App), container));
 };
 
 /** The product ids of the rendered cards, in DOM order. */
@@ -50,7 +48,7 @@ describe("router-ssr shop — listing sort query", () => {
     await vi.waitFor(() => expect(cardIds()).toEqual(["1", "2", "5", "3", "4", "6"]));
 
     // Query-only change → the leaf re-renders sorted by ascending price.
-    await runtime.runPromise(patchQuery({ sort: "price-asc" }));
+    await app!.runtime.runPromise(patchQuery({ sort: "price-asc" }));
     await vi.waitFor(() => expect(cardIds()).toEqual(["4", "6", "1", "5", "3", "2"]));
   });
 });

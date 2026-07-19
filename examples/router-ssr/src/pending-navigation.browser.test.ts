@@ -15,10 +15,10 @@
  */
 
 import { Component, h } from "@weftui/core";
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import type { RouterDef } from "@weftui/router";
 import { push, Router, RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, ManagedRuntime, Stream } from "effect";
+import { Effect, Stream } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /** The lazily-loaded page body (its own would-be chunk). */
@@ -68,8 +68,7 @@ function makeDef(load: () => Promise<typeof LazyBody>): RouterDef {
 }
 
 let container: HTMLElement;
-let handle: MountHandle | undefined;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never> | undefined;
+let app: WeftApp.WeftApp<Router> | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -79,10 +78,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
-  handle = undefined;
-  runtime = undefined;
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
   window.history.replaceState(null, "", "/");
 });
@@ -94,8 +91,8 @@ describe("Pending navigation — deferred commit (AC-N1/AC-N5)", () => {
   it("keeps the old page mounted with no blank while the chunk resolves, then swaps atomically", async () => {
     const gate = makeGate();
     const def = makeDef(gate.load);
-    runtime = ManagedRuntime.make(RouterLive(def));
-    handle = await runtime.runPromise(mount(RouterApp(def), container));
+    app = WeftApp.make(RouterLive(def));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
 
     await vi.waitFor(() => expect(container.querySelector("#to-lazy")).not.toBeNull());
     await vi.waitFor(() => expect(indicator()).toBe("idle"));
@@ -132,8 +129,8 @@ describe("Pending navigation — deferred commit (AC-N1/AC-N5)", () => {
   it("AC-N4: a revisit to an already-loaded lazy route renders from the memo", async () => {
     const gate = makeGate();
     const def = makeDef(gate.load);
-    runtime = ManagedRuntime.make(RouterLive(def));
-    handle = await runtime.runPromise(mount(RouterApp(def), container));
+    app = WeftApp.make(RouterLive(def));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
 
     await vi.waitFor(() => expect(container.querySelector("#to-lazy")).not.toBeNull());
 
@@ -143,9 +140,9 @@ describe("Pending navigation — deferred commit (AC-N1/AC-N5)", () => {
     await vi.waitFor(() => expect(container.querySelector("#lazy")).not.toBeNull());
 
     // Away and back: the revisit renders again from the per-slot memo (no re-gate).
-    await runtime.runPromise(push("/"));
+    await app!.runtime.runPromise(push("/"));
     await vi.waitFor(() => expect(container.querySelector("#home")).not.toBeNull());
-    await runtime.runPromise(push("/lazy"));
+    await app!.runtime.runPromise(push("/lazy"));
     await vi.waitFor(() => expect(container.querySelector("#lazy")).not.toBeNull());
     expect(indicator()).toBe("idle");
   });

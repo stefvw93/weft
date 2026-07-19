@@ -8,9 +8,9 @@
  * navigate without a full page load.
  */
 
-import { hydrate } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import { RouterApp, RouterLive } from "@weftui/router/client";
-import { ManagedRuntime } from "effect";
+import { Effect } from "effect";
 import { App } from "./app";
 import { StockRpcs } from "./data/inventory";
 
@@ -20,7 +20,7 @@ if (root === null) {
 }
 
 // `RouterLive` is a scoped layer (it owns the popstate listener + link click
-// interceptor), so it must outlive `hydrate`. A `ManagedRuntime` keeps it alive
-// for the page's lifetime; `hydrate` captures the `Router` service from it.
-const runtime = ManagedRuntime.make(RouterLive(App, { rpc: { group: StockRpcs } }));
-void runtime.runPromise(hydrate(RouterApp(App), root));
+// interceptor), so it must outlive `hydrate`. The app runtime owns it: built on
+// first hydrate, released only at `WeftApp.dispose`.
+const app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));

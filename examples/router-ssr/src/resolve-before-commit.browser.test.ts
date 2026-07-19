@@ -19,10 +19,10 @@
  */
 
 import { Component, h } from "@weftui/core";
-import { mount, type MountHandle } from "@weftui/dom/client";
+import { WeftApp } from "@weftui/dom/client";
 import type { RouterDef } from "@weftui/router";
 import { push, Router, RouterApp, RouterLive } from "@weftui/router/client";
-import { Effect, ManagedRuntime, Stream } from "effect";
+import { Effect, Stream } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -74,8 +74,7 @@ function makeDef(component: () => ReturnType<typeof h.div>): RouterDef {
 }
 
 let container: HTMLElement;
-let handle: MountHandle | undefined;
-let runtime: ManagedRuntime.ManagedRuntime<Router, never> | undefined;
+let app: WeftApp.WeftApp<Router> | undefined;
 
 beforeEach(() => {
   container = document.createElement("div");
@@ -85,10 +84,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  if (handle !== undefined) await Effect.runPromise(handle.unmount());
-  if (runtime !== undefined) await runtime.dispose();
-  handle = undefined;
-  runtime = undefined;
+  if (app !== undefined) await Effect.runPromise(WeftApp.dispose(app));
+  app = undefined;
   container.remove();
   window.history.replaceState(null, "", "/");
 });
@@ -100,8 +97,8 @@ describe("Resolve-before-commit — leaf data pre-run (AC1/AC3/AC5)", () => {
   it("keeps the old page mounted with no blank while the body's data resolves, then swaps atomically", async () => {
     const page = makeDataPage();
     const def = makeDef(page.component);
-    runtime = ManagedRuntime.make(RouterLive(def));
-    handle = await runtime.runPromise(mount(RouterApp(def), container));
+    app = WeftApp.make(RouterLive(def));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
 
     await vi.waitFor(() => expect(container.querySelector("#to-data")).not.toBeNull());
     await vi.waitFor(() => expect(indicator()).toBe("idle"));
@@ -138,8 +135,8 @@ describe("Resolve-before-commit — leaf data pre-run (AC1/AC3/AC5)", () => {
   it("AC3: a revisit whose body resolves synchronously (memoized data) never flips the indicator", async () => {
     const page = makeDataPage();
     const def = makeDef(page.component);
-    runtime = ManagedRuntime.make(RouterLive(def));
-    handle = await runtime.runPromise(mount(RouterApp(def), container));
+    app = WeftApp.make(RouterLive(def));
+    await Effect.runPromise(WeftApp.mount(app, RouterApp(def), container));
 
     await vi.waitFor(() => expect(container.querySelector("#to-data")).not.toBeNull());
 
@@ -149,7 +146,7 @@ describe("Resolve-before-commit — leaf data pre-run (AC1/AC3/AC5)", () => {
     await vi.waitFor(() => expect(container.querySelector("#data")).not.toBeNull());
 
     // Back home, then record every indicator change across the memoized revisit.
-    await runtime.runPromise(push("/"));
+    await app!.runtime.runPromise(push("/"));
     await vi.waitFor(() => expect(container.querySelector("#home")).not.toBeNull());
 
     const states: string[] = [];
@@ -159,7 +156,7 @@ describe("Resolve-before-commit — leaf data pre-run (AC1/AC3/AC5)", () => {
     });
     observer.observe(indicatorEl, { childList: true, subtree: true, characterData: true });
 
-    await runtime.runPromise(push("/data"));
+    await app!.runtime.runPromise(push("/data"));
     await vi.waitFor(() => expect(container.querySelector("#data")).not.toBeNull());
 
     observer.disconnect();
