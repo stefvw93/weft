@@ -7,7 +7,9 @@ description: How h, h.fragment, and Component.gen / Component.make work; why Nod
 
 # The Combinator API
 
-Weft builds UI trees by calling builder functions. Because component return types stay as generic `Effect.Effect<ElementDescriptor, E, R>`, the error channel (`E`) and requirements channel (`R`) propagate through the entire tree — visible to the type checker, satisfiable at the mount boundary. JSX collapses every component's return type to an opaque `JSX.Element`, erasing both channels; the combinator API exists specifically to keep them intact.
+Weft builds UI trees by calling builder functions. Because component return types stay as generic `Effect.Effect<ElementDescriptor, E, R>`, the error channel (`E`) and requirements channel (`R`) propagate through the entire tree: visible to the type checker, satisfiable at the mount boundary.
+
+JSX collapses every component's return type to an opaque `JSX.Element`, erasing both channels. The combinator API exists specifically to keep them intact.
 
 ## Nodes are Effects
 
@@ -23,13 +25,13 @@ Nodes are first-class Effects. Everything in the Effect ecosystem works on them 
 import { h } from "@weftui/core";
 import { Effect } from "effect";
 
-// yield* in Effect.gen — R propagates into the generator's context
+// yield* in Effect.gen: R propagates into the generator's context
 const node = yield * h.div({ class: "container" }, "Hello");
 
-// pipe — chain Effect operators directly
+// pipe: chain Effect operators directly
 const provided = pipe(h.div(userStream), Effect.provide(UserServiceLive));
 
-// Effect.flatMap — sequence node creation with async logic
+// Effect.flatMap: sequence node creation with async logic
 const card = pipe(
   fetchCard(id),
   Effect.flatMap((data) => h.div({ class: "card" }, data.title)),
@@ -78,7 +80,7 @@ Reactive prop values (any `Stream`, `Effect`, or `Subscribable`) contribute thei
 ```typescript
 declare const colorStream: Stream.Stream<string, never, ThemeService>;
 
-// Node<never, ThemeService> — R comes from the stream prop
+// Node<never, ThemeService>: R comes from the stream prop
 const box = h.div({ style: { color: colorStream } }, "Hello");
 ```
 
@@ -130,7 +132,7 @@ declare const labelStream: Stream.Stream<string, never, I18nService>;
 const btn = Button({ label: labelStream });
 ```
 
-Components also accept an optional `children` argument, either as `readonly Renderable[]` or as a `(input) => readonly Renderable[]` function (render-prop pattern). `E`/`R` from children — including the array returned by a function-children call — accumulate on the resulting node.
+Components also accept an optional `children` argument, either as `readonly Renderable[]` or as a `(input) => readonly Renderable[]` function (render-prop pattern). `E`/`R` from children, including the array returned by a function-children call, accumulate on the resulting node.
 
 Without `Component`, a plain function's return type is fixed at definition time and does not reflect the caller's reactive prop types.
 
@@ -149,16 +151,16 @@ Boundary.suspend({ fallback: h.div({ class: "spinner" }, "Loading...") }, [
 ]);
 ```
 
-The fallback is replaced atomically — either all children are visible or none are. This prevents partial flicker when multiple async siblings resolve at different times. The boundary's node type is `Node<ChildrenE, ChildrenR>`: the children's `E`/`R` channels accumulate onto it, exactly as they would for a plain `h.*` parent.
+The fallback is replaced atomically: either all children are visible or none are. This prevents partial flicker when multiple async siblings resolve at different times. The boundary's node type is `Node<ChildrenE, ChildrenR>`: the children's `E`/`R` channels accumulate onto it, exactly as they would for a plain `h.*` parent.
 
 On the server, `renderToStreamHydratable` emits the fallback inline and appends patch scripts as children resolve. On the client, `hydrate` sees through `Boundary.suspend` boundaries and adopts the already-resolved DOM directly.
 
-`Boundary.suspend` is one of the boundary combinators — see the [core reference](../reference/core.md#boundarysuspend) for the full `Boundary.*` surface, including the failure-catch variants and `Boundary.rpc`.
+`Boundary.suspend` is one of the boundary combinators. See the [core reference](../reference/core.md#boundarysuspend) for the full `Boundary.*` surface, including the failure-catch variants and `Boundary.rpc`.
 
 ## See also
 
-- [The Rendering Model](./rendering-model.md) — why a `Node` is an `Effect` and how the tree renders
-- [Reactive Primitives](./reactive-primitives.md) — the `Source` vocabulary that reactive props and children accept
-- [Boundaries and Suspense](./boundaries-and-suspense.md) — the boundary combinators as tree nodes
-- [Author Components](../how-to/author-components.md) — `Component.gen` / `Component.make` in practice
+- [The Rendering Model](./rendering-model.md): why a `Node` is an `Effect` and how the tree renders
+- [Reactive Primitives](./reactive-primitives.md): the `Source` vocabulary that reactive props and children accept
+- [Boundaries and Suspense](./boundaries-and-suspense.md): the boundary combinators as tree nodes
+- [Author Components](../how-to/author-components.md): `Component.gen` / `Component.make` in practice
 - [`@weftui/core` reference](../reference/core.md)
