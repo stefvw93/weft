@@ -163,12 +163,31 @@ The `examples/` folder contains standalone workspace packages demonstrating spec
 
 ### Documentation
 
-- All exported functions, types, and values must have JSDoc comments
+- Every exported function, type, and value gets JSDoc; self-evident ones get exactly one line.
+- One line per function unless behavior is non-obvious.
+- No `@example` unless usage isn't inferable from the signature/name.
+- Don't restate param names/types in prose; describe a param only when not self-explanatory.
+- Inline comments explain _why_, never _what_. Skip them on self-evident code.
+- Doc block ≤ 3 lines for typical functions. Longer only for public API surfaces with real edge cases.
+- Match the doc density of the file you're editing.
+- No em-dashes in JSDoc or comments. Use a period, comma, colon, or parentheses.
 - JSDoc `@type` annotations can be omitted (TypeScript handles types)
-- Include text descriptions for parameters when not self-explanatory
-- Inline comments only when needed - avoid commenting obvious code
 - TODOs and FIXMEs are acceptable
 - Effect Schemas should include descriptions/annotations when not self-explanatory
+
+### Docs Prose Style
+
+Applies to all prose documentation: `docs/` pages, READMEs, example readmes, conceptual guides.
+
+- Max ~20-25 words per sentence. If a sentence runs long, split it into two.
+- No em-dashes, anywhere. Use a period, comma, colon, or parentheses instead.
+- New paragraph every 2-4 sentences. One idea per paragraph.
+- Cut throat-clearing: no "It's important to note," "In order to," "This section will cover."
+- State the fact once, then stop. No restating for emphasis.
+- Prefer bullets/steps over prose when listing >2 items.
+- No hedging ("generally," "in most cases") unless the exception actually matters here.
+- Delete a sentence if removing it loses no information.
+- Metaphor/voice allowed as one short sentence where it aids understanding; no extended analogy paragraphs. Exception: weft/loom/threads/fibers metaphors are part of the library's identity and may run longer.
 
 ### TDD Workflow
 

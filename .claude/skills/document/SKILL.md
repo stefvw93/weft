@@ -15,7 +15,7 @@ Bring all documentation touched by the change up to date. Commits are blocked un
 
 ## Scope — everything touched by the change
 
-1. **JSDoc** on all new/changed exported functions, types, and values (created in `/mock`; verify present and accurate now). Omit `@type` annotations; describe non-obvious parameters; annotate Effect Schemas when not self-explanatory.
+1. **JSDoc** on all new/changed exported functions, types, and values (created in `/mock`; verify present and accurate now). Self-evident exports get exactly one line; doc blocks ≤ 3 lines for typical functions; no `@example` unless usage isn't inferable from the signature/name; no em-dashes. Omit `@type` annotations; describe non-obvious parameters; annotate Effect Schemas when not self-explanatory.
 2. **`specs.md` sync** — the spec must reflect final behavior. If implementation legitimately changed details (via the pause rule), the spec already says so; verify. Acceptance criteria, skip records, and edge cases must match reality.
 3. **`docs/` pages and package READMEs** — update or create when the public API surface of a package changed. `docs/` follows the Diátaxis framework (`tutorial/`, `how-to/`, `reference/`, `explanation/`) — each page fits exactly one mode; the `weft-docs-author` agent carries the placement rules.
 4. **Example `readme.md`** for every touched `examples/*` package — must contain the required sections: Overview, Problem, Solution, How It Works, When to Use.
@@ -37,4 +37,5 @@ Bring all documentation touched by the change up to date. Commits are blocked un
 ## Rules
 
 - Documentation is a hard gate — a feature without its docs sweep is not committable.
+- All prose follows the "Docs Prose Style" rules in `CLAUDE.md` (sentence length cap, no em-dashes, paragraph cadence, bullets over long prose lists, metaphor allowance).
 - Docs must match the source: every claim verifiable, code samples follow Oxfmt conventions (tabs, double quotes) and Effect idioms, no `<Component/>`-style JSX in any sample.
