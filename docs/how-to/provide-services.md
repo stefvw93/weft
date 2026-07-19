@@ -2,7 +2,7 @@
 title: Provide Services
 order: 12
 section: how-to
-description: Provide plain and scoped Layers to a WeftApp: app layers for the common case, scoped layers that just work, memoMap sharing, and binding an app's lifetime to a scope.
+description: "Provide plain and scoped Layers to a WeftApp: app layers for the common case, scoped layers that just work, memoMap sharing, and binding an app's lifetime to a scope."
 ---
 
 # Provide Services

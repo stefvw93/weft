@@ -2,7 +2,7 @@
 title: Your First App
 order: 1
 section: tutorial
-description: Install Weft, build a component with the h namespace, and mount it: the smallest possible Weft app.
+description: "Install Weft, build a component with the h namespace, and mount it: the smallest possible Weft app."
 ---
 
 # Your First App

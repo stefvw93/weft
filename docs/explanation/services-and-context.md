@@ -2,7 +2,7 @@
 title: Services and Context
 order: 5
 section: explanation
-description: How Effect services reach components: the requirement channel, discharging R at the mount, the router's render-time context seam, and ServerTag server-only brands.
+description: "How Effect services reach components: the requirement channel, discharging R at the mount, the router's render-time context seam, and ServerTag server-only brands."
 ---
 
 # Services and Context

@@ -2,7 +2,7 @@
 title: "@weftui/router"
 order: 3
 section: reference
-description: Full API surface for @weftui/router: universal nested routing, type-safe href, layouts, and SSR entry points.
+description: "Full API surface for @weftui/router: universal nested routing, type-safe href, layouts, and SSR entry points."
 ---
 
 # @weftui/router API Reference
