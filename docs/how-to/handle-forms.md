@@ -25,7 +25,7 @@ const LoginForm = () =>
     const email = yield* SubscriptionRef.make("");
     const status = yield* SubscriptionRef.make<string | null>(null);
 
-    // Validation is a stream derived from the field — it re-runs as the user types.
+    // Validation is a stream derived from the field: it re-runs as the user types.
     const error = Stream.map(SubscriptionRef.changes(email), (value) => {
       if (value.length === 0) return null; // don't nag an empty field
       return Result.match(Schema.decodeUnknownResult(Email)(value), {
@@ -61,8 +61,8 @@ const LoginForm = () =>
 ## How it works
 
 - **Field state** is a `SubscriptionRef.make("")`; `oninput` writes the current value with `SubscriptionRef.set`. Because the input is driven by the ref, it is a controlled input.
-- **Validation is reactive**, not on-blur or on-submit only: `Stream.map(SubscriptionRef.changes(email), …)` produces an error string (or `null`) on every keystroke. Use [`Schema`](https://effect.website/docs/schema/introduction) to decode — `Schema.decodeUnknownResult(schema)(value)` returns a `Result`, and `Result.match` turns it into UI. A node or `null` in a child slot renders the error or nothing.
-- **Submit returns an Effect.** `onsubmit` calls `e.preventDefault()` and then **returns** an `Effect` (it is not `yield*`-ed inline) — the renderer runs it in a detached fiber, so it can `SubscriptionRef.set`, `Effect.sleep`, read fields with `SubscriptionRef.get`, or call a service.
+- **Validation is reactive**, not on-blur or on-submit only: `Stream.map(SubscriptionRef.changes(email), …)` produces an error string (or `null`) on every keystroke. Use [`Schema`](https://effect.website/docs/schema/introduction) to decode: `Schema.decodeUnknownResult(schema)(value)` returns a `Result`, and `Result.match` turns it into UI. A node or `null` in a child slot renders the error or nothing.
+- **Submit returns an Effect.** `onsubmit` calls `e.preventDefault()` and then **returns** an `Effect` (it is not `yield*`-ed inline). The renderer runs it in a detached fiber, so it can `SubscriptionRef.set`, `Effect.sleep`, read fields with `SubscriptionRef.get`, or call a service.
 
 ## Variations
 
@@ -71,6 +71,6 @@ const LoginForm = () =>
 
 ## See also
 
-- [Reactive Primitives](../explanation/reactive-primitives.md) — `SubscriptionRef.changes` and stream-shaped children
-- [Author Components](./author-components.md) — Effect-returning and service-aware handlers
-- [examples/form-handling](../../examples/form-handling) — a runnable multi-field form with Schema validation and an async submit
+- [Reactive Primitives](../explanation/reactive-primitives.md): `SubscriptionRef.changes` and stream-shaped children
+- [Author Components](./author-components.md): Effect-returning and service-aware handlers
+- [examples/form-handling](../../examples/form-handling): a runnable multi-field form with Schema validation and an async submit

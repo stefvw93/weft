@@ -2,12 +2,12 @@
 title: Errors and Server Rendering
 order: 4
 section: tutorial
-description: Catch rendering-path failures with Boundary, then render on the server and hydrate — the last step of the tutorial.
+description: Catch rendering-path failures with Boundary, then render on the server and hydrate. The last step of the tutorial.
 ---
 
 # Errors and Server Rendering
 
-The final step. [We can now](./03-services-and-async.md) use services and async; here we handle what happens when async work **fails**, and how the same tree renders on the server.
+The final step. [We can now](./03-services-and-async.md) use services and async. Here we handle what happens when async work **fails**, and how the same tree renders on the server.
 
 ## Error boundaries
 
@@ -25,11 +25,13 @@ const SafeWidget = () =>
   ]);
 ```
 
-There are six failure-catch variants — `catch`, `catchCause`, `catchTag`, `catchTags`, `catchFilter`, `catchIf` — mirroring Effect's own error operators. A failure that a boundary does not match re-raises to the **nearest enclosing** boundary; if none catches it, the mount fails. The conceptual model (and why the boundary's type reflects exactly which failures are handled) is [Boundaries and Suspense](../explanation/boundaries-and-suspense.md).
+There are six failure-catch variants, mirroring Effect's own error operators: `catch`, `catchCause`, `catchTag`, `catchTags`, `catchFilter`, `catchIf`. A failure that a boundary does not match re-raises to the **nearest enclosing** boundary. If none catches it, the mount fails.
+
+The conceptual model (and why the boundary's type reflects exactly which failures are handled) is [Boundaries and Suspense](../explanation/boundaries-and-suspense.md).
 
 ## Render on the server
 
-The same component tree renders to HTML on the server and **hydrates in place** on the client — no re-render, no flash. The server produces markup (plus inline data), and `hydrate` adopts that existing DOM and resumes reactivity:
+The same component tree renders to HTML on the server and **hydrates in place** on the client: no re-render, no flash. The server produces markup (plus inline data). `hydrate` adopts that existing DOM and resumes reactivity:
 
 ```typescript
 // server entry
@@ -50,7 +52,14 @@ const app = WeftApp.make();
 void Effect.runPromise(WeftApp.hydrate(app, App(), document.getElementById("root")!));
 ```
 
-The same side-effect-free `App` is imported by both entries. For server-resolved data that replays into the client without a second request, `Boundary.rpc` extends this model — resolve an rpc on the server, serialize its result into the HTML, replay it on hydrate, then keep the region live for refetch.
+The same side-effect-free `App` is imported by both entries.
+
+For server-resolved data that replays into the client without a second request, `Boundary.rpc` extends this model:
+
+1. Resolve an rpc on the server.
+2. Serialize its result into the HTML.
+3. Replay it on hydrate.
+4. Keep the region live for refetch.
 
 ## You're done
 

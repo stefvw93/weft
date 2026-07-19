@@ -7,14 +7,14 @@ description: The Source<A, E, R> vocabulary; Stream, Effect, and Subscribable as
 
 # Reactive Primitives
 
-The unified `Source` vocabulary is what lets static values, Effects, Streams, and Subscribables be used interchangeably wherever reactivity is supported — props, children, and style values all accept the same type.
+The unified `Source` vocabulary lets static values, Effects, Streams, and Subscribables be used interchangeably. Props, children, and style values all accept the same type.
 
 Weft accepts a `Source` for prop values and children. Any of these is valid wherever reactivity is supported:
 
 - A plain static value (`string`, `number`, `boolean`, ...)
-- An `Effect.Effect<A, E, R>` — runs once and resolves to a value
-- A `Stream.Stream<A, E, R>` — each emission replaces the previous value
-- A `Subscribable<A, E, R>` — like a hot stream; already has a "current value"
+- An `Effect.Effect<A, E, R>`: runs once and resolves to a value
+- A `Stream.Stream<A, E, R>`: each emission replaces the previous value
+- A `Subscribable<A, E, R>`: like a hot stream; already has a "current value"
 
 The `Source<A, E, R>` type captures this union:
 
@@ -24,7 +24,7 @@ type Source<A, E, R> = A | Effect.Effect<A, E, R> | Stream.Stream<A, E, R> | Sub
 
 ## Static values
 
-Static props behave exactly as you'd expect — set once and never updated:
+Static props are set once and never updated:
 
 ```typescript
 h.div({ class: "container", id: "root" }, "Hello");
@@ -45,17 +45,17 @@ The `E` and `R` channels of the Effect flow into the node's own channels.
 
 ## Stream props and children
 
-Streams are the primary reactive primitive. Each emission replaces the previous value in the DOM — no diffing, direct DOM update:
+Streams are the primary reactive primitive. Each emission replaces the previous value in the DOM (no diffing, direct DOM update):
 
 ```typescript
 import { SubscriptionRef, Stream } from "effect";
 
 const count = yield * SubscriptionRef.make(0);
 
-// SubscriptionRef.changes(count) is a Stream<number> — each new value updates the text node
+// SubscriptionRef.changes(count) is a Stream<number>: each new value updates the text node
 h.span([SubscriptionRef.changes(count)]);
 
-// Stream as a prop — each emission sets the attribute
+// Stream as a prop: each emission sets the attribute
 const isDisabled = Stream.map(SubscriptionRef.changes(count), (n) => n >= 10);
 h.button({ disabled: isDisabled }, "Submit");
 ```
@@ -119,7 +119,7 @@ h.div({ style: styleObjectStream });
 
 // Combine a whole-object stream with a static property.
 // A whole-object stream replaces every property on each emit, so fold the
-// static value into each emitted object with Stream.map — you cannot spread the
+// static value into each emitted object with Stream.map. You cannot spread the
 // Stream itself into a style object (that copies the Stream's internals, not
 // its emitted style keys).
 h.div({
@@ -154,11 +154,11 @@ pipe(
 );
 ```
 
-In practice you only encounter `NoPropValue` if you use a finite `Stream` as a prop and it ends before emitting — e.g., `Stream.empty` or `Stream.take(0, stream)`. Most usage with `SubscriptionRef.changes` or infinite streams never raises it.
+In practice you only encounter `NoPropValue` when a finite `Stream` prop ends before emitting (e.g., `Stream.empty` or `Stream.take(0, stream)`). Most usage with `SubscriptionRef.changes` or infinite streams never raises it.
 
 ## See also
 
-- [The Rendering Model](./rendering-model.md) — streams as the weft woven through a static tree
-- [The Combinator API](./combinator-api.md) — how reactive props and children contribute `E`/`R`
-- [Style Reactively](../how-to/style-reactively.md) and [Render Keyed Lists](../how-to/render-keyed-lists.md) — reactive props and collections in practice
-- [`Source` reference](../reference/core.md#source-namespace) — the `Source` type and `Source.toSubscribable`
+- [The Rendering Model](./rendering-model.md): streams as the weft woven through a static tree
+- [The Combinator API](./combinator-api.md): how reactive props and children contribute `E`/`R`
+- [Style Reactively](../how-to/style-reactively.md) and [Render Keyed Lists](../how-to/render-keyed-lists.md): reactive props and collections in practice
+- [`Source` reference](../reference/core.md#source-namespace): the `Source` type and `Source.toSubscribable`

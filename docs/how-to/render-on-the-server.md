@@ -7,12 +7,14 @@ description: renderToString / renderToStringHydratable / streaming variants, hyd
 
 # Server-Side Rendering
 
-Weft renders on the server and **hydrates** on the client: the server produces HTML (plus inline data), and the browser adopts that existing DOM in place rather than re-creating it. [`Boundary.rpc`](../reference/core.md#boundaryrpc) extends this to **rpc-backed server data** — resolve an rpc on the server, serialize its result into the HTML, replay it on the client without a second request, and then keep the region live for refetch.
+Weft renders on the server and **hydrates** on the client. The server produces HTML plus inline data, and the browser adopts that existing DOM in place rather than re-creating it.
+
+[`Boundary.rpc`](../reference/core.md#boundaryrpc) extends this to **rpc-backed server data**: resolve an rpc on the server, serialize its result into the HTML, and replay it on the client without a second request. The region then stays live for refetch.
 
 ## The two halves
 
-- **Server** — `@weftui/dom/server` renders an app node to an HTML string (or stream). The _hydratable_ variants additionally emit the inline data each reactive region and `Boundary.rpc` needs to resume on the client.
-- **Client** — `@weftui/dom/client`'s `WeftApp.hydrate` walks the server DOM, adopts it, wires up reactivity and event handlers, and resumes from the inline data. It does **not** re-render from scratch.
+- **Server**: `@weftui/dom/server` renders an app node to an HTML string (or stream). The _hydratable_ variants also emit the inline data each reactive region and `Boundary.rpc` needs to resume on the client.
+- **Client**: `@weftui/dom/client`'s `WeftApp.hydrate` walks the server DOM, adopts it, wires up reactivity and event handlers, and resumes from the inline data. It does **not** re-render from scratch.
 
 ```typescript
 // server entry
@@ -34,7 +36,7 @@ const app = WeftApp.make();
 void Effect.runPromise(WeftApp.hydrate(app, App(), root));
 ```
 
-The same side-effect-free `App` is imported by both entries — splice the server HTML into your template's outlet, ship it, and let the client entry hydrate it.
+Both entries import the same side-effect-free `App`. Splice the server HTML into your template's outlet, ship it, and let the client entry hydrate it.
 
 `@weftui/dom/server` exports four renderers:
 
@@ -47,7 +49,9 @@ Use a hydratable renderer whenever the client will call `hydrate`. The plain ren
 
 ## Loading server data with `Boundary.rpc`
 
-SSR's natural companion is `Boundary.rpc`: it resolves an rpc **on the server**, serializes the result into the same HTML this page produces, and replays it on the client during `hydrate` — no second request, no fallback flash — then keeps the region live for `refetch`. It is the data half of the same server/client split described above: the rpc **contract** (pure Schema) is shared, while its **handler** lives in a server-only Layer the client never imports.
+`Boundary.rpc` resolves an rpc **on the server**, serializes the result into the same HTML this page produces, and replays it on the client during `hydrate`. There is no second request and no fallback flash, and the region stays live for `refetch`.
+
+It follows the same server/client split: the rpc **contract** (pure Schema) is shared, while its **handler** lives in a server-only Layer the client never imports.
 
 ```typescript
 import { Boundary, h } from "@weftui/core";
