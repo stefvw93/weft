@@ -5,10 +5,10 @@
  * A route whose component is `Router.lazy(() => import("./lazy-page")…)` keeps its
  * descriptor eager and matchable while its body is a separate chunk. Two paths:
  *
- * - **AC3 — direct-load hydration is flash-free.** Server-render the lazy slot to
+ * - **AC3, direct-load hydration is flash-free.** Server-render the lazy slot to
  *   hydratable HTML, install it, then `hydrate`: the server DOM is adopted **in place**
  *   (same node identity across the hydrate tick), never blanked by a fallback.
- * - **AC-C1/AC-C2 — client navigation.** Mount the router, click into `/lazy` (its chunk
+ * - **AC-C1/AC-C2, client navigation.** Mount the router, click into `/lazy` (its chunk
  *   loads on match and renders), navigate away and back (a revisit renders from the
  *   per-slot memo).
  */
@@ -26,12 +26,12 @@ const NoRpc = Layer.succeed(AppRpcClientTag, {
   call: () => Effect.die(new Error("no rpc in this test")),
 });
 
-/** `/` — a home page with an in-app link into the lazy route. */
+/** `/`: a home page with an in-app link into the lazy route. */
 const homeRoute = Router.route("", {
   component: Component.make(() => h.a({ href: "/lazy", id: "to-lazy" }, "go lazy")),
 });
 
-/** `/lazy` — a route whose component is a lazily-imported chunk. */
+/** `/lazy`: a route whose component is a lazily-imported chunk. */
 const lazyRoute = Router.route("lazy", {
   component: Router.lazy(() => import("./lazy-page").then((m) => m.LazyPage)),
 });
@@ -65,7 +65,7 @@ afterEach(async () => {
   window.history.replaceState(null, "", "/");
 });
 
-describe("Router.lazy — direct-load hydration (AC3)", () => {
+describe("Router.lazy: direct-load hydration (AC3)", () => {
   it("adopts the server-rendered lazy body in place with no flash", async () => {
     // Same slot instance for render + hydrate, so both resolve the identical component.
     const slot = Router.lazy(() => import("./lazy-page").then((m) => m.LazyPage));
@@ -87,7 +87,7 @@ describe("Router.lazy — direct-load hydration (AC3)", () => {
   });
 });
 
-describe("Router.lazy — client navigation (AC-C1/AC-C2)", () => {
+describe("Router.lazy: client navigation (AC-C1/AC-C2)", () => {
   const mountAt = async (path: string): Promise<void> => {
     window.history.replaceState(null, "", path);
     app = WeftApp.make(RouterLive(def));

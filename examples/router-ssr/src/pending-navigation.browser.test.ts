@@ -84,7 +84,7 @@ afterEach(async () => {
   window.history.replaceState(null, "", "/");
 });
 
-describe("Pending navigation — deferred commit (AC-N1/AC-N5)", () => {
+describe("Pending navigation: deferred commit (AC-N1/AC-N5)", () => {
   const indicator = (): string | null =>
     container.querySelector("#nav-indicator")?.textContent ?? null;
 

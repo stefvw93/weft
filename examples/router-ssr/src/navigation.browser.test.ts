@@ -8,7 +8,7 @@
  * `Router` and drives navigation **programmatically** (not via link clicks),
  * asserting: pushed entries are reachable by `back`/`forward`, `replace` does not
  * add a history entry, and a query-only change re-renders a `queryStream` reader
- * **in place** (same leaf, same DOM node) — where a snapshot `Router.query` would
+ * **in place** (same leaf, same DOM node), where a snapshot `Router.query` would
  * not update.
  */
 
@@ -35,12 +35,12 @@ const NoopRpcs = RpcGroup.make(Rpc.make("Noop", { payload: Schema.Void, success:
 
 const tabQuery = { tab: Schema.optional(Schema.String) };
 
-/** `/` — a static home page. */
+/** `/`: a static home page. */
 const homeRoute = Router.route("", {
   component: Component.make(() => h.div([h.span({ id: "home" }, "home")])),
 });
 
-/** `/search` — reads `?tab=` reactively via `Router.queryStream` (updates in place). */
+/** `/search`: reads `?tab=` reactively via `Router.queryStream` (updates in place). */
 const searchRoute = Router.route("search", {
   query: tabQuery,
   component: Component.gen(function* () {
@@ -133,7 +133,7 @@ describe("router programmatic navigation", () => {
     await app!.runtime.runPromise(patchQuery({ tab: "b" }));
     await waitForTab("b");
 
-    // Same DOM node — no remount, just a reactive text update.
+    // Same DOM node, so no remount, just a reactive text update.
     expect(container.querySelector("#tab")).toBe(tabEl);
   });
 });

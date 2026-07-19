@@ -2,7 +2,7 @@
 
 ## Overview
 
-This example demonstrates how to use event handlers in Weft. Handlers follow the same reactive pattern as other props — they can be static callbacks, Effect-returning, or Stream-based.
+This example demonstrates how to use event handlers in Weft. Handlers follow the same reactive pattern as other props: they can be static callbacks, Effect-returning, or Stream-based.
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # suspense
 
-A live demo of `Suspense` boundaries in `@weftui/dom` — both streaming SSR and client-side boundary coordination.
+A live demo of `Suspense` boundaries in `@weftui/dom`, covering both streaming SSR and client-side boundary coordination.
 
 ## Overview
 
@@ -25,8 +25,8 @@ Then open <http://localhost:3101>.
 
 `renderToStreamHydratable` processes `Suspense` boundaries with a two-phase model:
 
-1. **Inline phase** — emits the fallback HTML between `<!-- suspense-start-N -->` and `<!-- suspense-end-N -->` comment markers immediately, as part of the main document stream.
-2. **Patch phase** — forks a fiber that renders the children HTML. When that resolves, a `<template id="ef-s-N">` + self-removing `<script>` pair is appended after the main document.
+1. **Inline phase**: emits the fallback HTML between `<!-- suspense-start-N -->` and `<!-- suspense-end-N -->` comment markers immediately, as part of the main document stream.
+2. **Patch phase**: forks a fiber that renders the children HTML. When that resolves, a `<template id="ef-s-N">` + self-removing `<script>` pair is appended after the main document.
 
 The browser receives the fallback first (good TTFB) and then the script runs automatically, swapping the fallback for the resolved content via a `TreeWalker` that locates the comment markers.
 
@@ -41,14 +41,14 @@ When mounted directly (without SSR), each `Suspense` boundary:
 
 ### Hydration path
 
-After the SSR patch scripts execute (before `WeftApp.hydrate()` loads), the DOM is fully resolved. `WeftApp.hydrate` sees `Suspense` as transparent — it hydrates the children directly from the current cursor position, adopting the resolved DOM nodes in place.
+After the SSR patch scripts execute (before `WeftApp.hydrate()` loads), the DOM is fully resolved. `WeftApp.hydrate` sees `Suspense` as transparent, so it hydrates the children directly from the current cursor position, adopting the resolved DOM nodes in place.
 
 ## What to observe
 
 - **`curl -N --no-buffer http://localhost:3101`** shows the streaming SSR output: fallback HTML + comment markers in the body, then `<template>` + `<script>` patches.
 - **Slow network**: open DevTools Network → CPU throttling + disable cache. The page loads with the fallback visible first, then the patches arrive and scripts execute, resolving the UI progressively.
-- **View source**: the initial HTML is static and readable — no JavaScript needed to see the fallback content.
-- **Status indicator**: flips from `[SSR — not yet interactive]` to `[hydrated — interactive]` once `WeftApp.hydrate()` completes.
+- **View source**: the initial HTML is static and readable, with no JavaScript needed to see the fallback content.
+- **Status indicator**: flips from `[SSR: not yet interactive]` to `[hydrated: interactive]` once `WeftApp.hydrate()` completes.
 
 ## Usage
 

@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { AtomRegistry } from "effect/unstable/reactivity";
 import { App } from "./app";
 
-// Lifetime rule: the atom registry must outlive initial render — atom
+// Lifetime rule: the atom registry must outlive initial render, because atom
 // subscriptions are forked fibers that read it for the app's whole lifetime.
 //
 // `AtomRegistry.layer` is a *scoped* layer, and the app runtime owns it: it is

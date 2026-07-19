@@ -4,8 +4,8 @@
 
 This example demonstrates `List.each`, Weft's **keyed list combinator**. Each
 row has a stable identity (`by`), so reordering, inserting, or removing items
-reuses and moves the existing DOM nodes — preserving focus, uncontrolled input
-values, and per-row subscriptions — instead of rebuilding the whole list.
+reuses and moves the existing DOM nodes instead of rebuilding the whole list.
+That preserves focus, uncontrolled input values, and per-row subscriptions.
 
 ## Problem
 
@@ -41,7 +41,7 @@ h.ul([
    multi-node row moves and is removed as a single unit.
 2. A persistent `HashMap<Key, ItemRecord>` is held across emissions. Each record
    owns a per-item scope forked from the region scope that **persists** until the
-   key is removed — which is what keeps a row's subscription fibers alive.
+   key is removed, which is what keeps a row's subscription fibers alive.
 3. On each emission the reconciler: inserts new keys (rendering them once),
    reuses persisted keys untouched, removes dropped keys (closing their scopes),
    and reorders survivors using a **longest-increasing-subsequence** so only the
@@ -50,13 +50,13 @@ h.ul([
 ## When to Use
 
 Use `List.each` whenever a list's items have identity and the list reorders,
-grows, or shrinks over time — especially when rows hold local state (focus,
+grows, or shrinks over time, especially when rows hold local state (focus,
 inputs, scroll, animations, running streams). For a static array that never
 changes, plain `array.map(...)` is simpler and sufficient.
 
 ## ⚠️ Render-once / index-key footgun
 
-A persisted key's `render` runs **exactly once** — it is never re-invoked.
+A persisted key's `render` runs **exactly once**; it is never re-invoked.
 Reconciliation only reuses/moves/inserts/removes DOM; it never refreshes a kept
 row's content. Refresh a row by threading a `Stream` **inside** the row, not by
 re-running `render`.
@@ -73,6 +73,6 @@ vp install
 vp run dev
 ```
 
-Type into a row, watch its counter start, then **Shuffle** or **Reverse** — focus,
+Type into a row, watch its counter start, then **Shuffle** or **Reverse**. Focus,
 the typed value, and the counter all survive the move. Compare with the
 `list-rendering` example's `Stream<Array>` approach, which resets them.

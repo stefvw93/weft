@@ -4,7 +4,7 @@
  * One `WeftApp` can mount several independent DOM roots ("islands") that all
  * share the same app layer. Because layers are memoized per runtime, a
  * `SubscriptionRef`-backed service built once in the layer is threaded by
- * reference into every island — an update made in one island is observed
+ * reference into every island. An update made in one island is observed
  * reactively in all the others, with no event bus, no globals, and no
  * prop-drilling across roots.
  *
@@ -66,7 +66,7 @@ export const ControlsIsland = () =>
 
 /**
  * The "display" island: renders the shared count and a derived double. It
- * never mutates anything — updates arrive purely through the shared
+ * never mutates anything; updates arrive purely through the shared
  * `SubscriptionRef.changes` stream.
  */
 export const DisplayIsland = () =>

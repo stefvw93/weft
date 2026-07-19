@@ -1,8 +1,8 @@
 /**
- * `/products` — the product listing, with a `?sort=` **query param**.
+ * `/products`: the product listing, with a `?sort=` **query param**.
  *
  * The leaf reads the decoded query straight from its **handler-arg props**
- * (`({ query }) => …`) — the same form the original `posts` page used — and renders
+ * (`({ query }) => …`, the same form the original `posts` page used) and renders
  * the catalog sorted by `query.sort`. The router keys a leaf by its full URL
  * (`outlet.ts`'s `keyOf`), so a query-only navigation (a sort link, or `patchQuery`
  * / `setQuery`) re-invokes this handler with the new `query` and the grid re-sorts.
@@ -16,7 +16,7 @@ import { ProductCard } from "../components/product-card";
 import { PRODUCTS, sortProducts, SortOrder } from "../data/products";
 
 /**
- * `/products` — sort controls + a grid sorted by `?sort=`.
+ * `/products`: sort controls + a grid sorted by `?sort=`.
  *
  * The explicit `RouteNode` annotation breaks the inference cycle created by the
  * sort links: they `href(productsRoute, …)` back to this very route, so its type

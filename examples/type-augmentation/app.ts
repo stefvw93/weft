@@ -1,10 +1,10 @@
 /**
- * Example: Type Augmentation — typed custom elements on `h`.
+ * Example: Type Augmentation, typed custom elements on `h`.
  *
  * `h` exposes a builder for every HTML and SVG tag, typed from the `HTMLElements` /
  * `SVGElements` interfaces. For **custom elements** (Web Components) it reads an
  * *augmentable* `CustomElements` interface, exported from `@weftui/core`. Declaring a
- * tag there makes `h["<tag>"]` a first-class, typed builder — its props are checked
+ * tag there makes `h["<tag>"]` a first-class, typed builder. Its props are checked
  * exactly like a native element's, and unknown props are a compile error.
  *
  * This example augments `CustomElements` with a `<greeting-badge name>` element, then
@@ -47,7 +47,7 @@ class GreetingBadge extends HTMLElement {
   }
 }
 
-/** Registers the element once — safe to call on every `App()` (mounts are idempotent). */
+/** Registers the element once; safe to call on every `App()` (mounts are idempotent). */
 function ensureDefined(): void {
   if (customElements.get("greeting-badge") === undefined) {
     customElements.define("greeting-badge", GreetingBadge);
@@ -60,10 +60,10 @@ export const App = () =>
     const name = yield* SubscriptionRef.make("World");
 
     return yield* h.div({ class: "app" }, [
-      // Static prop — fully typed by the CustomElements augmentation.
+      // Static prop: fully typed by the CustomElements augmentation.
       h.section({ class: "static" }, [h["greeting-badge"]({ name: "Weft" })]),
 
-      // Reactive prop — a stream flows into the custom element's attribute in place.
+      // Reactive prop: a stream flows into the custom element's attribute in place.
       h.section({ class: "reactive" }, [
         h["greeting-badge"]({ name: SubscriptionRef.changes(name) }),
         h.input({

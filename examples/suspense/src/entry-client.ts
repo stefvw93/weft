@@ -1,7 +1,7 @@
 /**
  * Client entry: hydrates the server-rendered markup in `#root`.
  *
- * By the time this script runs, the SSR patch scripts have already executed —
+ * By the time this script runs, the SSR patch scripts have already executed and
  * each `<Suspense>` boundary is fully resolved in the DOM. `hydrate` adopts the
  * resolved structure in place, attaches event handlers and reactive subscriptions,
  * and leaves node identity unchanged (no flash).
@@ -20,6 +20,6 @@ const app = WeftApp.make();
 void Effect.runPromise(WeftApp.hydrate(app, App(), root)).then(() => {
   const status = document.getElementById("status");
   if (status !== null) {
-    status.textContent = "[hydrated — interactive]";
+    status.textContent = "[hydrated: interactive]";
   }
 });

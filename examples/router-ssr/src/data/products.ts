@@ -3,7 +3,7 @@
  *
  * This module is imported by both server and client code (the listing grid, the
  * product cards, the detail page), so it deliberately contains **no Effect and no
- * server-only `ServerTag`** — only plain data and pure helpers. The slow-changing
+ * server-only `ServerTag`**, only plain data and pure helpers. The slow-changing
  * product metadata (name, price, blurb) lives here and is safe to ship to the
  * browser; the **live** per-product stock lives behind a server-only service in
  * {@link file://./inventory.ts} and is loaded through a `Boundary.server`.
@@ -82,7 +82,7 @@ export const getProduct = (id: number): Product | undefined =>
 
 /**
  * Returns a new array of products ordered by `sort`. A missing/unknown `sort`
- * falls back to catalog (id) order. Pure — never mutates the input.
+ * falls back to catalog (id) order. Pure, and never mutates the input.
  */
 export const sortProducts = (
   products: readonly Product[],

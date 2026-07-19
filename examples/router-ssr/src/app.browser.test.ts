@@ -33,7 +33,7 @@ let container: HTMLElement;
 let app: WeftApp.WeftApp<Router> | undefined;
 let originalFetch: typeof globalThis.fetch;
 
-/** The router's own platform web handler — answers the same-origin `/_eui/rpc` hop. */
+/** The router's own platform web handler, answering the same-origin `/_eui/rpc` hop. */
 const serverHandler = RouterServer.toWebHandler(App, {
   document: documentShell,
   rpc: { group: StockRpcs, handlers: StockLive },
@@ -85,7 +85,7 @@ const mountAt = async (path: string, def: RouterDef = App): Promise<void> => {
 const link = (text: string): HTMLAnchorElement | undefined =>
   [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === text);
 
-describe("router-ssr shop — navigation", () => {
+describe("router-ssr shop: navigation", () => {
   it("navigates landing → listing while persisting the Shell layout", async () => {
     await mountAt("/");
     await vi.waitFor(() => expect(container.textContent).toContain("Brew better coffee"));
@@ -94,7 +94,7 @@ describe("router-ssr shop — navigation", () => {
     const headerEl = container.querySelector("#shell-header");
     expect(headerEl).not.toBeNull();
 
-    // Landing → listing via the "Shop all" CTA (SPA — both pages are boundary-free).
+    // Landing → listing via the "Shop all" CTA (SPA, since both pages are boundary-free).
     link("Shop all products →")!.click();
     await vi.waitFor(() => expect(container.textContent).toContain("All products"));
     expect(container.querySelector("#grid")).not.toBeNull();
@@ -112,7 +112,7 @@ describe("router-ssr shop — navigation", () => {
 
   it("renders a dynamic 404 for an unknown product id", async () => {
     await mountAt("/products/999");
-    await vi.waitFor(() => expect(container.textContent).toContain("404 — page not found"));
+    await vi.waitFor(() => expect(container.textContent).toContain("404: page not found"));
   });
 
   it("supports back/forward navigation via popstate", async () => {

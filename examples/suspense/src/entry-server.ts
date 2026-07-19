@@ -12,7 +12,7 @@
  * than collected into a string first), the browser receives the shell HTML
  * immediately and renders the fallback UI while the async cards load. Patches
  * arrive as each Suspense boundary resolves, triggering the inline scripts
- * that swap in the resolved content — visible with `curl -N`.
+ * that swap in the resolved content, visible with `curl -N`.
  */
 
 import { AppRpcClientTag } from "@weftui/core";
@@ -21,7 +21,7 @@ import { Effect, Layer, Stream } from "effect";
 import { App } from "./app";
 
 // This example has no `Boundary.rpc`, but the SSR render fns require an
-// `AppRpcClientTag` in context unconditionally — discharge it with a no-op.
+// `AppRpcClientTag` in context unconditionally, so discharge it with a no-op.
 const NoRpc = Layer.succeed(AppRpcClientTag, {
   call: () => Effect.die(new Error("no rpc in this example")),
 });

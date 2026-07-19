@@ -1,7 +1,7 @@
 /**
  * Server entry: renders the matched route to a hydratable HTML document.
  *
- * `documentShell` is the typed document shell `Node` — it builds `<html>/<head>/
+ * `documentShell` is the typed document shell `Node`. It builds `<html>/<head>/
  * <body>` with the `#root` mount point and the client entry `<script>`, splicing
  * the app via `yield* Router.Outlet` (injected per request by `RouterServer`).
  * `RouterServer` matches the request URL, renders `RouterApp(App)` inside the
@@ -25,7 +25,7 @@ const rpc = { group: StockRpcs, handlers: StockLive } as const;
 
 /**
  * The document shell `component` thunk. Splices the app via `yield* Router.Outlet`
- * (the router injects it per request) — same callback form as a route/layout
+ * (the router injects it per request), the same callback form as a route/layout
  * `component`, no `app` arg and no `Node<any, any>`.
  */
 export const documentShell = Component.gen(function* () {
@@ -34,7 +34,7 @@ export const documentShell = Component.gen(function* () {
     h.head([
       h.meta({ charset: "utf-8" }),
       h.meta({ name: "viewport", content: "width=device-width, initial-scale=1" }),
-      h.title("Weft shop — router SSR"),
+      h.title("Weft shop: router SSR"),
     ]),
     h.body([
       h.div({ id: "root" }, [app]),

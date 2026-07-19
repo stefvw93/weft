@@ -43,7 +43,7 @@ const AutoFocusInput = () =>
 1. **Create the ref**: `SubscriptionRef.make<Option.Option<HTMLElement>>(Option.none())` creates a ref initialized to `Option.none()`
 2. **Attach to element**: The `ref` prop accepts a `Ref` or `SubscriptionRef`. When the element is created, the ref is set to `Option.some(element)`
 3. **React to mount**: Use `SubscriptionRef.changes` and `Stream.filter(Option.isSome)` to react when the element becomes available
-4. **Type safety**: The element type is preserved — `Ref<Option<HTMLInputElement>>` ensures you get an `HTMLInputElement`
+4. **Type safety**: The element type is preserved, so `Ref<Option<HTMLInputElement>>` ensures you get an `HTMLInputElement`
 5. **Single emission**: The ref is set exactly once during element creation
 
 ## When to Use

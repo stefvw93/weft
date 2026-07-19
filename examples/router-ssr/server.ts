@@ -7,8 +7,8 @@
  * HMR client and module rewriting are injected. The browser hydrates the markup
  * with `entry-client.ts` and takes over navigation.
  *
- * Only HTML page responses are transformed. Other responses — notably the
- * `POST /_eui/rpc` JSON used by Boundary refetch — are forwarded verbatim with
+ * Only HTML page responses are transformed. Other responses, notably the
+ * `POST /_eui/rpc` JSON used by Boundary refetch, are forwarded verbatim with
  * their original status and headers; running them through `transformIndexHtml`
  * would inject Vite's HMR `<script>` into the JSON and corrupt the body.
  */
@@ -46,7 +46,7 @@ function readBody(req: IncomingMessage): Promise<string> {
 
 /**
  * Builds a Fetch `Request` from a Node `IncomingMessage`, preserving the method,
- * headers, and body. The body matters for `POST /_eui/rpc` refetch calls — a
+ * headers, and body. The body matters for `POST /_eui/rpc` refetch calls: a
  * URL-only `Request` would drop it and the rpc parser would fail on empty input.
  */
 async function toWebRequest(req: IncomingMessage, url: string): Promise<Request> {

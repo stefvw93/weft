@@ -1,9 +1,9 @@
 /**
- * `/` — the shop landing page.
+ * `/`: the shop landing page.
  *
  * A static marketing page: a hero, a call-to-action into the listing, and a
  * "featured" grid reusing {@link ProductCard}. `Component.make` keeps the body
- * (and its `href` calls) deferred until the router renders it — after
+ * (and its `href` calls) deferred until the router renders it, after
  * `Router.router(...)` has compiled the tree and stamped the leaf registry.
  */
 
@@ -16,7 +16,7 @@ import { productsRoute } from "./listing";
 /** The first three catalog items, shown as "featured" on the landing page. */
 const featured = PRODUCTS.slice(0, 3);
 
-/** `/` — hero + CTA + featured product grid. */
+/** `/`: hero + CTA + featured product grid. */
 export const homeRoute = Router.route("", {
   component: Component.make(() =>
     h.section({ id: "page", class: "landing" }, [

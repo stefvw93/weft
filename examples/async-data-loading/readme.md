@@ -38,7 +38,7 @@ const DelayedComponent = () =>
 
 ## How It Works
 
-1. Components return `Effect<Node>` or `Stream<Node>` — both are rendered reactively
+1. Components return `Effect<Node>` or `Stream<Node>`; both are rendered reactively
 2. `Stream.concat` sequences multiple outputs (loading → data)
 3. `Stream.fromEffect` converts an Effect to a single-element Stream
 4. `Effect.catch` converts errors to fallback nodes

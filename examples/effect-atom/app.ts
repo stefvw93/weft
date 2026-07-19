@@ -2,13 +2,13 @@
  * Recipe: effect-atom
  *
  * This recipe demonstrates driving Weft UI from Effect 4's built-in atom
- * state management module, `effect/unstable/reactivity` — the upstreamed
+ * state management module, `effect/unstable/reactivity`, the upstreamed
  * successor of effect-atom (https://github.com/tim-smart/effect-atom).
  * `AsyncResult` is the former effect-atom `Result`.
  *
  * The integration is adapter-free because both sides speak Effect:
  * - Read path: `Atom.toStream(atom)` yields a `Stream<A, never, AtomRegistry>`
- *   that emits the current value immediately and on every change — Weft
+ *   that emits the current value immediately and on every change. Weft
  *   consumes Streams natively as children and props.
  * - Write path: `Atom.update` / `Atom.refresh` return Effects requiring
  *   `AtomRegistry`; Weft event handlers that return Effects are run on the
@@ -20,16 +20,16 @@ import { Effect, Stream } from "effect";
 import { Atom, AsyncResult } from "effect/unstable/reactivity";
 
 // ============================================================================
-// Atoms (module scope — state lives in the Registry, not the component)
+// Atoms (module scope: state lives in the Registry, not the component)
 // ============================================================================
 
 /** Writable counter atom. */
 const countAtom = Atom.make(0);
 
-/** Derived atom — recomputes whenever `countAtom` changes. */
+/** Derived atom: recomputes whenever `countAtom` changes. */
 const doubleAtom = Atom.map(countAtom, (n) => n * 2);
 
-/** Async atom — an Effect run by the registry, exposed as a `Result`. */
+/** Async atom: an Effect run by the registry, exposed as a `Result`. */
 const greetingAtom = Atom.make(
   Effect.gen(function* () {
     yield* Effect.sleep("300 millis");

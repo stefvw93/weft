@@ -1,22 +1,22 @@
 /**
- * Example: Server Boundary — `Boundary.rpc` client-first mount.
+ * Example: Server Boundary, `Boundary.rpc` client-first mount.
  *
  * `Boundary.rpc` is Weft's server-resolved, client-refreshable data boundary. Its
  * four lifecycles (SSR, hydrate-replay, refetch, client-first mount) all resolve one
  * rpc through the ambient `AppRpcClientTag` seam. `@weftui/router` normally provides
  * that seam, but it is a plain `Context.Service` key from `@weftui/core`, so a **router-less**
- * client app can provide it directly — which is exactly what this example does to show
+ * client app can provide it directly, which is exactly what this example does to show
  * the **client-first mount** path in isolation:
  *
  * 1. the boundary renders its `fallback` immediately,
  * 2. it forks the rpc `call` (here an in-process stub with simulated latency),
  * 3. it swaps in `render(resource)` once the call resolves, and
- * 4. the region stays live — `resource.refetch` re-runs the call and patches in place.
+ * 4. the region stays live: `resource.refetch` re-runs the call and patches in place.
  *
  * `app.ts` is side-effect-free: it exports `App` (the boundary node, whose `R` carries
  * `AppRpcClientTag`) and `AppRpcClientLive` (the in-process client). The seam must be
  * provided at the **mount call site** (not inside `App`), because the renderer drains
- * the boundary's forked call in the mount's context — see
+ * the boundary's forked call in the mount's context. See
  * `packages/core/src/boundary/ambient-context-propagation` framing. `main.ts` and the
  * browser test both `Effect.provide(mount(App(), root), AppRpcClientLive)`.
  */

@@ -3,7 +3,7 @@
  *
  * Rendered to streaming hydratable HTML on the server, then hydrated on the
  * client. The Dashboard shows three sibling async cards under one shared
- * fallback — all three must settle before the fallback is replaced. The
+ * fallback. All three must settle before the fallback is replaced. The
  * NestedExample shows an inner boundary resolving independently of the outer.
  *
  * On the server (`renderToStreamHydratable`):
@@ -44,7 +44,7 @@ function fetchCard(id: number): Effect.Effect<CardData> {
 // ============================================================================
 
 /**
- * Async card — returns an `Effect<ElementDescriptor>` so it triggers Suspense.
+ * Async card: returns an `Effect<ElementDescriptor>` so it triggers Suspense.
  * The delay is proportional to `id` so the three cards resolve at different
  * times (but the shared fallback waits for all of them).
  */
@@ -92,7 +92,7 @@ function Dashboard() {
 
 /**
  * The inner Suspense resolves at 200 ms; the outer resolves at 800 ms.
- * Each boundary is independent — the inner swap happens first without
+ * Each boundary is independent, so the inner swap happens first without
  * disturbing the outer fallback.
  */
 function SlowOuter() {
@@ -148,7 +148,7 @@ function NestedExample() {
 export function App() {
   return h.div({ class: "app" }, [
     h.header({ class: "header" }, [
-      h.h1("Weft — Suspense"),
+      h.h1("Weft: Suspense"),
       h.p(
         { class: "subtitle" },
         "Streaming SSR with fallback → patch swap, and client-side boundary coordination.",
@@ -156,7 +156,7 @@ export function App() {
     ]),
     h.main({ class: "main" }, [Dashboard(), NestedExample()]),
     h.footer({ class: "footer" }, [
-      h.span({ class: "status", id: "status" }, "[SSR — not yet interactive]"),
+      h.span({ class: "status", id: "status" }, "[SSR: not yet interactive]"),
     ]),
   ]);
 }

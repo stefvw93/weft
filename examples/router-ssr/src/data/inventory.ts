@@ -5,12 +5,12 @@
  * must never touch. With `Boundary.rpc` the client/server split is **structural**,
  * not a bundler trick: the {@link GetStock} rpc **contract** (pure Schema, in
  * {@link StockRpcs}) is safe to share with the client, while its **handler**
- * ({@link StockLive}) — the only code that reads the server-only {@link Inventory}
- * — lives in a Layer the client never imports. Tree-shaking keeps the inventory
+ * ({@link StockLive}), the only code that reads the server-only {@link Inventory},
+ * lives in a Layer the client never imports. Tree-shaking keeps the inventory
  * source out of the browser bundle; no prune plugin required.
  *
  * The rpc **tag** (`"GetStock"`) is the boundary's stable id and the **payload
- * schema** ({@link StockKey}) its typed input — so per-product live data needs no
+ * schema** ({@link StockKey}) its typed input, so per-product live data needs no
  * hand-rolled boundary id and refetch carries the product id as a real payload.
  */
 
@@ -38,7 +38,7 @@ export const StockRpcs = RpcGroup.make(GetStock);
 
 /**
  * Server-only live-inventory source. Read only inside {@link StockLive} (the rpc
- * handler Layer), which the client never imports — so it never reaches the browser.
+ * handler Layer), which the client never imports, so it never reaches the browser.
  */
 export class Inventory extends Context.Service<
   Inventory,
@@ -48,7 +48,7 @@ export class Inventory extends Context.Service<
 /**
  * Per-product restock counter. Module-level so a refetch (which re-resolves the
  * rpc on the **server** through `POST /_eui/rpc`) returns a strictly different
- * value than the SSR snapshot — making the in-place patch observable in the test.
+ * value than the SSR snapshot, making the in-place patch observable in the test.
  */
 const restocks = new Map<number, number>();
 

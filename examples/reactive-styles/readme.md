@@ -10,7 +10,7 @@ Traditional React-style apps require state management and re-renders for style c
 
 ## Solution
 
-Weft supports reactive styles through streams — any CSS property or the entire style object can be a `Stream`:
+Weft supports reactive styles through streams. Any CSS property or the entire style object can be a `Stream`:
 
 ```typescript
 import { h } from "@weftui/core";
@@ -43,7 +43,7 @@ h.div({
 1. Individual CSS properties can be streams that emit new string/number values
 2. The entire style object can be a stream for coordinated, multi-property changes
 3. A whole-object stream replaces every property on each emit; fold static properties into each emitted object with `Stream.map` (spreading the Stream itself does not work)
-4. CSS transitions work naturally — stream updates trigger transitions just like direct style mutations
+4. CSS transitions work naturally: stream updates trigger transitions just like direct style mutations
 5. Multiple stream properties on one element are subscribed independently
 
 ## Benefits

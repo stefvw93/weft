@@ -52,7 +52,7 @@ describe("element-ref example", () => {
     app = WeftApp.make();
     await Effect.runPromise(WeftApp.mount(app, App(), container));
 
-    // The test page lacks the example CSS, so don't assert pixel values — assert
+    // The test page lacks the example CSS, so don't assert pixel values. Assert
     // the "Measuring..." → measured transition and the reported format instead.
     const dimensions = await vi.waitFor(() => {
       const el = [...container.querySelectorAll("strong")].find((s) =>
@@ -86,7 +86,7 @@ describe("element-ref example", () => {
     });
 
     // The handler retrieves the target via its ref and calls scrollIntoView on
-    // it — spy on the very node the ref captured to prove the wiring.
+    // it, so spy on the very node the ref captured to prove the wiring.
     const scrollSpy = vi.fn();
     target.scrollIntoView = scrollSpy;
 

@@ -2,11 +2,19 @@
 
 ## Overview
 
-This example demonstrates driving a Weft UI from Effect 4's built-in atom state management module, `effect/unstable/reactivity` — the upstreamed successor of [effect-atom](https://github.com/tim-smart/effect-atom) (`AsyncResult` is the former effect-atom `Result`). It shows a writable atom, a derived atom, and an async atom rendered through its `AsyncResult` states.
+This example demonstrates driving a Weft UI from Effect 4's built-in atom state management module, `effect/unstable/reactivity`, the upstreamed successor of [effect-atom](https://github.com/tim-smart/effect-atom). `AsyncResult` is the former effect-atom `Result`.
+
+It shows a writable atom, a derived atom, and an async atom rendered through its `AsyncResult` states.
 
 ## Problem
 
-Applications often need a state library with more structure than a bare `SubscriptionRef` — derived/computed atoms, async atoms with loading and refresh semantics, and a registry that can be shared, tested, or torn down independently of the UI. Reaching for such a library usually means writing an adapter layer to bridge its subscription model into the UI's reactivity model.
+Applications often need a state library with more structure than a bare `SubscriptionRef`:
+
+- Derived/computed atoms.
+- Async atoms with loading and refresh semantics.
+- A registry that can be shared, tested, or torn down independently of the UI.
+
+Reaching for such a library usually means writing an adapter layer to bridge its subscription model into the UI's reactivity model.
 
 ## Solution
 
@@ -32,12 +40,12 @@ const Counter = () =>
 
 ## How It Works
 
-1. `Atom.make(initial)` creates a writable atom; `Atom.map(atom, fn)` derives a read-only atom that recomputes whenever its source changes. State lives in the `AtomRegistry`, not the component — atoms are defined at module scope.
+1. `Atom.make(initial)` creates a writable atom; `Atom.map(atom, fn)` derives a read-only atom that recomputes whenever its source changes. State lives in the `AtomRegistry`, not the component, so atoms are defined at module scope.
 2. `Atom.toStream(atom)` subscribes with `immediate: true` and returns a `Stream<A, never, AtomRegistry>` that emits the current value right away, then every subsequent change. Passed directly into `h.*` as a child or prop, Weft renders it like any other stream.
-3. `Atom.update(atom, fn)` and `Atom.refresh(atom)` return Effects requiring `AtomRegistry`. An `onclick` handler that returns one of these Effects is run on the app runtime, which carries whatever layer was given to `WeftApp.make` — no manual `Effect.runPromise` inside the handler.
+3. `Atom.update(atom, fn)` and `Atom.refresh(atom)` return Effects requiring `AtomRegistry`. An `onclick` handler that returns one of these Effects is run on the app runtime, which carries whatever layer was given to `WeftApp.make`. No manual `Effect.runPromise` inside the handler.
 4. Async atoms wrap an Effect (e.g. `Atom.make(Effect.gen(...))`) and expose their state as an `AsyncResult`. `AsyncResult.match` maps `onInitial` / `onFailure` / `onSuccess` to renderable values; the `waiting` flag on a `Success` result distinguishes an already-loaded value from one currently being refreshed via `Atom.refresh`, so the UI can show "Reloading…" instead of flashing back to a loading state.
 
-**Scoped layers just work.** Atom subscriptions are fibers forked for the lifetime of the app, not the lifetime of any one mount call. `AtomRegistry.layer` is a scope-backed `Layer.effect` — its registry is disposed when the layer's scope closes. Under `WeftApp` that scope is the app's own: the layer builds lazily on the first mount and releases only at `WeftApp.dispose(app)`, not when any individual mount's render effect resolves. So `main.ts` just does:
+**Scoped layers just work.** Atom subscriptions are fibers forked for the lifetime of the app, not the lifetime of any one mount call. `AtomRegistry.layer` is a scope-backed `Layer.effect`, so its registry is disposed when the layer's scope closes. Under `WeftApp` that scope is the app's own: the layer builds lazily on the first mount and releases only at `WeftApp.dispose(app)`, not when any individual mount's render effect resolves. So `main.ts` just does:
 
 ```typescript
 import { WeftApp } from "@weftui/dom/client";
@@ -49,7 +57,9 @@ const app = WeftApp.make(AtomRegistry.layer);
 void Effect.runPromise(WeftApp.mount(app, App(), document.getElementById("root")!));
 ```
 
-No `mountScoped`, no `Effect.never`, no manual `ManagedRuntime` composition — the registry outlives every mount because the app owns it. The co-located `app.browser.test.ts` tears it down deterministically per test: each test calls a `mountApp()` helper that does `app = WeftApp.make(AtomRegistry.layer); await Effect.runPromise(WeftApp.mount(app, App(), container))`, and `afterEach` calls `await Effect.runPromise(WeftApp.dispose(app))` — closing the root scope (unmount) and then releasing `AtomRegistry.layer`, isolating atom state between test cases with no `Deferred`/fiber-interrupt dance.
+No `mountScoped`, no `Effect.never`, no manual `ManagedRuntime` composition. The registry outlives every mount because the app owns it.
+
+The co-located `app.browser.test.ts` tears it down deterministically per test. Each test calls a `mountApp()` helper that does `app = WeftApp.make(AtomRegistry.layer); await Effect.runPromise(WeftApp.mount(app, App(), container))`. Then `afterEach` calls `await Effect.runPromise(WeftApp.dispose(app))`, closing the root scope (unmount) and then releasing `AtomRegistry.layer`. That isolates atom state between test cases with no `Deferred`/fiber-interrupt dance.
 
 See [Provide Services](../../docs/how-to/provide-services.md) for this pattern as a general recipe, and [Services and Context](../../docs/explanation/services-and-context.md) for why scoped layers no longer need special handling under `WeftApp`.
 
@@ -58,4 +68,4 @@ See [Provide Services](../../docs/how-to/provide-services.md) for this pattern a
 - You want derived/computed state (`Atom.map`) beyond what a single `SubscriptionRef` conveniently expresses.
 - You want async state with built-in loading/success/failure/refresh semantics (`AsyncResult`, `Atom.refresh`) rather than modeling that by hand over a `Stream`.
 - You need a registry that can be swapped, scoped per-test, or shared across multiple mounted trees independently of any single component's lifetime.
-- You're migrating from effect-atom (`@effect-atom/atom`) and want the equivalent built into Effect 4 — the shape is the same, minus the external dependency, with `Result` renamed to `AsyncResult`.
+- You're migrating from effect-atom (`@effect-atom/atom`) and want the equivalent built into Effect 4. The shape is the same, minus the external dependency, with `Result` renamed to `AsyncResult`.

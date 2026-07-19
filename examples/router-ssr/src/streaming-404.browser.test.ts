@@ -2,7 +2,7 @@
  * End-to-end browser test for hydrating a **streamed soft-404** document
  * (router spec SW8): a page whose `Boundary.suspend` child raises
  * `RouterNotFound` after the shell has flushed is patched (HTTP 200) with the
- * notFound page plus a `noindex` robots meta — and hydrating that document
+ * notFound page plus a `noindex` robots meta. Hydrating that document
  * must converge on the canonical client notFound page via `RouterApp`'s
  * boundary, with no `HydrationMismatchError` and no re-run of the failed
  * loader.
@@ -12,12 +12,12 @@
  * chunks are applied by appending **real** `<script>` nodes (innerHTML-inserted
  * scripts never execute), and `hydrate(RouterApp(def), container)` runs over
  * the substituted DOM. Asserts the headline behaviour:
- *   (a) the notFound page is visible after hydration (boundary swap — the
+ *   (a) the notFound page is visible after hydration (boundary swap: the
  *       server layout chrome inside the suspense region is replaced),
  *   (b) the suspended loader did not re-run on the client,
  *   (c) `meta[name=robots][content=noindex]` is present in `document.head`,
  *   (d) no hydration-mismatch error was logged, and
- *   (e) the page is interactive — clicking the notFound page's link performs
+ *   (e) the page is interactive, since clicking the notFound page's link performs
  *       an intercepted client-side navigation (no full reload).
  */
 
@@ -29,15 +29,15 @@ import { RouterServer } from "@weftui/router/server";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/** Counts client-side runs of the suspended loader — must stay at 0 on hydrate. */
+/** Counts client-side runs of the suspended loader; must stay at 0 on hydrate. */
 let loaderRuns = 0;
 
-/** `/` — a static landing page (the notFound link's target). */
+/** `/`: a static landing page (the notFound link's target). */
 const homeRoute = Router.route("", {
   component: () => h.div([h.span({ id: "home" }, "home")]),
 });
 
-/** `/late` — raises `RouterNotFound` inside `Boundary.suspend` (after flush). */
+/** `/late`: raises `RouterNotFound` inside `Boundary.suspend` (after flush). */
 const lateRoute = Router.route("late", {
   component: () =>
     h.div({ id: "late-layout" }, [
@@ -63,11 +63,11 @@ const def: RouterDef = Router.router(
   ),
   {
     notFound: () =>
-      h.section({ id: "nf" }, [h.h2({}, "404 — not found"), h.a({ href: "/" }, "go home")]),
+      h.section({ id: "nf" }, [h.h2({}, "404: not found"), h.a({ href: "/" }, "go home")]),
   },
 );
 
-/** The document shell — splices the app via the injected `Router.Outlet`. */
+/** The document shell, which splices the app via the injected `Router.Outlet`. */
 const documentShell = Component.gen(function* () {
   const app = yield* Router.Outlet;
   return yield* h.html([h.head([h.title({}, "soft-404")]), h.body([h.div({ id: "root" }, [app])])]);
@@ -129,8 +129,8 @@ async function installStreamedDocument(url: string): Promise<void> {
   applyPatches(patchesHtml);
 }
 
-describe("router-ssr — streamed soft-404 hydration (SW8)", () => {
-  it("hydrates to the notFound page via RouterApp's boundary — no mismatch, no loader re-run", async () => {
+describe("router-ssr: streamed soft-404 hydration (SW8)", () => {
+  it("hydrates to the notFound page via RouterApp's boundary: no mismatch, no loader re-run", async () => {
     await installStreamedDocument("/late");
 
     // The substituted server DOM: layout chrome + notFound UI inside the region.

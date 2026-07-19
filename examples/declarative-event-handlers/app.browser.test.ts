@@ -3,7 +3,7 @@
  *
  * Mounts the real `App` in Chromium (providing the `Analytics` service, as the
  * browser entry does) and asserts the headline behaviour: the stream-composition
- * counter — built from `Stream.fromEventListener` + `merge` + `scan` — increments
+ * counter, built from `Stream.fromEventListener` + `merge` + `scan`, increments
  * when its `+` button is clicked.
  */
 

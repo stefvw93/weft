@@ -22,14 +22,14 @@ h.ul(items.map((item) => h.li(item)));
 // Fragment for multiple elements without a wrapper
 const TableRow = ({ user }: { user: User }) => h.fragment([h.td(user.name), h.td(user.role)]);
 
-// Stream of arrays — entire list re-renders on each emission
+// Stream of arrays: entire list re-renders on each emission
 const itemsStream = Stream.iterate([], (items) => [...items, newItem]);
 h.ul([Stream.map(itemsStream, (items) => items.map((i) => h.li(i)))]);
 ```
 
 ## How It Works
 
-1. Arrays are flattened during rendering — nested arrays work naturally
+1. Arrays are flattened during rendering, so nested arrays work naturally
 2. `h.fragment` renders children without a wrapper element
 3. Streams of arrays replace the entire list on each emission
 4. Individual list items can have their own reactive streams

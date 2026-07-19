@@ -1,11 +1,11 @@
 /**
- * `Shell` — the root layout wrapping every page.
+ * `Shell`: the root layout wrapping every page.
  *
  * It renders the persistent shop chrome (header with brand + nav, footer) and
  * splices the active page via `yield* Router.Outlet`. As the outermost layout it
  * never re-renders across navigations, so its DOM node is stable for the whole
- * session — the navigation test asserts this directly. The nav uses
- * `href(productsRoute)` (no args — its query is optional) for a type-safe link.
+ * session; the navigation test asserts this directly. The nav uses
+ * `href(productsRoute)` (no args, since its query is optional) for a type-safe link.
  */
 
 import { Component, h } from "@weftui/core";
@@ -19,7 +19,7 @@ export const Shell = Component.gen(function* () {
   // A top progress bar driven by the router's navigation state: it gains
   // `is-navigating` while a deferred-commit navigation resolves a lazy chunk, and is
   // idle otherwise (`pending-navigation.specs.md`). This app's routes are eager, so
-  // it stays idle here — it demonstrates the `Router.navigating` wiring an app adds
+  // it stays idle here. It demonstrates the `Router.navigating` wiring an app adds
   // once it code-splits a route with `Router.lazy`.
   const nav = yield* Router.navigatingStream;
   return yield* h.div({ id: "app" }, [
@@ -35,6 +35,6 @@ export const Shell = Component.gen(function* () {
       h.nav([h.a({ href: "/" }, "Home"), " · ", h.a({ href: href(productsRoute) }, "Products")]),
     ]),
     h.main([outlet]),
-    h.footer("built with @weftui/router — SSR + hydration"),
+    h.footer("built with @weftui/router: SSR + hydration"),
   ]);
 });

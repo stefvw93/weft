@@ -1,5 +1,5 @@
 /**
- * Dev SSR server for the suspense example — true HTTP streaming.
+ * Dev SSR server for the suspense example, using true HTTP streaming.
  *
  * The HTML template is split at `<!--ssr-outlet-->`. The prefix (everything
  * before the outlet) is written immediately so the browser can start parsing

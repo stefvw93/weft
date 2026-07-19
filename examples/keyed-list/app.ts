@@ -7,8 +7,8 @@
  *   list **moves** the existing DOM nodes (and their running subscriptions)
  *   instead of rebuilding them.
  * - Each row renders **once per key**. The per-row counter stream is started a
- *   single time and keeps counting across reorders/insertions/removals — its
- *   per-item scope is never torn down while the key survives.
+ *   single time and keeps counting across reorders/insertions/removals, because
+ *   its per-item scope is never torn down while the key survives.
  * - The uncontrolled `<input>` keeps its typed value and focus across a reorder,
  *   because the element node is moved rather than recreated.
  *
@@ -66,7 +66,7 @@ const program = Effect.gen(function* () {
   };
 
   return h.div([
-    h.h1("Keyed List — List.each"),
+    h.h1("Keyed List (List.each)"),
     h.p(
       { class: "hint" },
       "Type into a row, start its counter, then shuffle. Focus, the typed value, and the running counter all survive the move.",

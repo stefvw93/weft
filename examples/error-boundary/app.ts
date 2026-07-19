@@ -61,7 +61,7 @@ function liveStreamThatFails(): Stream.Stream<ReturnType<typeof h.span>, Network
 }
 
 // ============================================================================
-// Section 1: catchAll — catch all typed failures
+// Section 1: catchAll, catching all typed failures
 // ============================================================================
 
 function CatchAllSection() {
@@ -76,7 +76,7 @@ function CatchAllSection() {
           fallback: (e) =>
             h.div({ class: "error-box" }, [
               h.strong("Network error"),
-              h.span(` — ${e.status} ${e.url}`),
+              h.span(`: ${e.status} ${e.url}`),
             ]),
         },
         [failingFetch("/api/data")],
@@ -86,7 +86,7 @@ function CatchAllSection() {
 }
 
 // ============================================================================
-// Section 2: catchTag — catch a specific error tag
+// Section 2: catchTag, catching a specific error tag
 // ============================================================================
 
 function CatchTagSection() {
@@ -102,7 +102,7 @@ function CatchTagSection() {
           fallback: (e) =>
             h.div({ class: "error-box error-box--auth" }, [
               h.strong("Session expired"),
-              h.span(` — ${e.reason}`),
+              h.span(`: ${e.reason}`),
               h.button(
                 {
                   class: "btn",
@@ -119,7 +119,7 @@ function CatchTagSection() {
 }
 
 // ============================================================================
-// Section 3: catchTags — catch multiple tags
+// Section 3: catchTags, catching multiple tags
 // ============================================================================
 
 function CatchTagsSection() {
@@ -156,7 +156,7 @@ function CatchTagsSection() {
 }
 
 // ============================================================================
-// Section 4: catchSome — optionally catch based on the error value
+// Section 4: catchSome, catching optionally based on the error value
 // ============================================================================
 
 function CatchSomeSection() {
@@ -186,7 +186,7 @@ function CatchSomeSection() {
 }
 
 // ============================================================================
-// Section 5: catchIf — catch when a predicate is true
+// Section 5: catchIf, catching when a predicate is true
 // ============================================================================
 
 function CatchIfSection() {
@@ -198,7 +198,7 @@ function CatchIfSection() {
         {
           predicate: (e) => e.status >= 500,
           fallback: (e) =>
-            h.div({ class: "error-box" }, [h.strong("Server error"), h.span(` — ${e.status}`)]),
+            h.div({ class: "error-box" }, [h.strong("Server error"), h.span(`: ${e.status}`)]),
         },
         [failingFetch("/api/server-error")],
       ),
@@ -207,7 +207,7 @@ function CatchIfSection() {
 }
 
 // ============================================================================
-// Section 6: Nested boundaries — inner catches, outer is the fallback
+// Section 6: Nested boundaries. Inner catches, outer is the fallback
 // ============================================================================
 
 function NestedSection() {
@@ -227,7 +227,7 @@ function NestedSection() {
         },
         [
           h.div({ class: "inner-region" }, [
-            // Auth error — caught by inner boundary
+            // Auth error: caught by inner boundary
             Boundary.catchTag(
               {
                 tag: "AuthError",
@@ -235,7 +235,7 @@ function NestedSection() {
               },
               [checkAuth()],
             ),
-            // Network error — inner boundary only handles AuthError, so NetworkError re-raises
+            // Network error: inner boundary only handles AuthError, so NetworkError re-raises
             Boundary.catchTag(
               {
                 tag: "AuthError",
@@ -266,7 +266,7 @@ function StreamErrorSection() {
           fallback: (e) =>
             h.div({ class: "error-box" }, [
               h.strong("Stream disconnected"),
-              h.span(` — ${e.status}`),
+              h.span(`: ${e.status}`),
             ]),
         },
         [liveStreamThatFails()],
@@ -276,13 +276,13 @@ function StreamErrorSection() {
 }
 
 // ============================================================================
-// Section 8: catchAllCause — catch defects too
+// Section 8: catchAllCause, catching defects too
 // ============================================================================
 
 function ThrowingComponent() {
   return Effect.gen(function* () {
     yield* Effect.sleep("600 millis");
-    // Throws synchronously inside Effect.gen — becomes a defect (Cause.die)
+    // Throws synchronously inside Effect.gen, becoming a defect (Cause.die)
     throw new TypeError("Unexpected null reference");
   });
 }
@@ -299,7 +299,7 @@ function CatchAllCauseSection() {
           fallback: (cause) =>
             h.div({ class: "error-box" }, [
               h.strong("Defect caught"),
-              h.span(` — ${String(cause)}`),
+              h.span(`: ${String(cause)}`),
             ]),
         },
         [ThrowingComponent()],
@@ -309,7 +309,7 @@ function CatchAllCauseSection() {
 }
 
 // ============================================================================
-// Section 9: Toggle — boundary resets on remount
+// Section 9: Toggle. Boundary resets on remount
 // ============================================================================
 
 function ToggleSection() {
@@ -335,7 +335,7 @@ function ToggleSection() {
   );
 
   return h.section({ class: "section" }, [
-    h.h2("9. Remount — boundary resets"),
+    h.h2("9. Remount: boundary resets"),
     h.p("Toggle the demo off and on. Each remount creates a fresh boundary."),
     h.div({ class: "demo" }, [toggle, h.div({ style: { marginTop: "0.5rem" } }, [demo])]),
   ]);
@@ -348,7 +348,7 @@ function ToggleSection() {
 export function App() {
   return h.div({ class: "app" }, [
     h.header([
-      h.h1("Weft — Error Boundaries"),
+      h.h1("Weft: Error Boundaries"),
       h.p(
         { class: "subtitle" },
         "Six variants for intercepting rendering-path errors and recovering with fallback UI.",

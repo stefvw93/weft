@@ -39,7 +39,7 @@ const mountAt = async (path: string): Promise<void> => {
 const cardIds = (): readonly string[] =>
   [...container.querySelectorAll<HTMLElement>("#grid .card")].map((el) => el.dataset.product ?? "");
 
-describe("router-ssr shop — listing sort query", () => {
+describe("router-ssr shop: listing sort query", () => {
   it("re-sorts the grid when ?sort= changes", async () => {
     // Mount sorted by name.
     await mountAt("/products?sort=name");

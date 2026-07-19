@@ -3,8 +3,8 @@
  * (spec: `packages/router/src/resolve-before-commit.specs.md`).
  *
  * Beyond the chunk dimension (`pending-navigation.browser.test.ts`), the router
- * now also pre-runs the matched leaf's **component effect** before committing —
- * a body that awaits its own data (the website's `yield* docs.load` shape) no
+ * now also pre-runs the matched leaf's **component effect** before committing.
+ * A body that awaits its own data (the website's `yield* docs.load` shape) no
  * longer blanks the outlet for the fetch. With a controllable-delay data effect
  * in an eager leaf body:
  *
@@ -26,8 +26,8 @@ import { Effect, Stream } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
- * A leaf whose body awaits gated "data" once and memoizes it — the website's
- * `docs.load` shape: first visit fetches, revisits resolve synchronously.
+ * A leaf whose body awaits gated "data" once and memoizes it, matching the
+ * website's `docs.load` shape: first visit fetches, revisits resolve synchronously.
  */
 function makeDataPage(): {
   readonly component: () => ReturnType<typeof h.div>;
@@ -90,7 +90,7 @@ afterEach(async () => {
   window.history.replaceState(null, "", "/");
 });
 
-describe("Resolve-before-commit — leaf data pre-run (AC1/AC3/AC5)", () => {
+describe("Resolve-before-commit: leaf data pre-run (AC1/AC3/AC5)", () => {
   const indicator = (): string | null =>
     container.querySelector("#nav-indicator")?.textContent ?? null;
 

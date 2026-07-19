@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { App } from "./app";
 
 // This example has no `Boundary.rpc`, but the SSR render fns require an
-// `AppRpcClientTag` in context unconditionally — discharge it with a no-op.
+// `AppRpcClientTag` in context unconditionally, so discharge it with a no-op.
 const NoRpc = Layer.succeed(AppRpcClientTag, {
   call: () => Effect.die(new Error("no rpc in this example")),
 });

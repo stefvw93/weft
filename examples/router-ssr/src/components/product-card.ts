@@ -1,5 +1,5 @@
 /**
- * `ProductCard` — a reusable product tile, shared by the landing "featured" grid
+ * `ProductCard`: a reusable product tile, shared by the landing "featured" grid
  * and the `/products` listing grid.
  *
  * It is a plain `Component.make` called as `ProductCard({ product })` (no JSX),
@@ -17,7 +17,7 @@ import { href } from "@weftui/router";
 import { formatPrice, type Product } from "../data/products";
 import { productRoute } from "../pages/product-detail";
 
-/** A single catalog tile linking to its detail page (SPA nav — see above). */
+/** A single catalog tile linking to its detail page (SPA nav, see above). */
 export const ProductCard = Component.make((props: { readonly product: Product }) =>
   h.article({ class: "card", "data-product": props.product.id }, [
     h.div({ class: "card-emoji" }, props.product.emoji),

@@ -1,9 +1,9 @@
 /**
- * `/products/:id` — the product detail page, with an `:id` **path param** and a
+ * `/products/:id`: the product detail page, with an `:id` **path param** and a
  * refetchable **`Boundary.rpc`**.
  *
  * The leaf reads the decoded `{ path }` straight from its handler args, so
- * `path.id` is already a `number`. An unknown id calls `notFound()` — a dynamic
+ * `path.id` is already a `number`. An unknown id calls `notFound()` for a dynamic
  * 404 (HTTP 404 on the server, the fallback page on client navigation).
  *
  * The product's static metadata (name/price/blurb) comes from the isomorphic
@@ -17,7 +17,7 @@
  *   shows the `fallback`, then forks the same rpc call and swaps the live stock in.
  *
  * The rpc **tag** is the stable identity and the **payload** carries the product
- * id — no per-product boundary id, no co-located server `load`.
+ * id, so there is no per-product boundary id and no co-located server `load`.
  */
 
 import { Boundary, h } from "@weftui/core";
@@ -29,7 +29,7 @@ import { formatPrice, getProduct } from "../data/products";
 /** Shared `:id` path-param schema: decodes the string segment to a number. */
 const idParam = { id: Schema.NumberFromString };
 
-/** `/products/:id` — product metadata + a refetchable live-stock `Boundary.rpc`. */
+/** `/products/:id`: product metadata + a refetchable live-stock `Boundary.rpc`. */
 export const productRoute = Router.route("products/:id", {
   path: idParam,
   component: ({ path }) => {

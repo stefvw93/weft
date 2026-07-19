@@ -6,7 +6,7 @@
  * resolved content once every child has settled.
  *
  * The full streaming-SSR flow (`renderToStreamHydratable` emitting fallback +
- * inline `<template>`/`<script>` patches) is out of scope here — driving those
+ * inline `<template>`/`<script>` patches) is out of scope here. Driving those
  * self-removing patch scripts requires the HTTP response pipeline from
  * `server.ts`, not a single mounted tree. The client boundary coordination
  * tested here is the same logic the hydrated page relies on.

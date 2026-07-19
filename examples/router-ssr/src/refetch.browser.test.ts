@@ -1,6 +1,6 @@
 /**
  * End-to-end browser test for the product detail page's `Boundary.rpc` **client
- * refetch** over the router's rpc endpoint — the one integration the jsdom unit
+ * refetch** over the router's rpc endpoint, the one integration the jsdom unit
  * tests stub out: the real network `RpcClient ↔ RpcServer.toWebHandler` hop at
  * `POST /_eui/rpc`.
  *
@@ -8,18 +8,18 @@
  * (resolving the `GetStock` rpc in-process over the server handler Layer), installs
  * that markup in `#root`, and `hydrate`s `RouterApp(App)` over it. A `window.fetch`
  * shim delegates the same-origin `POST /_eui/rpc` request the network rpc client
- * issues to the router's own `RouterServer.toWebHandler` — so clicking "Refresh
+ * issues to the router's own `RouterServer.toWebHandler`, so clicking "Refresh
  * stock" performs a faithful round-trip: client → `/_eui/rpc` → server handler →
  * encoded success → client decode → in-place patch.
  *
  * Asserts the headline guarantees:
- *   (a) first paint shows the SSR stock (no flash — the `#stock` node is adopted
+ *   (a) first paint shows the SSR stock (no flash, since the `#stock` node is adopted
  *       in place across hydration),
  *   (b) clicking "Refresh stock" hits `/_eui/rpc`, re-runs the handler on the
  *       server (a strictly larger value), and patches the region in place (same
- *       `.product` / `#stock` node — no remount), `pending` settling back to "no",
+ *       `.product` / `#stock` node, no remount), `pending` settling back to "no",
  *   (c) the same rpc **tag** with a different **payload** (`/products/2`) resolves
- *       that product's stock — the payload is a real typed input, not a per-entity
+ *       that product's stock, since the payload is a real typed input, not a per-entity
  *       boundary id.
  */
 
@@ -40,7 +40,7 @@ let container: HTMLElement;
 let app: WeftApp.WeftApp<Router> | undefined;
 let originalFetch: typeof globalThis.fetch;
 
-/** The router's own platform web handler — answers the same-origin `/_eui/rpc` hop. */
+/** The router's own platform web handler, answering the same-origin `/_eui/rpc` hop. */
 const serverHandler = RouterServer.toWebHandler(App, { document: documentShell, rpc });
 
 beforeEach(() => {
@@ -103,7 +103,7 @@ const ssrAndHydrate = async (url: string): Promise<void> => {
   await Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), container));
 };
 
-describe("router-ssr shop — Boundary.rpc stock refetch", () => {
+describe("router-ssr shop: Boundary.rpc stock refetch", () => {
   it("shows the SSR stock, refetches over /_eui/rpc, and patches in place", async () => {
     // First paint: the SSR stock is present in the static markup (before any client JS).
     const stockInSsr = (await ssrDocument("/products/1")).getElementById("stock")?.textContent;
@@ -132,7 +132,7 @@ describe("router-ssr shop — Boundary.rpc stock refetch", () => {
       expect(Number(stockEl?.textContent)).toBeGreaterThan(valueBefore);
     });
 
-    // Same nodes — no remount, no flash; pending settles back to "no".
+    // Same nodes, so no remount and no flash; pending settles back to "no".
     expect(container.querySelector("#stock")).toBe(stockEl);
     expect(container.querySelector(".product")).toBe(productEl);
     await vi.waitFor(() => expect(container.querySelector("#pending")?.textContent).toBe("no"));

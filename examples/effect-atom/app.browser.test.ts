@@ -20,8 +20,8 @@ afterEach(async () => {
 });
 
 // The scoped `AtomRegistry.layer` is owned by the app runtime: built on first
-// mount, alive across every interaction, released only at `WeftApp.dispose` —
-// no scope/Deferred lifetime dance needed.
+// mount, alive across every interaction, released only at `WeftApp.dispose`.
+// No scope/Deferred lifetime dance needed.
 const mountApp = async () => {
   app = WeftApp.make(AtomRegistry.layer);
   await Effect.runPromise(WeftApp.mount(app, App(), container));
@@ -43,7 +43,7 @@ describe("effect-atom example", () => {
   it("updates the counter and derived atom on click", async () => {
     await mountApp();
     // Wait for the counter to render its initial value, not just for the button:
-    // v4 atoms are lazy — an update fired before the first subscriber is live
+    // v4 atoms are lazy: an update fired before the first subscriber is live
     // (the `Atom.toStream` child) is not retained by the registry.
     await vi.waitFor(() => expect(byTestId("count")?.textContent).toBe("0"));
 

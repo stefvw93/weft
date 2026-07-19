@@ -3,7 +3,7 @@
  *
  * Mounts the real `App` in Chromium and asserts that the augmented `<greeting-badge>`
  * custom element renders through `h`: the static badge greets "Weft", and the reactive
- * badge tracks a `SubscriptionRef` — typing into the input patches the custom element's
+ * badge tracks a `SubscriptionRef`: typing into the input patches the custom element's
  * attribute in place, and its `attributeChangedCallback` re-renders the greeting.
  *
  * Post-mount content lands a tick after `mount` resolves, so assertions use `vi.waitFor`.
