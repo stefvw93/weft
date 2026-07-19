@@ -1,5 +1,5 @@
 /**
- * Static-site prerender script — emits the website to `dist/static`.
+ * Static-site prerender script: emits the website to `dist/static`.
  *
  * Runs after `vp run build` (client + server bundles). Mirrors what the prod
  * `server.ts` does per request, but once per enumerated path, writing each HTML
@@ -8,7 +8,7 @@
  * from the built `dist/server/entry-server.js`, renders every path to
  * `dist/static{path}/index.html` (plus `404.html` from the synthetic not-found
  * path), and copies the client assets (minus `.vite/`) alongside. Exits non-zero
- * on any missing build artifact or non-OK page render — partial output must not
+ * on any missing build artifact or non-OK page render. Partial output must not
  * look like success. Run via the `build:static` task: `vp run build:static`.
  *
  * Invoked directly with `tsx prerender.ts`; the pure helpers it composes live in
@@ -35,14 +35,12 @@ export async function prerender(): Promise<void> {
   ) as Record<string, { file: string; css?: string[] }>;
   const entry = manifest["src/entry-client.ts"];
   if (entry === undefined) {
-    throw new Error(
-      "client manifest has no 'src/entry-client.ts' entry — run `vp run build` first",
-    );
+    throw new Error("client manifest has no 'src/entry-client.ts' entry: run `vp run build` first");
   }
 
   // The built server bundle exports the same `makeHandler`/`prerenderPaths` as the
   // source entry.
-  // @ts-ignore — resolved only after `vp build`; absent during `vp check`.
+  // @ts-ignore: resolved only after `vp build`; absent during `vp check`.
   const { makeHandler, prerenderPaths } = (await import("./dist/server/entry-server.js")) as {
     makeHandler: (
       clientEntry: string,
@@ -56,7 +54,7 @@ export async function prerender(): Promise<void> {
   );
 
   // Fresh output each run so removed docs don't linger as stale pages. The manifest
-  // is a build artifact, not a deployable asset — exclude `.vite/` from the copy.
+  // is a build artifact, not a deployable asset. Exclude `.vite/` from the copy.
   await rm(outDir, { recursive: true, force: true });
   await cp(clientDir, outDir, {
     recursive: true,

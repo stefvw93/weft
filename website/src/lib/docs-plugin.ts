@@ -3,12 +3,12 @@
  * hand-authored landing-page hero snippet into `virtual:weft-home-snippet`.
  *
  * On `load` it globs the docs tree, runs each file through `parseDoc`, and emits a light
- * index module (`getAllMeta()` — every doc minus its `tree` — plus `loadDocTree()`) and
+ * index module (`getAllMeta()`, every doc minus its `tree`, plus `loadDocTree()`) and
  * one lazy `virtual:weft-doc/<category>/<slug>` module per doc holding that doc's `tree`.
  * The heavy hast trees are thus code-split per doc and stay out of the initial client
  * graph; only the current page's tree is fetched (see `docs-split.specs.md`). The doc
  * model is resolved once at build time and imported as plain data by both the server and
- * client bundles — no markdown/highlighter code reaches the browser. The
+ * client bundles: no markdown/highlighter code reaches the browser. The
  * home snippet is highlighted by the same pipeline and exported as a `tree` the
  * landing page renders via `renderHast`. In dev it watches the docs tree and triggers
  * a reload when a `.md` file changes.
@@ -24,10 +24,10 @@ const VIRTUAL_ID = "virtual:weft-docs";
 const RESOLVED_ID = `\0${VIRTUAL_ID}`;
 const SNIPPET_ID = "virtual:weft-home-snippet";
 const SNIPPET_RESOLVED_ID = `\0${SNIPPET_ID}`;
-/** Prefix for the per-doc tree modules — `virtual:weft-doc/<category>/<slug>`, one lazy chunk each. */
+/** Prefix for the per-doc tree modules: `virtual:weft-doc/<category>/<slug>`, one lazy chunk each. */
 const DOC_PREFIX = "virtual:weft-doc/";
 const DOC_RESOLVED_PREFIX = `\0${DOC_PREFIX}`;
-/** Sentinel for `Infinity` (not JSON-representable) — replaced with a JS literal in the emitted module. */
+/** Sentinel for `Infinity` (not JSON-representable): replaced with a JS literal in the emitted module. */
 const INFINITY_TOKEN = "__WEFT_INFINITY__";
 
 /** JSON-stringifies `value`, emitting `Infinity` (from `frontmatter.order`) as a JS literal. */
@@ -51,7 +51,7 @@ import { Component, h } from "@weftui/core";
 import { Stream, SubscriptionRef } from "effect";
 
 // A counter: a SubscriptionRef signal whose .changes stream
-// drives the text node directly — no virtual DOM, no diffing.
+// drives the text node directly: no virtual DOM, no diffing.
 const Counter = Component.gen(function* () {
   const count = yield* SubscriptionRef.make(0);
   return yield* h.button(
@@ -93,8 +93,8 @@ export async function loadAllDocs(docsRoot: string): Promise<DocModel[]> {
 
 /**
  * Emits the `virtual:weft-docs` index module: the light metadata manifest (`getAllMeta`,
- * every doc minus its `tree`) plus `loadDocTree`, a static map of `import()` thunks — one
- * statically-analyzable specifier per doc — so each `tree` is a lazily-loaded chunk that
+ * every doc minus its `tree`) plus `loadDocTree`, a static map of `import()` thunks (one
+ * statically-analyzable specifier per doc), so each `tree` is a lazily-loaded chunk that
  * never enters the initial client graph (see `docs-split.specs.md`).
  */
 function toIndexModuleSource(docs: readonly DocModel[]): string {

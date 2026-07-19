@@ -30,7 +30,7 @@ function tree(slug: string): HastRoot {
   return { type: "root", children: [{ type: "text", value: slug }] };
 }
 
-describe("makeDocs — metadata surface (AC5)", () => {
+describe("makeDocs: metadata surface (AC5)", () => {
   it("exposes all/get as metadata and derives nav without any tree", () => {
     const docs = makeDocs([meta("tutorial", "intro"), meta("reference", "core")], () =>
       Promise.resolve(undefined),
@@ -46,7 +46,7 @@ describe("makeDocs — metadata surface (AC5)", () => {
   });
 });
 
-describe("makeDocs — load (AC4/AC6)", () => {
+describe("makeDocs: load (AC4/AC6)", () => {
   it("resolves a doc's metadata plus its lazily-fetched tree", async () => {
     const docs = makeDocs([meta("guides", "intro")], (c, s) => Promise.resolve(tree(`${c}/${s}`)));
     const doc = await Effect.runPromise(docs.load("guides", "intro"));
@@ -54,7 +54,7 @@ describe("makeDocs — load (AC4/AC6)", () => {
     assert.deepEqual(doc?.tree, tree("guides/intro"));
   });
 
-  it("memoizes the tree — a revisit does not re-fetch", async () => {
+  it("memoizes the tree: a revisit does not re-fetch", async () => {
     let calls = 0;
     const docs = makeDocs([meta("guides", "intro")], () => {
       calls += 1;
@@ -65,7 +65,7 @@ describe("makeDocs — load (AC4/AC6)", () => {
     assert.equal(calls, 1);
   });
 
-  it("returns undefined for an unknown (category, slug) — no fetch attempted", async () => {
+  it("returns undefined for an unknown (category, slug): no fetch attempted", async () => {
     let calls = 0;
     const docs = makeDocs([meta("guides", "intro")], () => {
       calls += 1;

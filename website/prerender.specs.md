@@ -1,13 +1,13 @@
-# Static Build (Prerender) — `website/prerender.ts`
+# Static Build (Prerender): `website/prerender.ts`
 
 ## Progress (TDD phases)
 
-- [x] Phase 1 — spec (this file)
-- [x] Phase 2 — mocks (`declare` surface: `src/lib/prerender.ts`, `prerenderPaths` in `entry-server.ts`, `prerender()` in `prerender.ts`)
-- [x] Phase 3 — type tests (n/a: no complex type-level surface; skipped by design)
-- [x] Phase 4 — unit tests (`src/lib/prerender.test.ts`, 7 tests, red against mocks as expected)
-- [x] Phase 5 — implement (declares replaced; `build:static` task wired; `vp run check` + `vp run test` green)
-- [x] Phase 6 — e2e validation (`vp run build:static`, serve `dist/static`, hard-load checks)
+- [x] Phase 1: spec (this file)
+- [x] Phase 2: mocks (`declare` surface: `src/lib/prerender.ts`, `prerenderPaths` in `entry-server.ts`, `prerender()` in `prerender.ts`)
+- [x] Phase 3: type tests (n/a: no complex type-level surface; skipped by design)
+- [x] Phase 4: unit tests (`src/lib/prerender.test.ts`, 7 tests, red against mocks as expected)
+- [x] Phase 5: implement (declares replaced; `build:static` task wired; `vp run check` + `vp run test` green)
+- [x] Phase 6: e2e validation (`vp run build:static`, serve `dist/static`, hard-load checks)
 
 ## Overview
 
@@ -17,7 +17,7 @@ Netlify, Cloudflare Pages) with no Node server.
 
 The site is already fully static-friendly:
 
-- No `Boundary.rpc` — the prod handler is a pure `Request → Response` function.
+- No `Boundary.rpc`; the prod handler is a pure `Request → Response` function.
 - The doc model is baked at build time by the `weftDocs` Vite plugin; nothing is
   fetched per request.
 - The route surface is finite and enumerable: `/`, `/docs`, and
@@ -30,18 +30,18 @@ response body to disk, mirroring what `server.ts` does per request in prod.
 
 ## Deliverables
 
-1. `website/src/lib/prerender.ts` — pure helpers, importable by the node test
+1. `website/src/lib/prerender.ts`: pure helpers, importable by the node test
    runner without the `virtual:weft-docs` module (same split as
    `docs-service.ts` vs `docs-live.ts`): `prerenderPathsFor(all)` (path
    enumeration from a `DocMeta` list), `outputFileFor(pathname, outDir)`
    (path → output-file mapping), `NOT_FOUND_PATH`.
-2. `website/src/entry-server.ts` — additionally export `prerenderPaths`, the
+2. `website/src/entry-server.ts`: additionally export `prerenderPaths`, the
    live path list (`liveDocs.all` through `prerenderPathsFor`), derived from
    the same baked doc model the app renders from. Single source of truth; the
    prerender script must not rescan `docs/` itself.
-3. `website/prerender.ts` — post-build script (run with `tsx`) that emits the
+3. `website/prerender.ts`: post-build script (run with `tsx`) that emits the
    static site to `dist/static`.
-4. `website/vite.config.ts` — new `build:static` task, `dependsOn: ["build"]`.
+4. `website/vite.config.ts`: new `build:static` task, `dependsOn: ["build"]`.
 
 ## Acceptance criteria
 
@@ -52,7 +52,7 @@ response body to disk, mirroring what `server.ts` does per request in prod.
       model.
 - [x] The list is derived from the same doc model used for rendering (the
       `weftDocs` virtual module), not from re-reading the `docs/` directory.
-- [x] Adding a new markdown doc requires no change to the prerender script —
+- [x] Adding a new markdown doc requires no change to the prerender script;
       the new page appears in the next static build.
 
 ### Prerender script
@@ -86,7 +86,7 @@ response body to disk, mirroring what `server.ts` does per request in prod.
 ### Output correctness
 
 - [x] Every prerendered page references the hashed client entry `<script>` and
-      hashed CSS `<link>`s — hydration works when served statically.
+      hashed CSS `<link>`s, so hydration works when served statically.
 - [x] Client-side navigation still works after hydration (lazy doc-tree chunks
       resolve as static files under `/assets/`).
 - [x] Serving `dist/static` with any dumb static file server (e.g.
@@ -114,7 +114,7 @@ response body to disk, mirroring what `server.ts` does per request in prod.
   `pathname + search` in SSR, but no route in this site branches on search
   params; if one ever does, it must be handled client-side after hydration.
 - **Empty doc model**: if the docs plugin yields zero docs, the build still
-  emits `/`, `/docs`, and `404.html` — it must not crash on an empty list.
+  emits `/`, `/docs`, and `404.html`; it must not crash on an empty list.
 - **404 status vs. body**: static hosts serve `404.html` with their own status
   handling; the in-app `notFound` component is the body. The script only
   asserts the SSR handler's status to catch route-enumeration bugs (an
@@ -130,7 +130,7 @@ response body to disk, mirroring what `server.ts` does per request in prod.
 
 ## Testing
 
-- Unit test (`src/lib/prerender.test.ts`, co-located with the helpers — the
+- Unit test (`src/lib/prerender.test.ts`, co-located with the helpers; the
   website Vitest project only includes `src/**`): `prerenderPathsFor` yields
   `/`, `/docs`, and one entry per doc for a fixture `DocMeta` list (and just
   `/`, `/docs` for an empty list); `outputFileFor` handles `/`, nested paths,

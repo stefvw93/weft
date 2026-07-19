@@ -7,7 +7,7 @@ import { DocsLive } from "../lib/docs-live";
 import { documentShell } from "../layouts/shell";
 
 // The app reads the real baked doc model (`virtual:weft-docs`, resolved by the
-// `weftDocs` plugin registered in the root vite config) — no module mocking. The
+// `weftDocs` plugin registered in the root vite config): no module mocking. The
 // `Docs` service is provided through the router's render-time `context` seam as the
 // build-time `DocsLive` layer. These assertions target structure and the known first
 // docs, not exact prose.
@@ -62,7 +62,7 @@ describe("website routes (SSR integration)", () => {
   it("AC3: an unknown doc slug renders the 404 fallback", async () => {
     const { html, status } = await render("/docs/tutorial/does-not-exist");
     assert.equal(status, 404);
-    assert.match(html, /404 — page not found/);
+    assert.match(html, /404: page not found/);
   });
 
   it("reference docs route uniformly through /docs/:category/:slug", async () => {

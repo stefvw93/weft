@@ -1,5 +1,5 @@
 /**
- * Universal SSR server for the Weft website — dev and prod in one file.
+ * Universal SSR server for the Weft website: dev and prod in one file.
  *
  * Dev (`NODE_ENV !== "production"`): runs Vite in middleware mode, loads the
  * server entry through `ssrLoadModule` per request (so workspace deps resolve and
@@ -32,7 +32,7 @@ import { SITE_BASE, buildLlmsTxt } from "./src/lib/llms-txt";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3000);
 const isProd = process.env.NODE_ENV === "production";
-// Repo `docs/` sits one level above `website/` — the source for the on-the-fly dev `/llms.txt`.
+// Repo `docs/` sits one level above `website/`: the source for the on-the-fly dev `/llms.txt`.
 const docsRoot = join(__dirname, "..", "docs");
 
 /** Builds the `/llms.txt` body from the live docs tree (dev only; prod serves the emitted asset). */
@@ -181,7 +181,7 @@ async function startProd(): Promise<void> {
   const styles = (entry.css ?? []).map((file) => `/${file}`);
 
   // The built server bundle exports the same `makeHandler` as the source entry.
-  // @ts-ignore — resolved only after `vp build`; absent during `vp check`.
+  // @ts-ignore: resolved only after `vp build`; absent during `vp check`.
   const { makeHandler } = (await import("./dist/server/entry-server.js")) as {
     makeHandler: (
       clientEntry: string,
@@ -194,13 +194,13 @@ async function startProd(): Promise<void> {
     void (async () => {
       try {
         const url = req.url ?? "/";
-        // Hashed build assets are immutable — serve them directly from disk.
+        // Hashed build assets are immutable. Serve them directly from disk.
         if (url.startsWith("/assets/") || url === clientEntry) {
           const filePath = join(clientDir, url.split("?")[0]!);
           res.statusCode = 200;
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
           // Module scripts are blocked by the browser without a JS MIME type, and
-          // stylesheets need `text/css` — Node's http server sets neither by default.
+          // stylesheets need `text/css`. Node's http server sets neither by default.
           res.setHeader("Content-Type", contentTypeFor(filePath));
           createReadStream(filePath).pipe(res);
           return;

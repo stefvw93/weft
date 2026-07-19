@@ -1,4 +1,4 @@
-# hast → Weft renderer — spec
+# hast → Weft renderer spec
 
 ## Overview & purpose
 
@@ -23,8 +23,8 @@ export const renderHast: (node: HastNode) => Renderable[];
 - **Tag allowlist.** Only render a known-safe set of element tags (headings,
   `p`, `a`, `ul`/`ol`/`li`, `pre`/`code`, `blockquote`, `em`/`strong`/`del`,
   `hr`, `br`, `img`, `table`/`thead`/`tbody`/`tr`/`th`/`td`, `span`, `div`). Any
-  tag not in the allowlist is skipped (children still rendered) — defense in depth
-  even though input is our own docs.
+  tag not in the allowlist is skipped (children still rendered). This is defense
+  in depth even though input is our own docs.
 - **Property mapping.** hast `properties` → Weft props: `className` (array) →
   `class` (joined string), `id`, `href`, `src`, `alt`, `title`, `colSpan`/`rowSpan`,
   `data-*`. Drop event-handler-like or unknown props. Never map `dangerouslySet*`.
@@ -47,7 +47,7 @@ export const renderHast: (node: HastNode) => Renderable[];
   not a plain code block.
 - AC6: Disallowed tags (`script`, `style`, `iframe`, unknown) are skipped without
   throwing; their text children still render.
-- AC7: The function is pure and deterministic — same input → same output — so
+- AC7: The function is pure and deterministic (same input yields same output), so
   server and client produce identical trees (covered by a hydration test).
 - AC8: Empty tree → empty `Renderable[]`.
 

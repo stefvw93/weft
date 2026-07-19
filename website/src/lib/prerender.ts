@@ -1,5 +1,5 @@
 /**
- * Pure prerender helpers — path enumeration and output-file mapping.
+ * Pure prerender helpers: path enumeration and output-file mapping.
  *
  * Kept free of the `virtual:weft-docs` module (same split as `docs-service.ts` vs
  * `docs-live.ts`) so the node test runner can import and test these against fixture
@@ -13,7 +13,7 @@ import type { DocMeta } from "./markdown-loader";
 
 /**
  * The synthetic pathname rendered to produce `404.html`. Not part of the route
- * table — the router resolves it to the `notFound` page at HTTP 404.
+ * table: the router resolves it to the `notFound` page at HTTP 404.
  */
 export const NOT_FOUND_PATH = "/404";
 

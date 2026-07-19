@@ -20,7 +20,7 @@ import { documentShell } from "./layouts/shell";
 
 /**
  * Every prerenderable pathname, derived from the baked doc model (`liveDocs.all`
- * through `prerenderPathsFor`) — the single source of truth for the static build.
+ * through `prerenderPathsFor`): the single source of truth for the static build.
  * Consumed by `website/prerender.ts` from the built server bundle.
  */
 export const prerenderPaths: readonly string[] = prerenderPathsFor(liveDocs.all);

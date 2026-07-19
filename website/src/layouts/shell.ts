@@ -6,8 +6,8 @@
  * `RouterServer`). The `<title>` and meta description are derived per request from the
  * current route's doc frontmatter (read from the `Docs` service, injected via the
  * router's render-time `context` seam). The client entry `src` differs between dev and
- * prod — dev points at the raw `/src/entry-client.ts`, prod at the hashed build
- * artifact — so it is a parameter rather than hardcoded.
+ * prod (dev points at the raw `/src/entry-client.ts`, prod at the hashed build
+ * artifact), so it is a parameter rather than hardcoded.
  *
  * Stylesheets are likewise passed in: in dev Vite injects CSS through the client
  * module graph (`app.ts` imports `app.css`), so `styles` is empty; in prod the CSS is
@@ -21,7 +21,7 @@ import { Docs, type DocsService } from "../lib/docs-service";
 
 /** Default landing meta for non-doc routes. */
 const DEFAULT_META = {
-  title: "Weft — Reactive UI, woven from Effect",
+  title: "Weft: Reactive UI, woven from Effect",
   description: "An Effect-native reactive DOM library.",
 } as const;
 

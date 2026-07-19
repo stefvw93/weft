@@ -23,7 +23,7 @@ import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { parse as parseYaml } from "yaml";
 
-/** The Shiki theme for every highlighted code block — configured in exactly one place. */
+/** The Shiki theme for every highlighted code block: configured in exactly one place. */
 export const SHIKI_THEME = "github-dark";
 
 /** GitHub base for doc links that escape the docs tree (e.g. `examples/`, `packages/`). */
@@ -88,19 +88,19 @@ export type DocModel = {
 
 /**
  * The light per-doc record: a {@link DocModel} without its heavy `tree`. Powers nav,
- * routing, the TOC, and per-route `<title>`/meta — everything except rendering the doc
- * body — so it can ship to the client for **every** doc while each `tree` stays a lazy
+ * routing, the TOC, and per-route `<title>`/meta (everything except rendering the doc
+ * body), so it can ship to the client for **every** doc while each `tree` stays a lazy
  * per-doc chunk (see `docs-split.specs.md`).
  */
 export type DocMeta = Omit<DocModel, "tree">;
 
-/** Element tags dropped wholesale (content and all) — defense in depth; our docs never emit them. */
+/** Element tags dropped wholesale (content and all): defense in depth; our docs never emit them. */
 const DROPPED_TAGS = new Set(["script", "style", "iframe", "object", "embed", "base"]);
 
 /** Heading tags captured for the TOC. */
 const HEADING_DEPTH: Record<string, number> = { h2: 2, h3: 3, h4: 4 };
 
-// Loosely-typed unist/hast nodes — library interop, so `any`-ish access is acceptable here.
+// Loosely-typed unist/hast nodes: library interop, so `any`-ish access is acceptable here.
 type AnyNode = {
   type: string;
   value?: string;
@@ -335,7 +335,7 @@ function buildFrontmatter(raw: unknown, filePath: string, dirSection: string): D
  * Parses one markdown source string into a `DocModel`.
  *
  * Pure given its inputs (modulo the shared Shiki highlighter, which is deterministic),
- * so the same `(source, filePath, docsRoot)` always yields the same model — the basis
+ * so the same `(source, filePath, docsRoot)` always yields the same model: the basis
  * for identical server/client trees.
  *
  * @param source raw `.md` file contents

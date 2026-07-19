@@ -1,5 +1,5 @@
 /**
- * Universal app definition — side-effect-free.
+ * Universal app definition: side-effect-free.
  *
  * Exports the `Router` def consumed by both entries: `entry-server.ts` renders it
  * to a hydratable HTML document, `entry-client.ts` hydrates and takes over
@@ -9,7 +9,7 @@
  * Route tree: the root layout (outlet plus the global navigation progress bar)
  * holds the landing page (full-width, no sidebar) alongside the `DocsShell`
  * layout, which wraps the doc routes so the chrome persists across doc-to-doc
- * navigation. Every section — tutorial, how-to, explanation, reference — routes
+ * navigation. Every section (tutorial, how-to, explanation, reference) routes
  * uniformly through `/docs/:category/:slug`.
  */
 
@@ -22,7 +22,7 @@ import { Home } from "./routes/home";
 import "./app.css";
 
 /**
- * Kill switch for the navigation progress bar. Disabled for now — the bar is
+ * Kill switch for the navigation progress bar. Disabled for now: the bar is
  * visually rough and flickers on some navigations; flip back to `true` once
  * fixed. While `false` the bar renders permanently idle (invisible) and the
  * co-located browser test is skipped (`__tests__/nav-progress.browser.test.ts`).
@@ -35,7 +35,7 @@ const NAV_PROGRESS_BASE =
 
 /**
  * The root layout: the injected outlet plus the global navigation progress bar
- * (see `src/nav-progress.specs.md`). The bar lives here — not in `DocsShell` —
+ * (see `src/nav-progress.specs.md`). The bar lives here (not in `DocsShell`),
  * so it is mounted during every navigation, including Home → docs where the
  * docs chrome doesn't exist yet. `Router.navigating` flips to `Navigating`
  * only while a deferred-commit navigation has real async work; the 150ms
@@ -75,7 +75,7 @@ export const App = Router.router(
   {
     notFound: () =>
       h.section({ class: "mx-auto max-w-4xl px-5 py-24 text-center" }, [
-        h.h2({ class: "mb-4 text-2xl font-semibold" }, "404 — page not found"),
+        h.h2({ class: "mb-4 text-2xl font-semibold" }, "404: page not found"),
         h.p([h.a({ href: "/", class: "text-indigo-11 no-underline" }, "Go home")]),
       ]),
   },

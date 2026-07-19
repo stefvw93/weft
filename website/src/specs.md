@@ -1,4 +1,4 @@
-# Weft website — overview spec
+# Weft website overview spec
 
 ## Overview & purpose
 
@@ -7,10 +7,10 @@ library. It is itself **built with Weft** (dogfooding: `@weftui/core`,
 `@weftui/dom`, `@weftui/router`, Effect, Tailwind v4, custom Node `server.ts`,
 split client/server Vite builds). It serves three audiences in one site:
 
-1. **Newcomers** — a landing page that states the value proposition and proves it
+1. **Newcomers**: a landing page that states the value proposition and proves it
    with a live demo.
-2. **Learners** — guides + concept docs in a defined learning order.
-3. **Reference users** — per-package API reference.
+2. **Learners**: guides + concept docs in a defined learning order.
+3. **Reference users**: per-package API reference.
 
 Tagline: **"Reactive UI, woven from Effect."**
 
@@ -26,7 +26,7 @@ Tagline: **"Reactive UI, woven from Effect."**
 - **Live demos.** Code examples can mount real, interactive Weft components inline
   (they are ordinary subtrees of the one hydrated page tree).
 - **Minimal technical aesthetic.** Dense, dev-focused, sidebar nav, mono code
-  accents — Effect/Vite-docs feel.
+  accents, an Effect/Vite-docs feel.
 
 ## Module map (each has its own specs.md)
 
@@ -68,7 +68,7 @@ description: ... # meta description / og
   `/docs/reference/:pkg`, the same uniform route as every other section.
 - AC4: Sidebar nav is generated from frontmatter (no hand-maintained list),
   grouped by `section`, ordered by `order`, with the current page highlighted.
-- AC5: Server and client produce identical trees — no `HydrationMismatchError`,
+- AC5: Server and client produce identical trees, with no `HydrationMismatchError`,
   no visible flash on any page.
 - AC6: An unknown doc slug renders the 404 fallback.
 - AC7: `vp run check` and `vp run test` pass; a `*.browser.test.ts` covers a

@@ -48,11 +48,11 @@ describe("outputFileFor", () => {
     assert.equal(outputFileFor("/", OUT_DIR), join(OUT_DIR, "index.html"));
   });
 
-  it("AC: maps a top-level path to a directory index — /docs → {outDir}/docs/index.html", () => {
+  it("AC: maps a top-level path to a directory index (/docs → {outDir}/docs/index.html)", () => {
     assert.equal(outputFileFor("/docs", OUT_DIR), join(OUT_DIR, "docs", "index.html"));
   });
 
-  it("AC: maps a nested path to a directory index — /docs/guide/intro → {outDir}/docs/guide/intro/index.html", () => {
+  it("AC: maps a nested path to a directory index (/docs/guide/intro → {outDir}/docs/guide/intro/index.html)", () => {
     assert.equal(
       outputFileFor("/docs/guide/intro", OUT_DIR),
       join(OUT_DIR, "docs", "guide", "intro", "index.html"),

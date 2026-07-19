@@ -6,11 +6,11 @@
  * per-route render logic. It is imported **only** through `Router.lazy(() =>
  * import("./doc-page-impl"))` in the eager descriptor file (`routes/docs.ts`),
  * so this whole render body is emitted as its own chunk and never enters the
- * initial module graph — a request renders one leaf, so only that leaf's lazy
+ * initial module graph: a request renders one leaf, so only that leaf's lazy
  * component chunk loads (server render + client nav; see
  * `packages/router/src/lazy-component.specs.md`).
  *
- * Every doc section — tutorial, how-to, explanation, reference — routes uniformly
+ * Every doc section (tutorial, how-to, explanation, reference) routes uniformly
  * through `/docs/:category/:slug`; there is no reference-specific route.
  *
  * Each export is a `Component` whose `E`/`R` (`Docs`, `Router.params`) propagate

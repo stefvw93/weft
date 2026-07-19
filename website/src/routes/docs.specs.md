@@ -1,4 +1,4 @@
-# Doc routes — spec
+# Doc routes spec
 
 ## Overview & purpose
 
@@ -17,7 +17,7 @@ Uses `@weftui/router` `Router.route`, type-safe params, under the `DocsShell`
 ## DocPage behaviour
 
 - Renders the doc title (`frontmatter.title`) as the page `h1` if the markdown does
-  not already start with one (avoid duplicate titles — prefer the markdown's own
+  not already start with one (avoid duplicate titles; prefer the markdown's own
   `h1` when present).
 - Renders the doc body via `renderHast(doc.tree)`.
 - Sets the document `<title>` and meta description from frontmatter (via the
@@ -38,5 +38,5 @@ Uses `@weftui/router` `Router.route`, type-safe params, under the `DocsShell`
 ## Edge cases
 
 - A category that exists but slug that doesn't → 404 (not a blank page).
-- Every section — tutorial, how-to, explanation, reference — is served here through
+- Every section (tutorial, how-to, explanation, reference) is served here through
   the single `/docs/:category/:slug` route; there is no separate `/api` route.

@@ -17,14 +17,14 @@ import { renderHast } from "../lib/render-hast";
 
 /** Repo URL for GitHub links. */
 const REPO_URL = "https://github.com/stefvw93/weft";
-/** Primary CTA target — the first step of the tutorial. */
+/** Primary CTA target: the first step of the tutorial. */
 const GETTING_STARTED = "/docs/tutorial/01-your-first-app";
 
 /** The differentiators row content. */
 const DIFFERENTIATORS: ReadonlyArray<{ title: string; body: string }> = [
   {
     title: "No virtual DOM",
-    body: "Streams update the DOM directly — no diffing, no reconciliation.",
+    body: "Streams update the DOM directly: no diffing, no reconciliation.",
   },
   {
     title: "No JSX, no plugins",
@@ -32,7 +32,7 @@ const DIFFERENTIATORS: ReadonlyArray<{ title: string; body: string }> = [
   },
   {
     title: "Effect-native",
-    body: "Every node is an Effect<…, E, R> — error and requirement channels flow through the tree.",
+    body: "Every node is an Effect<…, E, R>: error and requirement channels flow through the tree.",
   },
   {
     title: "Flash-free SSR",
@@ -76,7 +76,7 @@ function LiveDemo(): Renderable {
     ),
     h.div(
       { class: "text-[0.78rem] uppercase tracking-wider text-slate-11" },
-      "Live — click to increment",
+      "Live: click to increment",
     ),
     ReactiveCounter(),
   ]);

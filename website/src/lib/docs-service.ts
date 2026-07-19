@@ -24,7 +24,7 @@ export interface DocsService {
   /** The nav manifest derived from `all` (groups, flat order, first path, neighbours). */
   readonly nav: NavData;
   /**
-   * Loads a doc's full model — metadata **plus** its lazily-fetched `tree` — for rendering
+   * Loads a doc's full model (metadata **plus** its lazily-fetched `tree`) for rendering
    * the body via `DocPage`. Resolves synchronously (`Effect.succeed`) for an already-loaded
    * doc (memoized), so a re-render or back-navigation to a visited doc never re-imports and
    * never flashes; `undefined` for an unknown `(category, slug)`. See `docs-split.specs.md`.
@@ -43,7 +43,7 @@ export class Docs extends Context.Service<Docs, DocsService>()("website/Docs") {
  * Builds a `DocsService` from the metadata manifest plus a `loadTree` fetcher (the
  * `virtual:weft-docs` `loadDocTree`, backed by lazy per-doc chunks). Resolved trees are
  * memoized per service instance so a revisit is synchronous. Pure + fixture-testable:
- * pass any `(all, loadTree)` — no build-time module dependency.
+ * pass any `(all, loadTree)`: no build-time module dependency.
  */
 export function makeDocs(
   all: readonly DocMeta[],

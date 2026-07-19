@@ -102,7 +102,7 @@ describe("website DocPage + live demo (browser)", () => {
   });
 });
 
-describe("per-route doc-data split — flash-free lazy hydration (browser)", () => {
+describe("per-route doc-data split: flash-free lazy hydration (browser)", () => {
   /** A doc's metadata (no tree) for the split `Docs` service. */
   const introMeta: DocMeta = {
     slug: "intro",
@@ -112,7 +112,7 @@ describe("per-route doc-data split — flash-free lazy hydration (browser)", () 
     headings: [],
   };
 
-  /** The doc's heavy tree — the payload a per-doc chunk carries, fetched async by `loadTree`. */
+  /** The doc's heavy tree: the payload a per-doc chunk carries, fetched async by `loadTree`. */
   const introTree: HastRoot = {
     type: "root",
     children: [
@@ -152,7 +152,7 @@ describe("per-route doc-data split — flash-free lazy hydration (browser)", () 
     expect(container.querySelector("h1")?.textContent).toContain("Intro");
     expect(bodyText()).toContain("Lazily loaded body.");
 
-    // The server-rendered <p> node — capture identity to prove hydration adopts it in place.
+    // The server-rendered <p> node: capture identity to prove hydration adopts it in place.
     const serverP = container.querySelector("p");
 
     // Hydrate over the markup; the async body resolves during hydrate.

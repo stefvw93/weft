@@ -1,4 +1,4 @@
-# Markdown loader — spec
+# Markdown loader spec
 
 ## Overview & purpose
 
@@ -49,7 +49,7 @@ type DocModel = {
 
 - A virtual/generated module exposing all docs: `getAllDocs(): DocModel[]` and
   `getDoc(category, slug): DocModel | undefined` (or an equivalent map). Must be a
-  pure data import — no runtime parsing in either bundle.
+  pure data import, with no runtime parsing in either bundle.
 - Importable in `src/lib/nav.ts`, `src/routes/docs.ts`.
 
 ## Acceptance criteria

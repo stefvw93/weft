@@ -1,4 +1,4 @@
-# Code block component — spec
+# Code block component spec
 
 ## Overview & purpose
 
@@ -34,7 +34,7 @@ export const CodeBlock: (props: {
 - AC3: After hydrate, clicking copy writes `raw` to the clipboard and shows a
   transient confirmation, then reverts.
 - AC4: Copy handler failures (clipboard denied) are handled via Effect, surfaced
-  as a non-fatal state — they do not crash the page.
+  as a non-fatal state. They do not crash the page.
 
 ## Edge cases
 

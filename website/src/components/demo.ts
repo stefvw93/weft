@@ -5,7 +5,7 @@
  * the demo registry, above a code pane (the shared `CodeBlock`). Produced by
  * `render-hast` when a fenced code block carries `demo=<id>`.
  *
- * The preview is an ordinary subtree of the page — SSR-rendered and hydrated with
+ * The preview is an ordinary subtree of the page: SSR-rendered and hydrated with
  * everything else, no separate mount. An unknown `id` degrades to a visible inline
  * warning plus the code pane rather than throwing, so a typo in `demo=` never breaks
  * the build or the page.

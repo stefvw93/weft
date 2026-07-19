@@ -1,5 +1,5 @@
 /**
- * Builds the site's `/llms.txt` — the [llmstxt.org](https://llmstxt.org) index that lets
+ * Builds the site's `/llms.txt`: the [llmstxt.org](https://llmstxt.org) index that lets
  * LLMs and agents discover the whole Weft documentation tree from one file.
  *
  * Pure over its inputs: given the parsed doc metadata (from `markdown-loader`) and the
@@ -10,7 +10,7 @@
 
 import type { DocMeta } from "./markdown-loader";
 
-/** Canonical deployed site base — every link in `llms.txt` is absolute against it. */
+/** Canonical deployed site base: every link in `llms.txt` is absolute against it. */
 export const SITE_BASE = "https://weftui.dev";
 
 /** Doc categories in presentation order, with their `llms.txt` section headings. */

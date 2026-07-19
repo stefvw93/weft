@@ -1,4 +1,4 @@
-# Landing page — spec
+# Landing page spec
 
 ## Overview & purpose
 
@@ -12,7 +12,7 @@ aesthetic, roughly one screen, dense.
    primary CTA → Tutorial (`/docs/tutorial/01-your-first-app`), secondary →
    GitHub.
 2. **Live hero demo**: a small interactive component from the demo registry
-   (e.g. `reactive-counter`) — proves reactivity on the landing page itself.
+   (e.g. `reactive-counter`). It proves reactivity on the landing page itself.
 3. **Differentiators row**: no virtual DOM / no diffing; no JSX / no build
    plugins; Effect-native (`E`/`R` channels); flash-free SSR + hydration.
 4. **Code teaser**: a short, annotated `Component.gen` + stream snippet

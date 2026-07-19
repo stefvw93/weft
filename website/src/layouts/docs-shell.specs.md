@@ -1,4 +1,4 @@
-# Docs shell layout — spec
+# Docs shell layout spec
 
 ## Overview & purpose
 
@@ -16,12 +16,12 @@ export const DocsShell: LayoutNode; // Router.layout(...) wrapping doc routes
 ## Regions
 
 - **Top bar**: Weft wordmark (link to `/`), version label (latest git release tag,
-  injected at build time via Vite `define` — see `website/build-version.ts`), GitHub
+  injected at build time via Vite `define`; see `website/build-version.ts`), GitHub
   link, search placeholder (inert in v1).
 - **Sidebar (left)**: grouped nav from `navGroups` (`src/lib/nav.ts`). Current page
   highlighted (derived from current route). Groups labelled (Guides, Concepts,
   API Reference).
-- **Content (center)**: `Router.Outlet` — the DocPage for the matched route.
+- **Content (center)**: `Router.Outlet`, the DocPage for the matched route.
 - **TOC (right)**: "On this page" from the current doc's `headings` (h2–h3).
   Hidden on narrow viewports.
 - **Footer**: prev/next links from `findNav(currentPath)`.

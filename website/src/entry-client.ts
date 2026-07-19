@@ -5,7 +5,7 @@
  * History-API-backed `Router` (seeded from `window.location`, with the same-origin
  * link click interceptor installed). `hydrate` adopts the server DOM in place and
  * resumes the reactive outlet, after which back/forward and in-app link clicks
- * navigate without a full page load. No `rpc` option — the app has no `Boundary.rpc`.
+ * navigate without a full page load. No `rpc` option: the app has no `Boundary.rpc`.
  *
  * Route components read the doc model from the `Docs` service, provided via
  * `RouterLive`'s render-time `context` seam as `DocsLive` (baked at build time into the

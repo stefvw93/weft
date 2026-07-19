@@ -2,9 +2,9 @@
  * The build-time-backed `Docs` service layer.
  *
  * Isolated in its own module because it imports the `virtual:weft-docs` module the
- * loader plugin emits — kept out of `docs-service.ts` so that module (and the fixture
+ * loader plugin emits: kept out of `docs-service.ts` so that module (and the fixture
  * `makeDocs`) stays importable under the node test runner. `DocsLive` is provided into
- * the render tree through the router's render-time `context` seam — at the server entry
+ * the render tree through the router's render-time `context` seam: at the server entry
  * (`entry-server.ts` → `RouterServer.render`) and the client entry (`entry-client.ts` →
  * `RouterLive`); tests provide a fixture `Docs` layer (`Layer.succeed(Docs, makeDocs(...))`)
  * instead.

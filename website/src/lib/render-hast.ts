@@ -53,14 +53,14 @@ const ALLOWED_TAGS = new Set([
 /** hast property keys passed straight through to Weft props (value kept as-is). */
 const PASSTHROUGH_PROPS = new Set(["id", "href", "src", "alt", "title", "style"]);
 
-/** A loosely-typed element builder — `h.*` for an allowlisted tag. */
+/** A loosely-typed element builder: `h.*` for an allowlisted tag. */
 type ElementBuilder = (
   props: Record<string, unknown>,
   children: readonly Renderable[],
 ) => Renderable;
 
 // `h` is a proxy whose properties are element builders; index it dynamically for the
-// allowlisted tag names (library interop — the cast is the documented escape hatch).
+// allowlisted tag names (library interop: the cast is the documented escape hatch).
 const builders = h as unknown as Record<string, ElementBuilder>;
 
 /** Converts a hast `dataFooBar` key to the `data-foo-bar` attribute name. */

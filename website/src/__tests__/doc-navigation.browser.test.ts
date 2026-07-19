@@ -4,8 +4,8 @@
  *
  * Mounts the real website `App` (real routes, real `DocsLive` backed by the
  * per-doc `import()` chunks the docs plugin emits) and navigates between two
- * docs. The router pre-runs the doc leaf — `yield* docs.load(...)` and the
- * doc-page chunk both resolve **before** the commit — so no animation frame
+ * docs. The router pre-runs the doc leaf (`yield* docs.load(...)` and the
+ * doc-page chunk both resolve **before** the commit), so no animation frame
  * across the transition may see the content region empty. Sampled per
  * `requestAnimationFrame`, not per DOM mutation: the renderer's region swap can
  * interleave Effect microtask yields between removal and insertion within one
@@ -55,7 +55,7 @@ describe("doc→doc navigation never blanks the content region (AC10)", () => {
     const firstTitle = container.querySelector("article h1")?.textContent;
 
     // Sample the article on every animation frame: no frame across the
-    // transition may see it empty (a painted blank — spec AC10).
+    // transition may see it empty (a painted blank, per spec AC10).
     const article = container.querySelector("article")!;
     let sawEmptyFrame = false;
     let sampling = true;

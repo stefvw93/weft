@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
- * Design system — DaisyUI + Radix Colors (Brown accent + Sand gray, dark).
+ * Design system: DaisyUI + Radix Colors (Brown accent + Sand gray, dark).
  * The Radix scales are aliased under the legacy `slate`/`indigo` utility names
  * (see @theme below), so a hue swap is a one-block edit and component markup
  * (`bg-slate-2`, `text-indigo-11`, …) stays unchanged. See
@@ -61,7 +61,7 @@
 }
 
 /* Expose the raw Radix steps as Tailwind color utilities (bg-slate-2,
- * border-slate-6, text-indigo-11, …) — this is how components pull Radix colors.
+ * border-slate-6, text-indigo-11, …): this is how components pull Radix colors.
  * The `slate`/`indigo` names are retained for stability; their values point at
  * the Sand (neutral) and Brown (accent) dark scales. Repoint here to swap hues.
  * Values resolve to the Radix dark scale under `.dark`. */

@@ -2,7 +2,7 @@
  * `reactive-counter` demo.
  *
  * The headline reactivity pattern: a `SubscriptionRef` signal whose `.changes`
- * stream drives a text node directly — no virtual DOM, no diffing. Clicking a
+ * stream drives a text node directly: no virtual DOM, no diffing. Clicking a
  * button updates the ref; the rendered value updates in place. SSR-rendered and
  * hydrated as an ordinary subtree of the page (no separate mount).
  */

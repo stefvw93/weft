@@ -1,10 +1,10 @@
-# Per-route doc-data split — Specification
+# Per-route doc-data split specification
 
 ## Overview
 
 The website bakes every doc's Shiki-highlighted `hast` tree into `virtual:weft-docs`
 and imports it from **both** entries. Because `entry-client.ts` statically imports
-`DocsLive`, the whole corpus (~820 kB raw / ~80 kB gzip — the single largest artifact)
+`DocsLive`, the whole corpus (~820 kB raw / ~80 kB gzip, the single largest artifact)
 ships to the browser on first load, even though a page renders exactly **one** doc.
 
 This feature splits the baked data so the client's **initial** module graph carries
@@ -20,7 +20,7 @@ else is website-local application wiring.
 - `DocModel.tree` (hast) is the weight. `frontmatter` + `headings` + `slug`/`category`/
   `path` are small.
 - Only `DocPage` reads `doc.tree`. `DocsShell` (sidebar, prev/next, TOC) and `shell.ts`
-  (`<title>`/meta) read only nav + `headings` + `frontmatter` — i.e. metadata.
+  (`<title>`/meta) read only nav + `headings` + `frontmatter`, i.e. metadata.
 - Weft `hydrate` **adopts** server DOM in place; a first reactive emission that matches
   the adopted DOM mutates nothing → **no flash** (`hydrate.specs.md`). A **bare async
   component** (no Suspense/Boundary wrapper) therefore hydrates flash-free: the SSR DOM
@@ -30,18 +30,18 @@ else is website-local application wiring.
 
 ## Data model
 
-- `DocMeta = Omit<DocModel, "tree">` — the light per-doc record (`slug`, `category`,
+- `DocMeta = Omit<DocModel, "tree">`: the light per-doc record (`slug`, `category`,
   `path`, `frontmatter`, `headings`). New export from `markdown-loader.ts`.
 
 ## `virtual:weft-docs` (emitted by `weftDocs`)
 
-- `getAllMeta(): DocMeta[]` — every doc's metadata, tree stripped. Static, always in the
+- `getAllMeta(): DocMeta[]` returns every doc's metadata, tree stripped. Static, always in the
   client graph.
-- `loadDocTree(category, slug): Promise<HastRoot | undefined>` — resolves the doc's tree
+- `loadDocTree(category, slug): Promise<HastRoot | undefined>` resolves the doc's tree
   from a **per-doc lazy chunk**. Implemented as a static map of
   `() => import("virtual:weft-doc/<category>/<slug>")` thunks (statically-analyzable
   specifiers, so Rolldown emits one chunk per doc), returning `m.tree`.
-- `getDoc`/`getAllDocs` (full-model accessors) are **removed** — no client caller should
+- `getDoc`/`getAllDocs` (full-model accessors) are **removed**. No client caller should
   reach a tree synchronously.
 
 Per-doc virtual modules `virtual:weft-doc/<category>/<slug>` each `export const tree`.
@@ -62,17 +62,17 @@ makeDocs(all: readonly DocMeta[], loadTree: (c, s) => Promise<HastRoot | undefin
 ```
 
 - `load` memoizes resolved trees in a per-service `Map` so a re-render / back-nav to a
-  visited doc is synchronous (`Effect.succeed`) — no re-import, no flash.
+  visited doc is synchronous (`Effect.succeed`), with no re-import and no flash.
 - Server and client both build `makeDocs(getAllMeta(), loadDocTree)`; on the server the
   dynamic `import()` resolves the bundled module synchronously enough for the buffered
-  render. Route components are `yield* docs.load(...)` on both sides — uniform.
+  render. Route components are `yield* docs.load(...)` on both sides, uniformly.
 
 ## Consumers
 
 - `routes/docs.ts`, `routes/api.ts`: `const doc = yield* docs.load(cat, slug)` (was
   `docs.get`). 404 / `api`-guard logic unchanged.
 - `routes/doc-page.ts`: unchanged (takes a full `DocModel`).
-- `layouts/docs-shell.ts`, `layouts/shell.ts`: unchanged behaviour — already read only
+- `layouts/docs-shell.ts`, `layouts/shell.ts`: unchanged behaviour. They already read only
   `nav` / `headings` / `frontmatter` via `get`, which now returns `DocMeta`.
 
 ## Acceptance criteria
@@ -89,7 +89,7 @@ makeDocs(all: readonly DocMeta[], loadTree: (c, s) => Promise<HastRoot | undefin
 - **AC4** Client navigation to another doc renders its content once its chunk resolves;
   a return visit is synchronous (memoized).
 - **AC5** Nav (sidebar/prev-next), TOC, and `<title>`/meta continue to work with metadata
-  only — no tree needed, no extra network request for chrome.
+  only, with no tree needed and no extra network request for chrome.
 - **AC6** `makeDocs` stays pure + fixture-testable; `parseDoc` and `render-hast` are
   unchanged.
 

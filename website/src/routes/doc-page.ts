@@ -3,7 +3,7 @@
  *
  * Renders a `DocModel`'s body via `renderHast`, prepending the frontmatter title as
  * an `h1` only when the markdown does not already start with one (our docs do, so the
- * title is not duplicated). Used by both the doc routes and the api routes — API
+ * title is not duplicated). Used by both the doc routes and the api routes: API
  * reference is documentation with its own nav group, rendered the same way.
  */
 

@@ -4,7 +4,7 @@
  * The persistent chrome around every documentation page: a top bar, a left sidebar
  * nav, the center content (the router outlet), a right "On this page" TOC, and a
  * prev/next footer. Authored as a `Router.layout` **component** so it stays mounted
- * across doc-to-doc navigations — the route phase wraps it with the doc/api routes
+ * across doc-to-doc navigations: the route phase wraps it with the doc/api routes
  * via `Router.layout({ component: DocsShell }, [...])`.
  *
  * The active link, TOC, and prev/next all derive from the **current route path**,
@@ -23,7 +23,7 @@ import type { NavGroup, NavNeighbours } from "../lib/nav";
 
 /** Repo URL for the top-bar GitHub link. */
 const REPO_URL = "https://github.com/stefvw93/weft";
-/** Version label shown in the top bar — latest release tag, injected at build time. */
+/** Version label shown in the top bar: latest release tag, injected at build time. */
 const VERSION = __WEFT_VERSION__;
 
 /** Strips the query string from a normalized request URL, yielding the pathname. */

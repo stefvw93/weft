@@ -56,7 +56,7 @@ function labelFor(section: string): string {
   return SECTION_LABELS[section] ?? section.charAt(0).toUpperCase() + section.slice(1);
 }
 
-/** Route path for a doc — every section routes uniformly through `/docs/:section/:slug`. */
+/** Route path for a doc: every section routes uniformly through `/docs/:section/:slug`. */
 function linkPath(doc: DocMeta): string {
   return `/docs/${doc.category}/${doc.slug}`;
 }
@@ -80,7 +80,7 @@ function compareDocs(a: DocMeta, b: DocMeta): number {
   );
 }
 
-/** Builds grouped/ordered nav data from a doc set. Pure — same input yields the same nav. */
+/** Builds grouped/ordered nav data from a doc set. Pure: same input yields the same nav. */
 export function buildNav(docs: readonly DocMeta[]): NavData {
   const bySection = new Map<string, DocMeta[]>();
   for (const doc of docs) {

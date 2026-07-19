@@ -2,7 +2,7 @@
  * GoatCounter SPA pageview tracking.
  *
  * The `count.js` script (loaded in `layouts/shell.ts`) counts exactly once, on
- * script load — it installs no History hooks, so client-side navigations via
+ * script load: it installs no History hooks, so client-side navigations via
  * `@weftui/router` are invisible to it. {@link trackPageviews} closes that gap:
  * it forks a listener on the router's `currentMatch` stream and reports each
  * subsequent navigation through GoatCounter's manual `count()` API.

@@ -5,12 +5,12 @@
  *   its content.
  * - `/docs/:category/:slug` looks up the doc model and renders it via `DocPage`;
  *   an unknown `(category, slug)` short-circuits to the router's not-found (404).
- *   Every section — tutorial, how-to, explanation, reference — routes through here.
+ *   Every section (tutorial, how-to, explanation, reference) routes through here.
  *
  * Only the **descriptors** (segment + component slot) live here, eagerly. Each
  * component body is `Router.lazy(() => import("./doc-page-impl"))`, so the render
  * code (`DocPage`, `render-hast`, `CodeBlock`, `Demo`) is emitted as its own chunk
- * and loaded only for the matched leaf — the matcher/`href`/`buildHttpApi` still see
+ * and loaded only for the matched leaf: the matcher/`href`/`buildHttpApi` still see
  * a static descriptor. Mounted under the `DocsShell` layout by `app.ts`.
  */
 

@@ -3,12 +3,12 @@
  * (spec: `src/nav-progress.specs.md`, AC1/AC2).
  *
  * Mounts the real website `App` at the landing page and clicks through to the
- * first tutorial doc — a first visit, so the lazy `doc-page-impl` chunk is
+ * first tutorial doc: a first visit, so the lazy `doc-page-impl` chunk is
  * genuinely unfetched and the deferred-commit resolve window is real. A
  * `MutationObserver` on `#nav-progress` records every `class` value across the
  * transition: the bar must flip to `is-navigating` mid-flight (AC2) and settle
  * back to plain `nav-progress` after commit. The `is-navigating` assertion
- * lives only in this first-navigation test — revisits render from the per-slot
+ * lives only in this first-navigation test. Revisits render from the per-slot
  * memo and stay `Idle`.
  */
 

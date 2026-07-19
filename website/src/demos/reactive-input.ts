@@ -26,7 +26,7 @@ export const ReactiveInput = (): Node =>
         ? "Type something…"
         : text.length < MIN_LENGTH
           ? `Keep going… (${MIN_LENGTH - text.length} more)`
-          : `Looks good — ${text.length} characters`,
+          : `Looks good: ${text.length} characters`,
     );
     const isValid = Stream.map(SubscriptionRef.changes(value), (text) => text.length >= MIN_LENGTH);
 
