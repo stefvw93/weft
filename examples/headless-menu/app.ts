@@ -68,27 +68,19 @@ const FileMenu = () =>
     const menu = yield* Menu.make(items);
     const toggleCount = yield* SubscriptionRef.make(0);
     const measureRef = yield* SubscriptionRef.make(Option.none<HTMLButtonElement>());
-
     const trigger = yield* Menu.trigger(menu);
     const popup = yield* Menu.popup(menu);
-    // Built once, up front, inside this generator: `List.each`'s render
-    // callback is a plain synchronous function, not an Effect context, so
-    // `Menu.item`'s Effect has to run here, not via `Effect.runSync` inside
-    // render (same anti-pattern as running an Effect synchronously off a raw
-    // DOM listener, see the outside-click fix in menu.ts).
-    const itemBags = yield* Effect.all(items.map((_, index) => Menu.item(menu, { index })));
 
     return h.div({ class: "file-menu" }, [
       h.button(
         Props.merge(trigger, {
           class: Props.cx("btn", { "btn--open": SubscriptionRef.changes(menu.isOpen) }),
-          // Chains after `menu.toggle`: both run, so a broken counter can't block the menu.
           onclick: () => SubscriptionRef.update(toggleCount, (n) => n + 1),
-          // Fans out with `menu.anchor` (positioning/outside-click), both refs get the element.
           ref: measureRef,
         }),
         "File",
       ),
+
       h.p({ class: "meta" }, [
         "toggled ",
         Stream.map(SubscriptionRef.changes(toggleCount), String),
@@ -97,21 +89,25 @@ const FileMenu = () =>
           Option.isSome(captured) ? "captured" : "pending",
         ),
       ]),
+
       h.ul(Props.merge(popup, { class: "menu-popup" }), [
         List.each({ of: items, by: (item) => item.label }, (item, index) =>
-          h.li(
-            Props.merge(itemBags[index]!, {
-              class: Props.cx("menu-item", {
-                "menu-item--highlighted": Stream.map(
-                  SubscriptionRef.changes(menu.highlighted),
-                  Option.contains(index),
-                ),
+          Effect.flatMap(Menu.item(menu, { index }), (a) =>
+            h.li(
+              Props.merge(a, {
+                class: Props.cx("menu-item", {
+                  "menu-item--highlighted": Stream.map(
+                    SubscriptionRef.changes(menu.highlighted),
+                    Option.contains(index),
+                  ),
+                }),
               }),
-            }),
-            item.label,
+              item.label,
+            ),
           ),
         ),
       ]),
+
       h.p({ class: "log" }, [
         Stream.map(SubscriptionRef.changes(notify.activity), (log) =>
           log.length === 0 ? "(no activity yet)" : log.join(" · "),
