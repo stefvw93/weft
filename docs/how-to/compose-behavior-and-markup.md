@@ -134,6 +134,10 @@ reactive prop.
 
 ## See also
 
+- [Headless Menu example](../../examples/headless-menu): a full behavior
+  primitive (`Menu.trigger`/`popup`/`item`) merged onto consumer-owned markup,
+  with handler chaining, ref fan-out, and a service requirement flowing
+  through the merge into `Node<E, R>`.
 - [`@weftui/dom` reference](../reference/dom.md): the full per-key rules and `cx` grammar
 - [Use Element Refs](./use-element-refs.md): the single-ref contract that fan-out builds on
 - [Style Reactively](./style-reactively.md): per-property style streams and `cx`
