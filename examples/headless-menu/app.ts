@@ -92,9 +92,6 @@ const FileMenu = () =>
         ),
       ]),
       h.ul(Props.merge(popup, { class: "menu-popup" }), [
-        // `items` is fixed for the lifetime of this menu, so plain `.map` would
-        // work too, but `List.each` is the library's keyed-list primitive: each
-        // row renders once per key, by label here, matching `examples/keyed-list`.
         List.each({ of: items, by: (item) => item.label }, (item, index) => {
           const bag = Effect.runSync(Menu.item(menu, { index }));
           return h.li(
