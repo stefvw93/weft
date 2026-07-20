@@ -4,3 +4,4 @@ export {
   RenderError,
   StreamSubscriptionError,
 } from "./data";
+export * as Props from "./props";

@@ -1,11 +1,11 @@
 # Graph Report - props-merge-design  (2026-07-20)
 
 ## Corpus Check
-- 396 files · ~301,883 words
+- 396 files · ~301,719 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6466 nodes · 9636 edges · 591 communities (505 shown, 86 thin omitted)
+- 6466 nodes · 9636 edges · 590 communities (504 shown, 86 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 152 edges (avg confidence: 0.75)
 - Token cost: 0 input · 0 output
 
@@ -82,7 +82,6 @@
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
-- [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
@@ -123,7 +122,6 @@
 - [[_COMMUNITY_Community 106|Community 106]]
 - [[_COMMUNITY_Community 107|Community 107]]
 - [[_COMMUNITY_Community 108|Community 108]]
-- [[_COMMUNITY_Community 109|Community 109]]
 - [[_COMMUNITY_Community 110|Community 110]]
 - [[_COMMUNITY_Community 111|Community 111]]
 - [[_COMMUNITY_Community 112|Community 112]]
@@ -529,6 +527,7 @@
 - [[_COMMUNITY_Community 584|Community 584]]
 - [[_COMMUNITY_Community 586|Community 586]]
 - [[_COMMUNITY_Community 587|Community 587]]
+- [[_COMMUNITY_Community 589|Community 589]]
 - [[_COMMUNITY_Community 590|Community 590]]
 - [[_COMMUNITY_Community 591|Community 591]]
 - [[_COMMUNITY_Community 594|Community 594]]
@@ -560,7 +559,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (591 total, 86 thin omitted)
+## Communities (590 total, 86 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -707,8 +706,8 @@ Cohesion: 0.18
 Nodes (10): author, description, files, dist, license, name, publishConfig, access (+2 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.10
-Nodes (5): getComments(), getSuspenseComments(), Inner(), Outer(), renderToStringHydratable()
+Cohesion: 0.06
+Nodes (17): createRoot(), renderToStringHydratable(), seedServerHtml(), captureResource(), createRoot(), GetProduct, Product, ProductShape (+9 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.10
@@ -830,10 +829,6 @@ Nodes (14): Array State, Basic Counter, Benefits, Combining Multiple Refs, Compa
 Cohesion: 0.14
 Nodes (13): Acceptance Criteria, API shape, `AppRpcClient` seam (AC-9), Boundary.rpc — Core API Spec, Deferred / roadmap, Descriptor, Edge cases, Migration from `Boundary.server` (+5 more)
 
-### Community 68 - "Community 68"
-Cohesion: 0.20
-Nodes (8): captureResource(), createRoot(), GetProduct, Product, ProductShape, seedLayer, seedServerHtml(), StockKey
-
 ### Community 69 - "Community 69"
 Cohesion: 0.29
 Nodes (7): Acceptance criteria, Errors (ER), Hydration contract (HY) — Part B3, Identity (ID), Keyed reconciliation (KR), Mount (MR), Scope & state preservation (SC)
@@ -855,8 +850,8 @@ Cohesion: 0.15
 Nodes (13): Body `E`/`R` inference, Children: array or function, Component Authoring, `Component.gen` / `Component.make` for reusable components, Component scope and background effects, Components that require services, Components with internal state, Composing components (+5 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.11
-Nodes (19): devDependencies, effect, jsdom, tsx, @types/jsdom, @types/node, typescript, vite (+11 more)
+Cohesion: 0.13
+Nodes (15): devDependencies, jsdom, tsx, @types/jsdom, @types/node, typescript, vite, vite-plus (+7 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.13
@@ -994,10 +989,6 @@ Nodes (26): aboutRoute, def, passthrough, searchRoute, userRoute, compileMatcher
 Cohesion: 0.15
 Nodes (12): Acceptance Criteria, App lifecycle, Dependencies & Integrations, e2e, Expected Behavior & Edge Cases, Overview & Purpose, Public API (new file `packages/dom/src/client/weft-app.ts`), Relationship to existing specs (+4 more)
 
-### Community 109 - "Community 109"
-Cohesion: 0.31
-Nodes (8): collectServerBoundaries(), GetThing, S, serverBoundary(), StockKey, walk(), walkChildren(), walkDescriptor()
-
 ### Community 110 - "Community 110"
 Cohesion: 0.35
 Nodes (8): Analytics, AnalyticsLive, App(), ConditionalButton(), LoggingButton(), StreamCounter(), ToggleHandler(), TrackedButton()
@@ -1071,8 +1062,8 @@ Cohesion: 0.22
 Nodes (8): Acceptance criteria, Dependencies, Doc model (output type), Edge cases, Markdown loader — spec, Overview & purpose, Pipeline, Public surface
 
 ### Community 128 - "Community 128"
-Cohesion: 0.11
-Nodes (27): rpc(), suspend(), h, Children, Component, Context, Error, ELEMENT_DESCRIPTOR (+19 more)
+Cohesion: 0.12
+Nodes (25): h, Children, Component, Context, Error, ELEMENT_DESCRIPTOR, createElementFn(), CustomElements (+17 more)
 
 ### Community 129 - "Community 129"
 Cohesion: 0.42
@@ -1359,12 +1350,12 @@ Cohesion: 0.18
 Nodes (11): DOCS_ROOT, demos, getDemo(), ReactiveCounter(), ReactiveInput(), CodeTeaser(), DIFFERENTIATORS, Footer() (+3 more)
 
 ### Community 242 - "Community 242"
-Cohesion: 0.08
-Nodes (35): createRoot(), renderToStringHydratable(), seedServerHtml(), createRoot(), renderToString(), renderToStringHydratable(), seedServerHtml(), renderToString() (+27 more)
+Cohesion: 0.10
+Nodes (31): createRoot(), renderToString(), renderToStringHydratable(), seedServerHtml(), FooError, renderToStream(), renderToStreamHydratable(), renderToString() (+23 more)
 
 ### Community 243 - "Community 243"
-Cohesion: 0.10
-Nodes (41): ServerBoundaryReplayProps, renderSuspenseBoundary(), buildPatch(), FailureCollector, fragmentToHydratableSSR(), fragmentToSSR(), ListSSRProps, listToHydratableSSR() (+33 more)
+Cohesion: 0.08
+Nodes (48): collectServerBoundaries(), ServerBoundaryReplayProps, GetThing, S, serverBoundary(), StockKey, walk(), walkChildren() (+40 more)
 
 ### Community 244 - "Community 244"
 Cohesion: 0.33
@@ -1459,8 +1450,8 @@ Cohesion: 0.50
 Nodes (4): effect, effect, peerDependencies, effect
 
 ### Community 270 - "repository"
-Cohesion: 0.11
-Nodes (19): FailureProps, H, Context, each(), Error, ItemOf, LIST, Options (+11 more)
+Cohesion: 0.12
+Nodes (17): H, Context, each(), Error, ItemOf, LIST, Options, people (+9 more)
 
 ### Community 271 - "effect"
 Cohesion: 0.50
@@ -1495,8 +1486,8 @@ Cohesion: 0.10
 Nodes (18): ctxDef, def, document, Gone(), greetDocument, Greeting, GreetingLayout, GreetingLeaf (+10 more)
 
 ### Community 279 - "files"
-Cohesion: 0.11
-Nodes (24): catch_(), catchCause(), catchFilter(), catchIf(), catchTag(), CatchTagE, catchTags(), CatchTagsE (+16 more)
+Cohesion: 0.10
+Nodes (28): catch_(), catchCause(), catchFilter(), catchIf(), catchTag(), CatchTagE, catchTags(), CatchTagsE (+20 more)
 
 ### Community 281 - "rehype-slug"
 Cohesion: 0.09
@@ -1591,8 +1582,8 @@ Cohesion: 0.12
 Nodes (14): API (core), Context, Critical semantic to document, Decisions (confirmed), Diffing Model — Spec & Plan, Files, Hydration (spec now, impl phased), Non-goals (v1) (+6 more)
 
 ### Community 331 - "Community 331"
-Cohesion: 0.21
-Nodes (8): createRoot(), Person, PersonData, renderToStringHydratable(), seedServerHtml(), waitFor(), waitForStream(), waitForStreamUpdate()
+Cohesion: 0.19
+Nodes (9): createRoot(), Person, PersonData, renderToString(), renderToStringHydratable(), seedServerHtml(), waitFor(), waitForStream() (+1 more)
 
 ### Community 334 - "App"
 Cohesion: 0.13
@@ -2274,6 +2265,10 @@ Nodes (6): BarError, fallbackNode, FooError, GetStock, Stock, StockKey
 Cohesion: 0.50
 Nodes (4): repository, directory, type, url
 
+### Community 589 - "Community 589"
+Cohesion: 0.50
+Nodes (4): effect, effect, peerDependencies, effect
+
 ### Community 590 - "Community 590"
 Cohesion: 0.25
 Nodes (5): def, homeRoute, NoopRpcs, searchRoute, tabQuery
@@ -2295,11 +2290,11 @@ Nodes (6): chainHandlers(), emptyToUndefined(), isEventHandlerKey(), mergeCellVa
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `html()` connect `Community 29` to `Community 64`, `Community 24`, `Community 243`, `Community 28`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **Why does `startDev()` connect `Community 64` to `Community 29`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
+  _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **Why does `renderSuspenseSSRInline()` connect `Community 243` to `Community 242`, `Community 29`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **What connects `PreToolUse`, `branches`, `tagFormat` to the rest of the system?**
   _3068 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**

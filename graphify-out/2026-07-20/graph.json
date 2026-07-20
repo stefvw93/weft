@@ -5985,7 +5985,7 @@
       "source_file": "packages/core/src/boundary/boundary-impl.ts",
       "source_location": "L77",
       "id": "boundary_boundary_impl_failureprops",
-      "community": 270,
+      "community": 279,
       "norm_label": "failureprops"
     },
     {
@@ -6057,7 +6057,7 @@
       "source_file": "packages/core/src/boundary/boundary-impl.ts",
       "source_location": "L261",
       "id": "boundary_boundary_impl_suspend",
-      "community": 128,
+      "community": 279,
       "norm_label": "suspend()"
     },
     {
@@ -6084,7 +6084,7 @@
       "source_file": "packages/core/src/boundary/boundary-impl.ts",
       "source_location": "L366",
       "id": "boundary_boundary_impl_rpc",
-      "community": 128,
+      "community": 279,
       "norm_label": "rpc()"
     },
     {
@@ -6570,7 +6570,7 @@
       "source_file": "packages/core/src/combinator/descriptor.ts",
       "source_location": "L22",
       "id": "combinator_descriptor_elementnode",
-      "community": 128,
+      "community": 279,
       "norm_label": "elementnode()"
     },
     {
@@ -6786,7 +6786,7 @@
       "source_file": "packages/core/src/combinator/types.ts",
       "source_location": "L32",
       "id": "combinator_types_node",
-      "community": 270,
+      "community": 128,
       "norm_label": "node"
     },
     {
@@ -12229,7 +12229,7 @@
       "label": "IsStyleObject",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L149",
+      "source_location": "L145",
       "id": "src_props_isstyleobject",
       "community": 21,
       "norm_label": "isstyleobject"
@@ -12238,7 +12238,7 @@
       "label": "MergedStyleValue",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L160",
+      "source_location": "L156",
       "id": "src_props_mergedstylevalue",
       "community": 21,
       "norm_label": "mergedstylevalue"
@@ -12247,7 +12247,7 @@
       "label": "MergedRefValue",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L177",
+      "source_location": "L180",
       "id": "src_props_mergedrefvalue",
       "community": 21,
       "norm_label": "mergedrefvalue"
@@ -12256,7 +12256,7 @@
       "label": "Present",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L184",
+      "source_location": "L187",
       "id": "src_props_present",
       "community": 21,
       "norm_label": "present"
@@ -12265,7 +12265,7 @@
       "label": "MergedValue",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L187",
+      "source_location": "L190",
       "id": "src_props_mergedvalue",
       "community": 21,
       "norm_label": "mergedvalue"
@@ -12274,7 +12274,7 @@
       "label": "MergedSharedValue",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L206",
+      "source_location": "L209",
       "id": "src_props_mergedsharedvalue",
       "community": 21,
       "norm_label": "mergedsharedvalue"
@@ -12283,7 +12283,7 @@
       "label": "Simplify",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L209",
+      "source_location": "L212",
       "id": "src_props_simplify",
       "community": 21,
       "norm_label": "simplify"
@@ -12292,7 +12292,7 @@
       "label": "MergedLeftOnly",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L212",
+      "source_location": "L215",
       "id": "src_props_mergedleftonly",
       "community": 21,
       "norm_label": "mergedleftonly"
@@ -12301,7 +12301,7 @@
       "label": "MergedRightOnly",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L217",
+      "source_location": "L220",
       "id": "src_props_mergedrightonly",
       "community": 21,
       "norm_label": "mergedrightonly"
@@ -12310,7 +12310,7 @@
       "label": "MergedShared",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L229",
+      "source_location": "L232",
       "id": "src_props_mergedshared",
       "community": 21,
       "norm_label": "mergedshared"
@@ -12319,7 +12319,7 @@
       "label": "MergedPair",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L239",
+      "source_location": "L242",
       "id": "src_props_mergedpair",
       "community": 21,
       "norm_label": "mergedpair"
@@ -12328,7 +12328,7 @@
       "label": "EmptyBag",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L242",
+      "source_location": "L245",
       "id": "src_props_emptybag",
       "community": 21,
       "norm_label": "emptybag"
@@ -12337,7 +12337,7 @@
       "label": "Merged",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L249",
+      "source_location": "L252",
       "id": "src_props_merged",
       "community": 21,
       "norm_label": "merged"
@@ -12346,7 +12346,7 @@
       "label": "merge()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L283",
+      "source_location": "L286",
       "id": "src_props_merge",
       "community": 21,
       "norm_label": "merge()"
@@ -12355,7 +12355,7 @@
       "label": "mergePair()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L291",
+      "source_location": "L294",
       "id": "src_props_mergepair",
       "community": 594,
       "norm_label": "mergepair()"
@@ -12364,7 +12364,7 @@
       "label": "isReactiveValue()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L303",
+      "source_location": "L306",
       "id": "src_props_isreactivevalue",
       "community": 591,
       "norm_label": "isreactivevalue()"
@@ -12373,7 +12373,7 @@
       "label": "isPlainStyleObject()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L314",
+      "source_location": "L317",
       "id": "src_props_isplainstyleobject",
       "community": 591,
       "norm_label": "isplainstyleobject()"
@@ -12382,7 +12382,7 @@
       "label": "mergeCellValue()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L325",
+      "source_location": "L328",
       "id": "src_props_mergecellvalue",
       "community": 594,
       "norm_label": "mergecellvalue()"
@@ -12391,7 +12391,7 @@
       "label": "toRefArray()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L369",
+      "source_location": "L366",
       "id": "src_props_torefarray",
       "community": 594,
       "norm_label": "torefarray()"
@@ -12400,7 +12400,7 @@
       "label": "invokeHandler()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L383",
+      "source_location": "L380",
       "id": "src_props_invokehandler",
       "community": 159,
       "norm_label": "invokehandler()"
@@ -12409,7 +12409,7 @@
       "label": "chainHandlers()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L398",
+      "source_location": "L395",
       "id": "src_props_chainhandlers",
       "community": 594,
       "norm_label": "chainhandlers()"
@@ -12418,7 +12418,7 @@
       "label": "CxReactiveValue",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L425",
+      "source_location": "L422",
       "id": "src_props_cxreactivevalue",
       "community": 21,
       "norm_label": "cxreactivevalue"
@@ -12427,7 +12427,7 @@
       "label": "CxCondition",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L431",
+      "source_location": "L428",
       "id": "src_props_cxcondition",
       "community": 21,
       "norm_label": "cxcondition"
@@ -12436,7 +12436,7 @@
       "label": "CxRecord",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L441",
+      "source_location": "L438",
       "id": "src_props_cxrecord",
       "community": 21,
       "norm_label": "cxrecord"
@@ -12445,7 +12445,7 @@
       "label": "CxInput",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L449",
+      "source_location": "L446",
       "id": "src_props_cxinput",
       "community": 21,
       "norm_label": "cxinput"
@@ -12454,7 +12454,7 @@
       "label": "IsReactiveCxInput",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L459",
+      "source_location": "L456",
       "id": "src_props_isreactivecxinput",
       "community": 21,
       "norm_label": "isreactivecxinput"
@@ -12463,7 +12463,7 @@
       "label": "CxInputError",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L470",
+      "source_location": "L467",
       "id": "src_props_cxinputerror",
       "community": 21,
       "norm_label": "cxinputerror"
@@ -12472,7 +12472,7 @@
       "label": "CxInputContext",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L479",
+      "source_location": "L476",
       "id": "src_props_cxinputcontext",
       "community": 21,
       "norm_label": "cxinputcontext"
@@ -12481,7 +12481,7 @@
       "label": "CxResult",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L491",
+      "source_location": "L488",
       "id": "src_props_cxresult",
       "community": 21,
       "norm_label": "cxresult"
@@ -12490,7 +12490,7 @@
       "label": "cx()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L511",
+      "source_location": "L508",
       "id": "src_props_cx",
       "community": 591,
       "norm_label": "cx()"
@@ -12499,7 +12499,7 @@
       "label": "CxPart",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L521",
+      "source_location": "L518",
       "id": "src_props_cxpart",
       "community": 21,
       "norm_label": "cxpart"
@@ -12508,7 +12508,7 @@
       "label": "isPlainRecord()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L527",
+      "source_location": "L524",
       "id": "src_props_isplainrecord",
       "community": 591,
       "norm_label": "isplainrecord()"
@@ -12517,7 +12517,7 @@
       "label": "flattenCxInputs()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L533",
+      "source_location": "L530",
       "id": "src_props_flattencxinputs",
       "community": 591,
       "norm_label": "flattencxinputs()"
@@ -12526,7 +12526,7 @@
       "label": "renderCxParts()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L572",
+      "source_location": "L569",
       "id": "src_props_rendercxparts",
       "community": 591,
       "norm_label": "rendercxparts()"
@@ -12535,7 +12535,7 @@
       "label": "requireEmission()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L598",
+      "source_location": "L595",
       "id": "src_props_requireemission",
       "community": 21,
       "norm_label": "requireemission()"
@@ -12544,7 +12544,7 @@
       "label": "reactiveToStream()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L624",
+      "source_location": "L621",
       "id": "src_props_reactivetostream",
       "community": 21,
       "norm_label": "reactivetostream()"
@@ -12553,10 +12553,19 @@
       "label": "buildCx()",
       "file_type": "code",
       "source_file": "packages/dom/src/props.ts",
-      "source_location": "L647",
+      "source_location": "L644",
       "id": "src_props_buildcx",
       "community": 591,
       "norm_label": "buildcx()"
+    },
+    {
+      "label": "emptyToUndefined()",
+      "file_type": "code",
+      "source_file": "packages/dom/src/props.ts",
+      "source_location": "L663",
+      "id": "src_props_emptytoundefined",
+      "community": 594,
+      "norm_label": "emptytoundefined()"
     },
     {
       "label": "boundary-ssr.test.ts",
@@ -12985,7 +12994,7 @@
       "label": "VOID_ELEMENTS",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L8",
+      "source_location": "L10",
       "id": "server_serialize_void_elements",
       "community": 378,
       "norm_label": "void_elements"
@@ -12994,7 +13003,7 @@
       "label": "ESCAPE_MAP",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L25",
+      "source_location": "L27",
       "id": "server_serialize_escape_map",
       "community": 378,
       "norm_label": "escape_map"
@@ -13003,7 +13012,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L38",
+      "source_location": "L40",
       "id": "server_serialize_escapehtml",
       "community": 378,
       "norm_label": "escapehtml()"
@@ -13012,7 +13021,7 @@
       "label": "SCRIPT_JSON_UNSAFE_CODES",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L52",
+      "source_location": "L54",
       "id": "server_serialize_script_json_unsafe_codes",
       "community": 378,
       "norm_label": "script_json_unsafe_codes"
@@ -13021,7 +13030,7 @@
       "label": "serializeJsonForScript()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L66",
+      "source_location": "L68",
       "id": "server_serialize_serializejsonforscript",
       "community": 378,
       "norm_label": "serializejsonforscript()"
@@ -13030,7 +13039,7 @@
       "label": "camelToKebab()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L83",
+      "source_location": "L85",
       "id": "server_serialize_cameltokebab",
       "community": 378,
       "norm_label": "cameltokebab()"
@@ -13039,7 +13048,7 @@
       "label": "serializeProps()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L94",
+      "source_location": "L96",
       "id": "server_serialize_serializeprops",
       "community": 378,
       "norm_label": "serializeprops()"
@@ -13048,7 +13057,7 @@
       "label": "resolveValue()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L122",
+      "source_location": "L124",
       "id": "server_serialize_resolvevalue",
       "community": 378,
       "norm_label": "resolvevalue()"
@@ -13057,7 +13066,7 @@
       "label": "serializeAttribute()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L135",
+      "source_location": "L137",
       "id": "server_serialize_serializeattribute",
       "community": 378,
       "norm_label": "serializeattribute()"
@@ -13066,7 +13075,7 @@
       "label": "serializeStyle()",
       "file_type": "code",
       "source_file": "packages/dom/src/server/serialize.ts",
-      "source_location": "L157",
+      "source_location": "L159",
       "id": "server_serialize_serializestyle",
       "community": 378,
       "norm_label": "serializestyle()"
@@ -26737,7 +26746,7 @@
       "label": "Type-layer contract",
       "file_type": "document",
       "source_file": "packages/dom/src/props.specs.md",
-      "source_location": "L236",
+      "source_location": "L226",
       "id": "src_props_specs_type_layer_contract",
       "community": 444,
       "norm_label": "type-layer contract"
@@ -26746,7 +26755,7 @@
       "label": "Accepted limitations (reviewed and kept)",
       "file_type": "document",
       "source_file": "packages/dom/src/props.specs.md",
-      "source_location": "L260",
+      "source_location": "L250",
       "id": "src_props_specs_accepted_limitations_reviewed_and_kept",
       "community": 444,
       "norm_label": "accepted limitations (reviewed and kept)"
@@ -26755,7 +26764,7 @@
       "label": "Phase notes",
       "file_type": "document",
       "source_file": "packages/dom/src/props.specs.md",
-      "source_location": "L316",
+      "source_location": "L301",
       "id": "src_props_specs_phase_notes",
       "community": 444,
       "norm_label": "phase notes"
@@ -29369,15 +29378,6 @@
       "id": "src_router_service_navigatingstream",
       "community": 571,
       "norm_label": "navigatingstream"
-    },
-    {
-      "label": "emptyToUndefined()",
-      "file_type": "code",
-      "source_file": "packages/dom/src/props.ts",
-      "source_location": "L663",
-      "community": 594,
-      "norm_label": "emptytoundefined()",
-      "id": "src_props_emptytoundefined"
     },
     {
       "label": "isEventHandler()",
@@ -41431,7 +41431,7 @@
       "source_file": "packages/dom/src/boundary-replay.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "boundary-replay.test.ts",
       "id": "packages_dom_src_boundary_replay_test"
     },
@@ -41441,7 +41441,7 @@
       "source_file": "packages/dom/src/boundary-replay.test.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "stockkey",
       "id": "packages_dom_src_boundary_replay_test_stockkey"
     },
@@ -41451,7 +41451,7 @@
       "source_file": "packages/dom/src/boundary-replay.test.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "s",
       "id": "packages_dom_src_boundary_replay_test_s"
     },
@@ -41461,7 +41461,7 @@
       "source_file": "packages/dom/src/boundary-replay.test.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "getthing",
       "id": "packages_dom_src_boundary_replay_test_getthing"
     },
@@ -41471,7 +41471,7 @@
       "source_file": "packages/dom/src/boundary-replay.test.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "serverboundary()",
       "id": "packages_dom_src_boundary_replay_test_serverboundary"
     },
@@ -41481,7 +41481,7 @@
       "source_file": "packages/dom/src/boundary-replay.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "boundary-replay.ts",
       "id": "packages_dom_src_boundary_replay"
     },
@@ -41501,7 +41501,7 @@
       "source_file": "packages/dom/src/boundary-replay.ts",
       "source_location": "L58",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "collectserverboundaries()",
       "id": "packages_dom_src_boundary_replay_collectserverboundaries"
     },
@@ -41511,7 +41511,7 @@
       "source_file": "packages/dom/src/boundary-replay.ts",
       "source_location": "L66",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "walk()",
       "id": "packages_dom_src_boundary_replay_walk"
     },
@@ -41521,7 +41521,7 @@
       "source_file": "packages/dom/src/boundary-replay.ts",
       "source_location": "L92",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "walkdescriptor()",
       "id": "packages_dom_src_boundary_replay_walkdescriptor"
     },
@@ -41531,7 +41531,7 @@
       "source_file": "packages/dom/src/boundary-replay.ts",
       "source_location": "L124",
       "_origin": "ast",
-      "community": 109,
+      "community": 243,
       "norm_label": "walkchildren()",
       "id": "packages_dom_src_boundary_replay_walkchildren"
     },
@@ -42001,7 +42001,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "hydrate-ready.test.ts",
       "id": "packages_dom_src_client_hydrate_ready_test"
     },
@@ -42011,7 +42011,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "rendertostringhydratable()",
       "id": "packages_dom_src_client_hydrate_ready_test_rendertostringhydratable"
     },
@@ -42021,7 +42021,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "createtestdom()",
       "id": "packages_dom_src_client_hydrate_ready_test_createtestdom"
     },
@@ -42031,7 +42031,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "createroot()",
       "id": "packages_dom_src_client_hydrate_ready_test_createroot"
     },
@@ -42041,7 +42041,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "seedserverhtml()",
       "id": "packages_dom_src_client_hydrate_ready_test_seedserverhtml"
     },
@@ -42051,7 +42051,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L48",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "waitfor()",
       "id": "packages_dom_src_client_hydrate_ready_test_waitfor"
     },
@@ -42061,7 +42061,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "withtimeout()",
       "id": "packages_dom_src_client_hydrate_ready_test_withtimeout"
     },
@@ -42071,7 +42071,7 @@
       "source_file": "packages/dom/src/client/hydrate-ready.test.ts",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "delayedregion()",
       "id": "packages_dom_src_client_hydrate_ready_test_delayedregion"
     },
@@ -42171,7 +42171,7 @@
       "source_file": "packages/dom/src/client/list.hydrate.test.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 242,
+      "community": 331,
       "norm_label": "rendertostring()",
       "id": "packages_dom_src_client_list_hydrate_test_rendertostring"
     },
@@ -43381,7 +43381,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "server-boundary-refetch.test.ts",
       "id": "packages_dom_src_client_server_boundary_refetch_test"
     },
@@ -43391,7 +43391,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "createtestdom()",
       "id": "packages_dom_src_client_server_boundary_refetch_test_createtestdom"
     },
@@ -43401,7 +43401,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "createroot()",
       "id": "packages_dom_src_client_server_boundary_refetch_test_createroot"
     },
@@ -43411,7 +43411,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "productshape",
       "id": "packages_dom_src_client_server_boundary_refetch_test_productshape"
     },
@@ -43421,7 +43421,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "stockkey",
       "id": "packages_dom_src_client_server_boundary_refetch_test_stockkey"
     },
@@ -43431,7 +43431,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "product",
       "id": "packages_dom_src_client_server_boundary_refetch_test_product"
     },
@@ -43441,7 +43441,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "getproduct",
       "id": "packages_dom_src_client_server_boundary_refetch_test_getproduct"
     },
@@ -43451,7 +43451,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "seedlayer",
       "id": "packages_dom_src_client_server_boundary_refetch_test_seedlayer"
     },
@@ -43461,7 +43461,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "seedserverhtml()",
       "id": "packages_dom_src_client_server_boundary_refetch_test_seedserverhtml"
     },
@@ -43471,7 +43471,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L50",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "waitfor()",
       "id": "packages_dom_src_client_server_boundary_refetch_test_waitfor"
     },
@@ -43481,7 +43481,7 @@
       "source_file": "packages/dom/src/client/server-boundary-refetch.test.ts",
       "source_location": "L60",
       "_origin": "ast",
-      "community": 68,
+      "community": 37,
       "norm_label": "captureresource()",
       "id": "packages_dom_src_client_server_boundary_refetch_test_captureresource"
     },
@@ -44191,7 +44191,7 @@
       "source_file": "packages/dom/src/server/render-to-stream.ts",
       "source_location": "L800",
       "_origin": "ast",
-      "community": 243,
+      "community": 242,
       "norm_label": "rendertostreamfallbackonly()",
       "id": "packages_dom_src_server_render_to_stream_rendertostreamfallbackonly"
     },
@@ -44291,7 +44291,7 @@
       "source_file": "packages/dom/src/server/render-to-string.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 242,
+      "community": 37,
       "norm_label": "rendertostringhydratable()",
       "id": "packages_dom_src_server_render_to_string_rendertostringhydratable"
     },
@@ -45401,7 +45401,7 @@
       "source_file": "packages/router/package.json",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 74,
+      "community": 589,
       "norm_label": "effect",
       "id": "packages_router_package_devdependencies_effect"
     },
@@ -45411,7 +45411,7 @@
       "source_file": "packages/router/package.json",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 74,
+      "community": 589,
       "norm_label": "effect",
       "id": "packages_router_package_json_effect"
     },
@@ -45521,7 +45521,7 @@
       "source_file": "packages/router/package.json",
       "source_location": "L60",
       "_origin": "ast",
-      "community": 74,
+      "community": 589,
       "norm_label": "peerdependencies",
       "id": "packages_router_package_peerdependencies"
     },
@@ -45531,7 +45531,7 @@
       "source_file": "packages/router/package.json",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 74,
+      "community": 589,
       "norm_label": "effect",
       "id": "packages_router_package_peerdependencies_effect"
     },
@@ -87387,9 +87387,9 @@
       "source_file": "packages/dom/src/props.ts",
       "source_location": "L663",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_props",
-      "target": "src_props_emptytoundefined"
+      "target": "src_props_emptytoundefined",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -87813,9 +87813,9 @@
       "source_file": "packages/dom/src/props.ts",
       "source_location": "L323",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_props_isplainstyleobject",
-      "target": "src_props_isplainrecord"
+      "target": "src_props_isplainrecord",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -87857,9 +87857,9 @@
       "source_file": "packages/dom/src/props.ts",
       "source_location": "L339",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_props_mergecellvalue",
-      "target": "src_props_emptytoundefined"
+      "target": "src_props_emptytoundefined",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",

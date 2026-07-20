@@ -38,7 +38,18 @@ Weft tracks Effect 4's beta line. This release is built and tested against `effe
 | `renderToStream` / `…Hydratable` | Streaming variants: emit HTML chunks as the tree resolves, for progressive SSR. |
 | `renderToHydratableShell`        | Produces the document scaffold for servers that assemble the shell separately.  |
 
-The package root re-exports the renderer error types: `HydrationMismatchError`, `UnsupportedNodeTypeError`, `RenderError`, `StreamSubscriptionError`.
+### `@weftui/dom` (package root)
+
+| Export             | What it does                                                                                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Props.merge(...)` | Merges prop bags left to right: handlers chain, `class` concatenates, `style` merges per property, `ref` fans out, everything else is last-wins. Pure, and `h.*` takes the result. |
+| `Props.cx(...)`    | Builds a class string from strings, falsy values, nested arrays, and `{ className: condition }` records. Conditions may be reactive.                                               |
+
+`Props.merge` lets a shared behavior and the element's owner both contribute
+props without either silently dropping the other. See
+[Compose Behavior and Markup](../../docs/how-to/compose-behavior-and-markup.md).
+
+The package root also re-exports the renderer error types: `HydrationMismatchError`, `UnsupportedNodeTypeError`, `RenderError`, `StreamSubscriptionError`.
 
 ## Example
 

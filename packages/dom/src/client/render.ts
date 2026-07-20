@@ -52,6 +52,7 @@ import {
   SUSPENSE_FAILURE_ATTR,
   suspenseEndText,
   suspenseStartText,
+  isEventHandler,
 } from "~/shared";
 import { nextBoundaryId, nextStreamId, nextSuspenseId } from "~/utilities";
 import { BOUNDARY_FAILURE_ATTR, collectServerBoundaries } from "~/boundary-replay";
@@ -59,18 +60,6 @@ import { BOUNDARY_FAILURE_ATTR, collectServerBoundaries } from "~/boundary-repla
 // ============================================================================
 // DOM Prop Handling
 // ============================================================================
-
-/**
- * Checks if a prop name is an event handler (starts with "on" + lowercase letter)
- */
-function isEventHandler(name: string): boolean {
-  if (name.length <= 2 || !name.startsWith("on")) {
-    return false;
-  }
-  const thirdChar = name[2];
-  // Must be a lowercase letter (a-z), not a number or uppercase
-  return thirdChar !== undefined && thirdChar >= "a" && thirdChar <= "z";
-}
 
 /**
  * Sets all props on an element (attributes, properties, styles)
@@ -94,6 +83,20 @@ export function setElementProps(
 
       if (key === "ref" && typeof value === "object" && SubscriptionRef.isSubscriptionRef(value)) {
         yield* SubscriptionRef.set(value, Option.some(element));
+        continue;
+      }
+
+      // Ref fan-out (props.specs.md AC14): an array of refs, typically produced
+      // by `Props.merge`, sets every ref to this element. Non-ref entries are
+      // skipped rather than disqualifying the whole array, because falling
+      // through would serialize the array as a junk `ref` attribute and leave
+      // the valid refs unset. An empty array is a no-op.
+      if (key === "ref" && Array.isArray(value)) {
+        yield* Effect.forEach(
+          value.filter((item) => SubscriptionRef.isSubscriptionRef(item)),
+          (ref) => SubscriptionRef.set(ref, Option.some(element)),
+          { discard: true },
+        );
         continue;
       }
 

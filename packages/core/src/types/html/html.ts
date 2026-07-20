@@ -113,7 +113,17 @@ export type HTMLRole =
 export interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
   // weft internals ========================================================
   children?: HTMLAttributeSource<Renderable>;
-  ref?: SubscriptionRef.SubscriptionRef<Option.Option<T>>;
+  /**
+   * A ref to this element, or an array of refs that all receive it (fan-out,
+   * typically from `Props.merge`). The array arm accepts refs of any element
+   * type because `SubscriptionRef` is invariant: composing a behavior
+   * primitive's `SubscriptionRef<Option<HTMLElement>>` with a caller's
+   * `SubscriptionRef<Option<HTMLInputElement>>` is the point of fan-out, and an
+   * exactly-typed array would reject it. The single-ref arm stays precise.
+   */
+  ref?:
+    | SubscriptionRef.SubscriptionRef<Option.Option<T>>
+    | ReadonlyArray<SubscriptionRef.SubscriptionRef<Option.Option<any>>>;
   // ============================================================================
 
   /**

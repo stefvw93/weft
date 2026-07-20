@@ -66,7 +66,15 @@ type SVGUnits = "userSpaceOnUse" | "objectBoundingBox";
 export interface SVGAttributes<T> extends DOMAttributes<T> {
   // weft internals ========================================================
   children?: HTMLAttributeSource<Renderable>;
-  ref?: SubscriptionRef.SubscriptionRef<Option.Option<T>>;
+  /**
+   * A ref to this element, or an array of refs that all receive it (fan-out,
+   * typically from `Props.merge`). The array arm accepts refs of any element
+   * type because `SubscriptionRef` is invariant; see the note on
+   * `HTMLAttributes.ref`.
+   */
+  ref?:
+    | SubscriptionRef.SubscriptionRef<Option.Option<T>>
+    | ReadonlyArray<SubscriptionRef.SubscriptionRef<Option.Option<any>>>;
   // ============================================================================
 
   id?: HTMLAttributeSource<string>;

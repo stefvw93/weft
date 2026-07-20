@@ -2,7 +2,7 @@
 title: "@weftui/dom"
 order: 2
 section: reference
-description: Full API surface for @weftui/dom, covering the WeftApp client runtime (make, mount, hydrate, errors, dispose) and the server renderer (renderToString and streaming variants).
+description: Full API surface for @weftui/dom, covering the WeftApp client runtime (make, mount, hydrate, errors, dispose), the server renderer (renderToString and streaming variants), and the Props.merge/Props.cx prop-bag composition utilities.
 ---
 
 # @weftui/dom API Reference
@@ -270,8 +270,208 @@ Re-exports the renderer error types:
 - `RenderError`: a general rendering failure.
 - `StreamSubscriptionError`: a reactive stream backing the tree failed to subscribe.
 
+Also re-exports the `Props` namespace, below.
+
+## `Props`
+
+`export * as Props from "@weftui/dom"`. Two functions for reconciling DOM prop
+bags: `merge` combines multiple bags into one, `cx` builds a class string.
+Both are pure and synchronous; neither subscribes anything. A reactive result
+is a `Stream` description, subscribed later by the renderer in the element's
+scope.
+
+### `Props.merge`
+
+```ts
+function merge<const Bags extends ReadonlyArray<DomProps>>(...bags: Bags): Merged<Bags>;
+```
+
+`DomProps` is `object`. `merge` is variadic and left-to-right: `merge()` is
+`{}`, `merge(a)` is observationally `a`, and `merge(a, b, c)` folds pairwise
+(`merge(merge(a, b), c)`). `{}` is the identity on either side.
+
+The fold is associative per key, with one exception: `style` is not
+associative when a non-object form (a string, or a whole-object stream) takes
+part. See the `style` rule below.
+
+Keys present on only one side pass through unchanged, by reference. For a key
+present on both sides, the merged value depends on the key:
+
+| Key                                                                         | Rule                                                         | Result                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `on*` (event handler, per the renderer's `on` + lowercase-third-char check) | chained: both handler bodies run, left then right            | new handler function                                               |
+| `class`                                                                     | concatenated                                                 | `string` if both sides are static, else a derived `Stream<string>` |
+| `style`                                                                     | object sides merge per property; any other form is last-wins | plain object, or the right side as-is                              |
+| `ref`                                                                       | fanned out                                                   | readonly array of `SubscriptionRef`s                               |
+| anything else                                                               | last-wins                                                    | the right side's value, as-is                                      |
+
+**Handlers.** Both handler bodies run synchronously when the merged handler
+is invoked, left then right, before either side's returned `Effect` is
+awaited. This is what makes `event.preventDefault()` written in either body
+observable to the other: two separate DOM listeners would both run during
+dispatch, so neither can wait on the other's `Effect` to decide whether the
+default action should still happen.
+
+Only the returned Effects are sequenced: left first, then right. Both always
+run regardless of whether the other fails. A plain void-returning handler is
+lifted to `Effect.void` (or a died `Effect` if it throws). The merged
+handler's error channel is the union `E_left | E_right`; if both sides fail,
+both causes are aggregated into one, not deduplicated (two equal-looking
+failures are still two failures).
+
+`null` or `undefined` on either side means "not provided": the other side
+passes through unchanged, whatever shape it has, including a reactive
+`Stream`/`Effect`-of-handler value (not chained, since only two plain
+functions are chained; see [Accepted limitations](#accepted-limitations)
+below). `false` on the **right** means "explicitly disabled" and wins, since
+the renderer reads `false` as "no handler." That is how a caller switches a
+behavior's handler off. A `false` on the left simply loses to the right side,
+like any other last-wins value.
+This is the only place `merge` treats a nullish value specially. The generic
+rule below explains why every other key does not.
+
+**`class`.** Two static strings concatenate with a single space, no dedupe:
+`merge({ class: "a" }, { class: "b" }).class === "a b"`. If either side is
+reactive (`Stream`, `Effect`, or `Subscribable`), the result is a derived
+`Stream<string>` combining the latest value from each side, space-joined. A
+static side contributes immediately; the first emission waits only on the
+reactive side(s) (await-first). A reactive side that ends without ever
+emitting fails the derived stream with `NoPropValue`, which joins the merged
+`E` channel. When both sides contribute nothing (absent, `undefined`, or
+empty), the result is `""`, matching `cx` and clsx: it is not normalized to
+`undefined`.
+
+The `class` rule for two present sides is exactly `cx(left, right)`; `cx` is
+that same engine exposed directly (see below).
+
+**`style`.** Two per-property objects (`style: { color: "red" }`) merge by
+key union, right side winning per key; each surviving value, static or
+`Source`, passes through by reference. Any other shape on either side (a
+`string`, or a whole-object stream) is last-wins: the right side replaces the
+left entirely. This is the one case where merge is not associative, since
+last-wins discards a side instead of combining it, so grouping the fold
+differently changes the result. Upgrading whole-object-stream style merging
+to a real per-key merge is additive future work, not a breaking change.
+
+**`ref`.** Both sides concatenate into one readonly array, flattening any
+side that is already an array, so associativity holds:
+`merge({ ref: [a, b] }, { ref: c }).ref` is `[a, b, c]`. Nullish sides are
+dropped, so an optional ref forwarded as `undefined` never enters the array.
+Each ref keeps the normal per-ref contract: set once to `Some(element)` when
+the element mounts. The renderer's `ref` prop accepts a `SubscriptionRef` or
+a `readonly SubscriptionRef[]` directly, so `h.div({ ref: [a, b] })` fans out
+without `merge` too.
+
+**Everything else (generic keys).** Plain last-wins, matching object spread:
+the right side's value wins as-is, including an explicit `undefined`. There
+is no nullish guard on this arm (unlike the handler rule): a guard was tried
+and reverted, because it made the runtime return the left value while the
+type still said the right value was present, silently dropping the left
+side's `E`/`R` channels from the merged type.
+
+#### Type-layer contract
+
+`Merged<Bags>`'s **value** types stay coarse (Source-shaped, not narrowed to
+exactly what the runtime returns); its `E`/`R` **channels** stay precise,
+because `PropsE`/`PropsR` (the machinery that feeds a merged bag's channels
+into `h.*`'s resulting `Node<E, R>`) match `P[K]` against an exact `Stream`
+or function shape. A looser value type would fail that match and silently
+drop the channel.
+
+Consequences worth knowing:
+
+- A shared key's merged value type is **required**, even when the key is
+  optional on both input bags and absent from one side at runtime. Typing it
+  optional would fail the `PropsE`/`PropsR` match and drop the channel for
+  the common case: a behavior primitive's bag with optional props.
+- A handler cell types as callable whenever _either_ side can carry a
+  handler, even if that side is `null` at runtime. Narrowing this would
+  require unioning the nullish outcome back in, which fails the same match.
+- The `ref`-array cell types as `SubscriptionRef<Option<any>>`, not narrowed
+  to a specific element type. `SubscriptionRef` is invariant in its value
+  type, so a precise union would reject the headline case: fanning a
+  behavior's `SubscriptionRef<Option<HTMLElement>>` out alongside a caller's
+  `SubscriptionRef<Option<HTMLInputElement>>`. A mistyped ref inside a
+  fan-out array is therefore not caught at compile time; the set-once
+  contract keeps reads sound regardless.
+- A bag typed with core's `HTMLAttributes`/`DOMAttributes` gets `unknown`
+  handler channels, because those types declare handlers as returning
+  `void | Effect<void, unknown, unknown>`. A behavior primitive that
+  declares precise handler signatures keeps precise channels through the
+  merge.
+
+#### Accepted limitations
+
+- Reactive handler _values_ (a `Stream`/`Effect` of a handler function, the
+  form core's `EventHandler` union allows) are not chained: any non-function
+  handler side falls back to last-wins, consistent with the whole-object
+  style rule. Their `E`/`R` channels are still collected in the merged type.
+- An inline handler written directly inside a `merge` call gets no
+  contextual type for its event parameter, because `DomProps` is `object`
+  and `merge` cannot know which element it will end up on. Write
+  `onclick: (ev: MouseEvent) => …` with an explicit annotation, or give the
+  bag its own type.
+
+### `Props.cx`
+
+```ts
+function cx<const Inputs extends ReadonlyArray<CxInput>>(...inputs: Inputs): CxResult<Inputs>;
+
+type CxInput =
+  | string
+  | false
+  | null
+  | undefined
+  | Stream.Stream<string, any, any>
+  | Effect.Effect<string, any, any>
+  | Subscribable.Subscribable<string, any, any>
+  | CxRecord
+  | ReadonlyArray<CxInput>;
+
+interface CxRecord {
+  readonly [className: string]:
+    | boolean
+    | Stream.Stream<boolean, any, any>
+    | Effect.Effect<boolean, any, any>
+    | Subscribable.Subscribable<boolean, any, any>;
+}
+```
+
+A reactive class-name builder, clsx-compatible plus reactive conditions. Each
+input is one of:
+
+- a **string**: kept as a literal class name segment;
+- a **falsy value** (`false`, `null`, `undefined`, `""`): skipped;
+- a **nested array** of `CxInput`: flattened recursively;
+- a **record** (`{ className: condition }`): each key is included when its
+  condition is truthy;
+- a **reactive value** in place of a string (a `Source<string>`), or as a
+  record condition (a `Source<boolean>`).
+
+`cx()` is `""`. All-static inputs join into a plain `string`, space-separated,
+no dedupe, no empty segments. Any reactive input (a reactive value, or a
+reactive condition in a record) derives a `Stream<string>` that recomputes
+the full class string on any emission, combining the latest value from every
+reactive input.
+
+A reactive value that resolves to `""` contributes nothing to that emission.
+A reactive input that ends without ever emitting fails the stream with
+`NoPropValue`, which joins the result's `E` channel along with every
+reactive input's own `E`/`R`.
+
+Only a plain record (an object literal, not a class instance, `Date`, or
+boxed value like `SubscriptionRef`) is read as a condition map; anything else
+is ignored rather than risking a foreign field name leaking in as a class
+name.
+
+`merge`'s `class` rule for two present sides is observationally
+`cx(left, right)`: one engine behind both names.
+
 ## See also
 
+- [Compose Behavior and Markup](../how-to/compose-behavior-and-markup.md): using `Props.merge`/`Props.cx` to combine a behavior's props with the caller's
+- [Style Reactively](../how-to/style-reactively.md): the `style` prop's reactive forms
+- [Use Element Refs](../how-to/use-element-refs.md): the `ref` prop and its fan-out form
 - [Render on the Server](../how-to/render-on-the-server.md): a narrative walkthrough of the server/client split
 - [Provide Services](../how-to/provide-services.md): recipes for app layers, scoped layers, and binding an app's lifetime to an external scope
 - [The Rendering Model](../explanation/rendering-model.md): hydrate-in-place and why there is no virtual DOM

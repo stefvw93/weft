@@ -810,8 +810,8 @@
     "semantic_hash": ""
   },
   "packages/dom/src/server/serialize.ts": {
-    "mtime": 1784533450.8360336,
-    "ast_hash": "468ae77ec91868c07f5fcde033ff7c13",
+    "mtime": 1784530797.0260413,
+    "ast_hash": "75d19e91ce29261ab73a01a8f42e6d93",
     "semantic_hash": ""
   },
   "packages/dom/src/server/server-boundary-ssr.test.ts": {
@@ -2075,8 +2075,8 @@
     "semantic_hash": ""
   },
   "packages/dom/src/__type-tests__/props.tst.ts": {
-    "mtime": 1784533487.462483,
-    "ast_hash": "becb431ade42ba11e432ef1c7dbd4c1b",
+    "mtime": 1784530626.7347236,
+    "ast_hash": "9e414840117875f71e2e10925cf73cf9",
     "semantic_hash": ""
   },
   "packages/dom/src/props.browser.test.ts": {
@@ -2085,18 +2085,18 @@
     "semantic_hash": ""
   },
   "packages/dom/src/props.test.ts": {
-    "mtime": 1784533450.836423,
-    "ast_hash": "a4092103e81074f0233eb6dcfedc8d40",
+    "mtime": 1784532575.376494,
+    "ast_hash": "210fe03d32c70faa6e760f8190d474f1",
     "semantic_hash": ""
   },
   "packages/dom/src/props.ts": {
-    "mtime": 1784533439.1399043,
-    "ast_hash": "9e711e5a580600f927241c8de3b2eaa9",
+    "mtime": 1784532519.2575583,
+    "ast_hash": "2739234c25b31d756cf0e45bca725c47",
     "semantic_hash": ""
   },
   "packages/dom/src/props.specs.md": {
-    "mtime": 1784533509.4206822,
-    "ast_hash": "f612cb58c5495ba5f1d8c6eda9a1c5c3",
+    "mtime": 1784532580.1552358,
+    "ast_hash": "87c725d302f57cced95d78aceeb1491f",
     "semantic_hash": ""
   }
 }

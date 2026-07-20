@@ -54,8 +54,10 @@ h.div({ style: { ...pulse, transition: "opacity 0.4s ease-in-out" } }, "Pulse");
 - **Property names are camelCase** (`backgroundColor`, `boxShadow`), the same keys as the DOM `style` object.
 - **CSS transitions just work.** A stream emission patches the DOM node directly (no re-render), so the browser applies the `transition` as it would for any style mutation.
 - **Pace with `Schedule`.** The idiom for time-based style animation: `Stream.iterate`/`Stream.make` paced by `Stream.schedule(Schedule.spaced(…))` and looped with `Stream.forever`. Combine with any Effect timing you like.
+- **Classes have a reactive builder too.** `Props.cx` builds a class string from strings, falsy values, nested arrays, and `{ className: condition }` records, where a condition may be a stream. Merging two bags that both carry `class` concatenates them. See [Compose Behavior and Markup](./compose-behavior-and-markup.md).
 
 ## See also
 
 - [Reactive Primitives](../explanation/reactive-primitives.md): reactive style props and the `Source` vocabulary
+- [Compose Behavior and Markup](./compose-behavior-and-markup.md): `Props.cx` and merging `class` across two prop bags
 - [examples/reactive-styles](../../examples/reactive-styles): per-property and whole-object stream styles with CSS transitions

@@ -54,10 +54,12 @@ const scroll = () =>
 
 - A plain `Ref` suffices if you **only** read the element imperatively; use `SubscriptionRef` when you need to **react** to it becoming available.
 - Refs are set once at element creation and are not cleared on unmount.
+- **Several refs can share one element.** `ref` also accepts an array, and every entry receives the element: `h.div({ ref: [measure, focus] })`. `Props.merge` produces such an array when both bags carry a `ref`, so a shared behavior's ref and your own can coexist. See [Compose Behavior and Markup](./compose-behavior-and-markup.md).
 - Coming from React: `SubscriptionRef.make<Option<T>>(Option.none())` ↔ `useRef<T>(null)`; the `Stream.filter(Option.isSome)` observer ↔ a `useEffect` mount guard.
 
 ## See also
 
 - [Reactive Primitives](../explanation/reactive-primitives.md): `SubscriptionRef` and `SubscriptionRef.changes`
 - [Author Components](./author-components.md): instance scope and `Effect.forkScoped`
+- [Compose Behavior and Markup](./compose-behavior-and-markup.md): merging a shared behavior's `ref` with your own
 - [examples/element-ref](../../examples/element-ref): auto-focus, element measurement, and imperative scroll via refs

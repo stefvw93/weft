@@ -200,3 +200,21 @@ export function parseListItemMarker(comment: Comment): ListItemMarker | null {
   const id = Number.parseInt(match[2]!, 10);
   return { kind, id };
 }
+
+/**
+ * Determines whether a prop name is an event handler: `on` followed by a
+ * lowercase letter. Weft's DOM handler props are all lowercase (`onclick`), so
+ * a camelCase `onClick` is an ordinary attribute.
+ *
+ * Shared by the client renderer (which attaches listeners), the server
+ * serializer (which skips handlers), and `Props.merge` (which chains them), so
+ * the three cannot drift apart.
+ */
+export function isEventHandler(name: string): boolean {
+  if (name.length <= 2 || !name.startsWith("on")) {
+    return false;
+  }
+  const thirdChar = name[2];
+  // Must be a lowercase letter (a-z), not a number or uppercase
+  return thirdChar !== undefined && thirdChar >= "a" && thirdChar <= "z";
+}

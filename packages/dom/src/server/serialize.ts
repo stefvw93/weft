@@ -1,18 +1,6 @@
 import { isStream, toStream } from "@weftui/core";
 import { Effect, Option, Stream } from "effect";
-
-/**
- * Determines whether a prop name is an event handler (`on` + lowercase letter),
- * which is skipped during attribute serialization.
- */
-export function isEventHandler(name: string): boolean {
-  if (name.length <= 2 || !name.startsWith("on")) {
-    return false;
-  }
-  const thirdChar = name[2];
-  // Must be a lowercase letter (a-z), not a number or uppercase
-  return thirdChar !== undefined && thirdChar >= "a" && thirdChar <= "z";
-}
+import { isEventHandler } from "~/shared";
 
 /**
  * HTML void elements: rendered without a closing tag, children are ignored.
