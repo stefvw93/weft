@@ -72,24 +72,6 @@ const FileMenu = () =>
     const trigger = yield* Menu.trigger(menu);
     const popup = yield* Menu.popup(menu);
 
-    // `items` is fixed for the lifetime of this menu, so plain `.map` would
-    // work too, but `List.each` is the library's keyed-list primitive: each
-    // row renders once per key, by label here, matching `examples/keyed-list`.
-    const itemNodes = List.each({ of: items, by: (item) => item.label }, (item, index) => {
-      const bag = Effect.runSync(Menu.item(menu, { index }));
-      return h.li(
-        Props.merge(bag, {
-          class: Props.cx("menu-item", {
-            "menu-item--highlighted": Stream.map(
-              SubscriptionRef.changes(menu.highlighted),
-              Option.contains(index),
-            ),
-          }),
-        }),
-        item.label,
-      );
-    });
-
     return h.div({ class: "file-menu" }, [
       h.button(
         Props.merge(trigger, {
@@ -109,7 +91,25 @@ const FileMenu = () =>
           Option.isSome(captured) ? "captured" : "pending",
         ),
       ]),
-      h.ul(Props.merge(popup, { class: "menu-popup" }), [itemNodes]),
+      h.ul(Props.merge(popup, { class: "menu-popup" }), [
+        // `items` is fixed for the lifetime of this menu, so plain `.map` would
+        // work too, but `List.each` is the library's keyed-list primitive: each
+        // row renders once per key, by label here, matching `examples/keyed-list`.
+        List.each({ of: items, by: (item) => item.label }, (item, index) => {
+          const bag = Effect.runSync(Menu.item(menu, { index }));
+          return h.li(
+            Props.merge(bag, {
+              class: Props.cx("menu-item", {
+                "menu-item--highlighted": Stream.map(
+                  SubscriptionRef.changes(menu.highlighted),
+                  Option.contains(index),
+                ),
+              }),
+            }),
+            item.label,
+          );
+        }),
+      ]),
       h.p({ class: "log" }, [
         Stream.map(SubscriptionRef.changes(notify.activity), (log) =>
           log.length === 0 ? "(no activity yet)" : log.join(" · "),
