@@ -71,6 +71,12 @@ const FileMenu = () =>
 
     const trigger = yield* Menu.trigger(menu);
     const popup = yield* Menu.popup(menu);
+    // Built once, up front, inside this generator: `List.each`'s render
+    // callback is a plain synchronous function, not an Effect context, so
+    // `Menu.item`'s Effect has to run here, not via `Effect.runSync` inside
+    // render (same anti-pattern as running an Effect synchronously off a raw
+    // DOM listener, see the outside-click fix in menu.ts).
+    const itemBags = yield* Effect.all(items.map((_, index) => Menu.item(menu, { index })));
 
     return h.div({ class: "file-menu" }, [
       h.button(
@@ -92,10 +98,9 @@ const FileMenu = () =>
         ),
       ]),
       h.ul(Props.merge(popup, { class: "menu-popup" }), [
-        List.each({ of: items, by: (item) => item.label }, (item, index) => {
-          const bag = Effect.runSync(Menu.item(menu, { index }));
-          return h.li(
-            Props.merge(bag, {
+        List.each({ of: items, by: (item) => item.label }, (item, index) =>
+          h.li(
+            Props.merge(itemBags[index]!, {
               class: Props.cx("menu-item", {
                 "menu-item--highlighted": Stream.map(
                   SubscriptionRef.changes(menu.highlighted),
@@ -104,8 +109,8 @@ const FileMenu = () =>
               }),
             }),
             item.label,
-          );
-        }),
+          ),
+        ),
       ]),
       h.p({ class: "log" }, [
         Stream.map(SubscriptionRef.changes(notify.activity), (log) =>
