@@ -11,7 +11,7 @@
  * per-item hover-highlight and click-to-select via `Menu.item`.
  */
 
-import { Effect, Option, Scope, Stream, SubscriptionRef } from "effect";
+import { Effect, Option, pipe, Scope, Stream, SubscriptionRef } from "effect";
 
 /** One selectable action. `E`/`R` are whatever its `onSelect` effect declares. */
 export interface MenuItemDef<E, R> {
@@ -86,35 +86,36 @@ export const Menu = {
         if (Option.isSome(current)) yield* selectIndex(current.value);
       });
 
-      yield* Effect.acquireRelease(
-        Effect.sync(() => {
-          // The popup is a sibling of the trigger in the consumer's markup, not
-          // its descendant, so a pointerdown anywhere inside it (including on
-          // an item, ahead of that item's own `click`) must also count as
-          // "inside". Checking `anchor` alone would close the menu on every
-          // real mouse click on an item, one event ahead of that item's own
-          // select-and-close handler.
-          const handlePointerDown = (event: PointerEvent) => {
-            Effect.runSync(
-              Effect.gen(function* () {
-                const isOpenNow = yield* SubscriptionRef.get(isOpen);
-                if (!isOpenNow) return;
-                const target = event.target as Node;
-                const anchorEl = yield* SubscriptionRef.get(anchor);
-                const popupEl = yield* SubscriptionRef.get(popupRef);
-                const insideAnchor = Option.isSome(anchorEl) && anchorEl.value.contains(target);
-                const insidePopup = Option.isSome(popupEl) && popupEl.value.contains(target);
-                if (!insideAnchor && !insidePopup) {
-                  yield* close;
-                }
-              }),
-            );
-          };
-          document.addEventListener("pointerdown", handlePointerDown, true);
-          return handlePointerDown;
-        }),
-        (handlePointerDown) =>
-          Effect.sync(() => document.removeEventListener("pointerdown", handlePointerDown, true)),
+      // The popup is a sibling of the trigger in the consumer's markup, not
+      // its descendant, so a pointerdown anywhere inside it (including on an
+      // item, ahead of that item's own `click`) must also count as "inside".
+      // Checking `anchor` alone would close the menu on every real mouse
+      // click on an item, one event ahead of that item's own select-and-close
+      // handler.
+      //
+      // `Effect.forkScoped`, not a raw `addEventListener` + `Effect.runSync`:
+      // the latter runs outside the app's runtime, so a failure in the
+      // handler throws synchronously mid-DOM-dispatch instead of routing
+      // through the app's normal fiber-failure reporting, and cleanup would
+      // be manual (`examples/element-ref` uses the same `forkScoped` +
+      // `Stream.fromEventListener` pairing for its ref observers).
+      yield* pipe(
+        Stream.fromEventListener<PointerEvent>(document, "pointerdown", { capture: true }),
+        Stream.runForEach((event) =>
+          Effect.gen(function* () {
+            const isOpenNow = yield* SubscriptionRef.get(isOpen);
+            if (!isOpenNow) return;
+            const target = event.target as Node;
+            const anchorEl = yield* SubscriptionRef.get(anchor);
+            const popupEl = yield* SubscriptionRef.get(popupRef);
+            const insideAnchor = Option.isSome(anchorEl) && anchorEl.value.contains(target);
+            const insidePopup = Option.isSome(popupEl) && popupEl.value.contains(target);
+            if (!insideAnchor && !insidePopup) {
+              yield* close;
+            }
+          }),
+        ),
+        Effect.forkScoped,
       );
 
       return {
