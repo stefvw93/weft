@@ -9,7 +9,7 @@
  * `docs/how-to/compose-behavior-and-markup.md`.
  */
 
-import { h } from "@weftui/core";
+import { h, List } from "@weftui/core";
 import { Props } from "@weftui/dom";
 import { Context, Effect, Layer, Option, Stream, SubscriptionRef } from "effect";
 import { Menu } from "./menu";
@@ -72,24 +72,23 @@ const FileMenu = () =>
     const trigger = yield* Menu.trigger(menu);
     const popup = yield* Menu.popup(menu);
 
-    const itemNodes = yield* Effect.all(
-      items.map((item, index) =>
-        Effect.gen(function* () {
-          const bag = yield* Menu.item(menu, { index });
-          return h.li(
-            Props.merge(bag, {
-              class: Props.cx("menu-item", {
-                "menu-item--highlighted": Stream.map(
-                  SubscriptionRef.changes(menu.highlighted),
-                  Option.contains(index),
-                ),
-              }),
-            }),
-            item.label,
-          );
+    // `items` is fixed for the lifetime of this menu, so plain `.map` would
+    // work too, but `List.each` is the library's keyed-list primitive: each
+    // row renders once per key, by label here, matching `examples/keyed-list`.
+    const itemNodes = List.each({ of: items, by: (item) => item.label }, (item, index) => {
+      const bag = Effect.runSync(Menu.item(menu, { index }));
+      return h.li(
+        Props.merge(bag, {
+          class: Props.cx("menu-item", {
+            "menu-item--highlighted": Stream.map(
+              SubscriptionRef.changes(menu.highlighted),
+              Option.contains(index),
+            ),
+          }),
         }),
-      ),
-    );
+        item.label,
+      );
+    });
 
     return h.div({ class: "file-menu" }, [
       h.button(
@@ -110,7 +109,7 @@ const FileMenu = () =>
           Option.isSome(captured) ? "captured" : "pending",
         ),
       ]),
-      h.ul(Props.merge(popup, { class: "menu-popup" }), itemNodes),
+      h.ul(Props.merge(popup, { class: "menu-popup" }), [itemNodes]),
       h.p({ class: "log" }, [
         Stream.map(SubscriptionRef.changes(notify.activity), (log) =>
           log.length === 0 ? "(no activity yet)" : log.join(" · "),
