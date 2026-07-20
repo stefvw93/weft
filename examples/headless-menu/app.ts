@@ -11,7 +11,7 @@
 
 import { h, List } from "@weftui/core";
 import { Props } from "@weftui/dom";
-import { Context, Effect, Layer, Option, Stream, SubscriptionRef } from "effect";
+import { Context, Effect, Layer, Option, pipe, Stream, SubscriptionRef } from "effect";
 import { Menu } from "./menu";
 import type { MenuItemDef } from "./menu";
 
@@ -92,25 +92,30 @@ const FileMenu = () =>
 
       h.ul(Props.merge(popup, { class: "menu-popup" }), [
         List.each({ of: items, by: (item) => item.label }, (item, index) =>
-          Effect.flatMap(Menu.item(menu, { index }), (a) =>
-            h.li(
-              Props.merge(a, {
-                class: Props.cx("menu-item", {
-                  "menu-item--highlighted": Stream.map(
-                    SubscriptionRef.changes(menu.highlighted),
-                    Option.contains(index),
-                  ),
+          pipe(
+            Menu.item(menu, { index }),
+            Effect.flatMap((itemProps) =>
+              h.li(
+                Props.merge(itemProps, {
+                  class: Props.cx("menu-item", {
+                    "menu-item--highlighted": Stream.map(
+                      SubscriptionRef.changes(menu.highlighted),
+                      Option.contains(index),
+                    ),
+                  }),
                 }),
-              }),
-              item.label,
+                item.label,
+              ),
             ),
           ),
         ),
       ]),
 
-      h.p({ class: "log" }, [
+      h.div({ class: "log" }, [
         Stream.map(SubscriptionRef.changes(notify.activity), (log) =>
-          log.length === 0 ? "(no activity yet)" : log.join(" · "),
+          log.length === 0
+            ? "(no activity yet)"
+            : List.each({ of: log, by: (item, index) => `${item} ${index}` }, (item) => h.p(item)),
         ),
       ]),
     ]);
