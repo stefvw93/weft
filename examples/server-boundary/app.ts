@@ -21,7 +21,7 @@
  * browser test both `Effect.provide(mount(App(), root), AppRpcClientLive)`.
  */
 
-import { AppRpcClientTag, Boundary, h } from "@weftui/core";
+import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient } from "@weftui/core";
 import { Rpc } from "effect/unstable/rpc";
 import { Effect, Layer, Schema, Stream } from "effect";
@@ -57,15 +57,20 @@ export const App = () =>
     () => ({ id: 1 }), // a fresh typed payload per call (mount + each refetch)
     (resource) =>
       h.div({ class: "product" }, [
-        h.h2([Stream.map(resource.value.changes, (p) => p.name)]),
-        h.p({ class: "price" }, ["$", Stream.map(resource.value.changes, (p) => String(p.price))]),
+        h.h2([Stream.map(Subscribable.changes(resource.value), (p) => p.name)]),
+        h.p({ class: "price" }, [
+          "$",
+          Stream.map(Subscribable.changes(resource.value), (p) => String(p.price)),
+        ]),
         h.p({ class: "restocks" }, [
           "restocked ",
-          Stream.map(resource.value.changes, (p) => String(p.restocks)),
+          Stream.map(Subscribable.changes(resource.value), (p) => String(p.restocks)),
           " times",
         ]),
         h.p({ class: "status" }, [
-          Stream.map(resource.pending.changes, (p) => (p ? "refreshing…" : "up to date")),
+          Stream.map(Subscribable.changes(resource.pending), (p) =>
+            p ? "refreshing…" : "up to date",
+          ),
         ]),
         h.button({ type: "button", class: "refresh", onclick: () => resource.refetch }, "Refresh"),
       ]),

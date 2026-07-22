@@ -54,7 +54,7 @@ Use a hydratable renderer whenever the client will call `hydrate`. The plain ren
 It follows the same server/client split: the rpc **contract** (pure Schema) is shared, while its **handler** lives in a server-only Layer the client never imports.
 
 ```typescript
-import { Boundary, h } from "@weftui/core";
+import { Boundary, h, Subscribable } from "@weftui/core";
 import { Stream } from "effect";
 import { GetStock } from "./data/inventory";
 
@@ -65,7 +65,7 @@ const StockPanel = (productId: number) =>
     (resource) =>
       h.p([
         "in stock: ",
-        h.span([Stream.map(resource.value.changes, (stock) => String(stock.units))]),
+        h.span([Stream.map(Subscribable.changes(resource.value), (stock) => String(stock.units))]),
         h.button({ type: "button", onclick: () => resource.refetch }, "Refresh"),
       ]),
     { fallback: h.p("loading stock…") }, // shown only on a client-first SPA mount

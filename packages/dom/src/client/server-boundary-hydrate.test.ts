@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { AppRpcClientTag, Boundary, h } from "@weftui/core";
+import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient, Node } from "@weftui/core";
 import { Rpc } from "effect/unstable/rpc";
 import { Cause, Effect, Exit, Layer, Schema } from "effect";
@@ -21,7 +21,7 @@ const fromValue =
   <A, E, R>(f: (a: A) => Node<E, R>) =>
   (resource: Boundary.Resource<A>) =>
     Effect.gen(function* () {
-      const data = yield* resource.value.get;
+      const data = yield* Subscribable.get(resource.value);
       return yield* f(data);
     });
 

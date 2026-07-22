@@ -19,8 +19,8 @@ hand-rolled event bus, or threading everything through the DOM.
 
 `WeftApp.make(CounterLive)` creates one app whose layer is built once and
 memoized. Every `WeftApp.mount(app, …)` root resolves the same `Counter`
-service, the same `SubscriptionRef` by reference, so `.changes` streams in
-any island observe writes made from any other island.
+service, the same `SubscriptionRef` by reference, so `SubscriptionRef.changes`
+streams in any island observe writes made from any other island.
 
 Each root still has its own lifetime: `handle.unmount()` tears down one island,
 `WeftApp.dispose(app)` tears down everything (roots first, then the layer).

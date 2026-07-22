@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { AppRpcClientTag, Boundary, h } from "@weftui/core";
+import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient } from "@weftui/core";
 import { Rpc } from "effect/unstable/rpc";
 import { Cause, Deferred, Effect, Exit, Layer, Schema } from "effect";
@@ -62,7 +62,7 @@ const boundary = () =>
     () => ({ id: 1 }),
     (resource) =>
       h.div({ class: "product" }, [
-        Effect.map(resource.value.get, (p) => (p as ProductShape).name),
+        Effect.map(Subscribable.get(resource.value), (p) => (p as ProductShape).name),
       ]),
     { fallback: h.div({ class: "fallback" }, "Loading…") },
   );

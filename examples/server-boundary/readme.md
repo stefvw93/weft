@@ -30,10 +30,11 @@ boundary under that layer exercises the client-first mount end to end.
 3. When the call resolves, it **swaps in** `render(resource)` in an atomic DOM swap; the
    fallback is removed.
 4. The region stays **live**: `render` receives a reactive `Resource`, so
-   `resource.value.changes` drives the display, `resource.pending.changes` shows a
-   refreshing indicator, and the **Refresh** button runs `resource.refetch` to re-run the
-   call and patch the subtree in place (the in-process client increments a `restocks`
-   counter so you can see fresh data arrive).
+   `Subscribable.changes(resource.value)` drives the display,
+   `Subscribable.changes(resource.pending)` shows a refreshing indicator, and the
+   **Refresh** button runs `resource.refetch` to re-run the call and patch the subtree in
+   place (the in-process client increments a `restocks` counter so you can see fresh data
+   arrive).
 
 The seam is provided as **the app's layer** (`WeftApp.make(AppRpcClientLive)`), not inside
 `App`: services come exclusively from the app layer, so this is the only place that reaches

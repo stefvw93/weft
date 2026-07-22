@@ -106,7 +106,7 @@ function pick<F extends Fields>(
 
 /**
  * Reads the live match's **path params** for the requested `fields`. Snapshot
- * semantics (reads `yield* Router`, then `currentMatch.get`), returning the
+ * semantics (reads `yield* Router`, then `Subscribable.get(currentMatch)`), returning the
  * already-decoded values **directly**: the matcher decoded them against the leaf's
  * full path schema, so no re-validation is needed. The cast is sound because the
  * picked subset is the `Type` side of `fields`. Fails with a {@link RouterParamsError}
@@ -117,7 +117,7 @@ function readParams<F extends Fields>(
 ): Effect.Effect<FieldsType<F>, RouterParamsError, Router> {
   return Effect.gen(function* () {
     const router = yield* Router;
-    const match = yield* router.currentMatch.get;
+    const match = yield* Subscribable.get(router.currentMatch);
     if (match._tag === "NotFound") {
       return yield* Effect.fail(
         new RouterParamsError({ source: "path", keys: Object.keys(fields) }),
@@ -138,7 +138,7 @@ function readQuery<F extends Fields>(
 ): Effect.Effect<FieldsType<F>, RouterParamsError, Router> {
   return Effect.gen(function* () {
     const router = yield* Router;
-    const match = yield* router.currentMatch.get;
+    const match = yield* Subscribable.get(router.currentMatch);
     if (match._tag === "NotFound") {
       return yield* Effect.fail(
         new RouterParamsError({ source: "query", keys: Object.keys(fields) }),
@@ -163,16 +163,16 @@ function selectStream<F extends Fields>(
   const select = (m: RouteMatch): FieldsType<F> =>
     pick(fields, m._tag === "Matched" ? m[source] : {}) as FieldsType<F>;
   return Subscribable.make({
-    get: Effect.map(currentMatch.get, select),
-    changes: Stream.map(currentMatch.changes, select),
+    get: Effect.map(Subscribable.get(currentMatch), select),
+    changes: Stream.map(Subscribable.changes(currentMatch), select),
   });
 }
 
 /**
  * Reactive counterpart to {@link readParams}: a {@link Subscribable} of the live
- * match's **path params** for `fields`, derived from `currentMatch.changes`. It
+ * match's **path params** for `fields`, derived from `Subscribable.changes(currentMatch)`. It
  * re-emits on every navigation and stays live across `NotFound` (yielding the empty
- * subset), so a component can render `[(yield* Router.paramsStream(fields)).changes]`
+ * subset), so a component can render `[Subscribable.changes(yield* Router.paramsStream(fields))]`
  * and update in place even when the outlet keeps the same leaf mounted. Re-exported
  * as `Router.paramsStream`.
  */
@@ -197,7 +197,7 @@ function subscribeQuery<F extends Fields>(
 
 /**
  * Reactive {@link Subscribable} of the client {@link NavState}. A component reads
- * `[(yield* Router.navigatingStream).changes]` to render pending UI during a
+ * `[Subscribable.changes(yield* Router.navigatingStream)]` to render pending UI during a
  * deferred-commit navigation (`pending-navigation.specs.md`,
  * `resolve-before-commit.specs.md`). Re-exported as `Router.navigatingStream`.
  */

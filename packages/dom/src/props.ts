@@ -642,7 +642,10 @@ function reactiveToStream(
   // absent case observable. Concat, not merge: the order is guaranteed, so the
   // seeded value cannot arrive after a newer emission.
   const subscribable = source as Subscribable.Subscribable<unknown, unknown>;
-  return Stream.concat(Stream.fromEffect(subscribable.get), subscribable.changes);
+  return Stream.concat(
+    Stream.fromEffect(Subscribable.get(subscribable)),
+    Subscribable.changes(subscribable),
+  );
 }
 
 /**

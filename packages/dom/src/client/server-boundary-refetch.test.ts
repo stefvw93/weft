@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { AppRpcClientTag, Boundary, h } from "@weftui/core";
+import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient, Node } from "@weftui/core";
 import { Rpc } from "effect/unstable/rpc";
 import { Effect, Layer, Option, Schema, Stream } from "effect";
@@ -64,7 +64,9 @@ const captureResource = () => {
     () => ({ id: 1 }),
     (resource) => {
       captured.current = resource as Boundary.Resource<ProductShape>;
-      return h.div({ class: "product" }, [Stream.map(resource.value.changes, (p) => p.name)]);
+      return h.div({ class: "product" }, [
+        Stream.map(Subscribable.changes(resource.value), (p) => p.name),
+      ]);
     },
   );
   return { app, captured } as const;
@@ -115,7 +117,7 @@ describe("Boundary.rpc refetch: AC-H-S8: patches in place", () => {
 
     // The rpc client was hit and the new value is live on the resource…
     assert.equal(state.calls, 1);
-    const value = await Effect.runPromise(resource!.value.get);
+    const value = await Effect.runPromise(Subscribable.get(resource!.value));
     assert.equal(value.name, "Gadget");
     // …and the region patched in place (same node, new text: no remount).
     assert.equal(root.querySelector("div.product"), productBefore);
@@ -133,12 +135,12 @@ describe("Boundary.rpc refetch: AC-H-S8: patches in place", () => {
     await Effect.runPromise(WeftApp.hydrate(WeftApp.make(layer), app, root));
 
     const resource = captured.current!;
-    assert.equal(await Effect.runPromise(resource.pending.get), false);
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), false);
 
     await Effect.runPromise(resource.refetch);
 
-    assert.equal(await Effect.runPromise(resource.pending.get), false);
-    assert.equal(Option.isNone(await Effect.runPromise(resource.error.get)), true);
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), false);
+    assert.equal(Option.isNone(await Effect.runPromise(Subscribable.get(resource.error))), true);
   });
 });
 
@@ -169,10 +171,10 @@ describe("Boundary.rpc refetch: AC-H-S9: stale-on-error", () => {
     await waitFor(20);
 
     // Stale-on-error: previous value retained, error surfaced, pending cleared.
-    const value = await Effect.runPromise(resource.value.get);
+    const value = await Effect.runPromise(Subscribable.get(resource.value));
     assert.equal(value.name, "Widget");
-    assert.equal(Option.isSome(await Effect.runPromise(resource.error.get)), true);
-    assert.equal(await Effect.runPromise(resource.pending.get), false);
+    assert.equal(Option.isSome(await Effect.runPromise(Subscribable.get(resource.error))), true);
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), false);
     // No fallback flash / remount: the same product node is still in place.
     assert.equal(root.querySelector("div.product"), productBefore);
     assert.ok(productBefore?.textContent?.includes("Widget"));
@@ -181,8 +183,8 @@ describe("Boundary.rpc refetch: AC-H-S9: stale-on-error", () => {
     mode = "ok";
     await Effect.runPromise(resource.refetch);
     await waitFor(20);
-    assert.equal(Option.isNone(await Effect.runPromise(resource.error.get)), true);
-    assert.equal((await Effect.runPromise(resource.value.get)).name, "Gadget");
+    assert.equal(Option.isNone(await Effect.runPromise(Subscribable.get(resource.error))), true);
+    assert.equal((await Effect.runPromise(Subscribable.get(resource.value))).name, "Gadget");
   });
 });
 
@@ -211,9 +213,9 @@ describe("Boundary.rpc refetch: defect path", () => {
     await Effect.runPromise(resource.refetch);
     await waitFor(20);
 
-    assert.equal((await Effect.runPromise(resource.value.get)).name, "Widget");
-    assert.equal(Option.isSome(await Effect.runPromise(resource.error.get)), true);
-    assert.equal(await Effect.runPromise(resource.pending.get), false);
+    assert.equal((await Effect.runPromise(Subscribable.get(resource.value))).name, "Widget");
+    assert.equal(Option.isSome(await Effect.runPromise(Subscribable.get(resource.error))), true);
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), false);
     assert.equal(root.querySelector("div.product"), productBefore);
   });
 });
@@ -255,7 +257,7 @@ describe("Boundary.rpc refetch: ignore-while-pending", () => {
     // Start the first refetch (forked: it parks on the gate, pending = true).
     const first = Effect.runPromise(resource.refetch);
     await waitFor(10);
-    assert.equal(await Effect.runPromise(resource.pending.get), true);
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), true);
 
     // Second refetch while the first is in flight is ignored: no second call.
     await Effect.runPromise(resource.refetch);
@@ -266,8 +268,8 @@ describe("Boundary.rpc refetch: ignore-while-pending", () => {
     await first;
     await waitFor(20);
     assert.equal(state.calls, 1);
-    assert.equal(await Effect.runPromise(resource.pending.get), false);
-    assert.equal((await Effect.runPromise(resource.value.get)).name, "Gadget");
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), false);
+    assert.equal((await Effect.runPromise(Subscribable.get(resource.value))).name, "Gadget");
   });
 });
 
@@ -288,8 +290,8 @@ describe("Boundary.rpc refetch: no transport", () => {
     await Effect.runPromise(resource.refetch);
 
     // Value unchanged, no error, not pending.
-    assert.equal((await Effect.runPromise(resource.value.get)).name, "Widget");
-    assert.equal(Option.isNone(await Effect.runPromise(resource.error.get)), true);
-    assert.equal(await Effect.runPromise(resource.pending.get), false);
+    assert.equal((await Effect.runPromise(Subscribable.get(resource.value))).name, "Widget");
+    assert.equal(Option.isNone(await Effect.runPromise(Subscribable.get(resource.error))), true);
+    assert.equal(await Effect.runPromise(Subscribable.get(resource.pending)), false);
   });
 });

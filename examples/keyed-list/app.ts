@@ -27,7 +27,7 @@ interface Row {
 
 const program = Effect.gen(function* () {
   // The list source: a SubscriptionRef the controls mutate. `List.each`
-  // subscribes to its `.changes` and reconciles each emission by key.
+  // subscribes to its changes stream and reconciles each emission by key.
   const rows = yield* SubscriptionRef.make<readonly Row[]>([
     { id: 1, label: "Ada" },
     { id: 2, label: "Babbage" },

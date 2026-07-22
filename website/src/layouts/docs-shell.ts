@@ -13,7 +13,7 @@
  * `RouterLive` intercepts for SPA navigation on the client.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import type { Renderable } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Stream, SubscriptionRef } from "effect";
@@ -205,7 +205,9 @@ export const DocsShell = Component.gen(function* () {
   const docs = yield* Docs;
   const router = yield* Router;
   const outlet = yield* Router.Outlet;
-  const path = Stream.map(router.currentMatch.changes, (match) => pathnameOf(match.url));
+  const path = Stream.map(Subscribable.changes(router.currentMatch), (match) =>
+    pathnameOf(match.url),
+  );
 
   // Mobile sidebar drawer state (source of truth). daisyUI's drawer CSS keys off the
   // hidden checkbox's `:checked`, which we drive from this ref via its `checked`

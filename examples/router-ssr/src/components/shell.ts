@@ -8,7 +8,7 @@
  * `href(productsRoute)` (no args, since its query is optional) for a type-safe link.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { href, Router } from "@weftui/router";
 import { Stream } from "effect";
 import { productsRoute } from "../pages/listing";
@@ -26,7 +26,7 @@ export const Shell = Component.gen(function* () {
     h.div({
       id: "nav-progress",
       "aria-hidden": "true",
-      class: Stream.map(nav.changes, (s) =>
+      class: Stream.map(Subscribable.changes(nav), (s) =>
         s._tag === "Navigating" ? "nav-progress is-navigating" : "nav-progress",
       ),
     }),

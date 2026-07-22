@@ -8,6 +8,7 @@
  * subsequent navigation through GoatCounter's manual `count()` API.
  */
 
+import { Subscribable } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Effect, pipe, Stream } from "effect";
 
@@ -34,7 +35,7 @@ declare global {
 export const trackPageviews: Effect.Effect<void, never, Router> = Effect.gen(function* () {
   const router = yield* Router;
   yield* pipe(
-    router.currentMatch.changes,
+    Subscribable.changes(router.currentMatch),
     Stream.drop(1),
     Stream.runForEach(() =>
       Effect.sync(() => {

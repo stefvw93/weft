@@ -460,7 +460,7 @@ function firstListEmission(
 ): Effect.Effect<readonly unknown[]> {
   return Effect.scoped(
     Source.toSubscribable(of).pipe(
-      Effect.flatMap((s) => s.get as Effect.Effect<Iterable<unknown>, NoPropValue>),
+      Effect.flatMap((s) => Subscribable.get(s) as Effect.Effect<Iterable<unknown>, NoPropValue>),
       Effect.map((items): readonly unknown[] => Array.from(items)),
       Effect.catchTag("NoPropValue", () => Effect.succeed<readonly unknown[]>([])),
     ),

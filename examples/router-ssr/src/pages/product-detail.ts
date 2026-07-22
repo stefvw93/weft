@@ -20,7 +20,7 @@
  * id, so there is no per-product boundary id and no co-located server `load`.
  */
 
-import { Boundary, h } from "@weftui/core";
+import { Boundary, h, Subscribable } from "@weftui/core";
 import { notFound, Router } from "@weftui/router";
 import { Schema, Stream } from "effect";
 import { GetStock } from "../data/inventory";
@@ -50,13 +50,15 @@ export const productRoute = Router.route("products/:id", {
           h.p([
             "in stock: ",
             h.span({ id: "stock" }, [
-              Stream.map(resource.value.changes, (stock) => String(stock.units)),
+              Stream.map(Subscribable.changes(resource.value), (stock) => String(stock.units)),
             ]),
           ]),
           h.p([
             "refreshing: ",
             h.span({ id: "pending" }, [
-              Stream.map(resource.pending.changes, (pending) => (pending ? "yes" : "no")),
+              Stream.map(Subscribable.changes(resource.pending), (pending) =>
+                pending ? "yes" : "no",
+              ),
             ]),
           ]),
           h.button(

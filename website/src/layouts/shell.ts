@@ -15,7 +15,7 @@
  * resolved from the Vite manifest's `css` array for the client entry.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Docs, type DocsService } from "../lib/docs-service";
 
@@ -47,7 +47,7 @@ export const documentShell = (clientEntry: string, styles: readonly string[] = [
   Component.gen(function* () {
     const docs = yield* Docs;
     const router = yield* Router;
-    const match = yield* router.currentMatch.get;
+    const match = yield* Subscribable.get(router.currentMatch);
     const meta = metaFor(pathnameOf(match.url), docs.get);
     const outlet = yield* Router.Outlet;
 

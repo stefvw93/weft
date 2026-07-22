@@ -29,7 +29,7 @@ describe("Source.toSubscribable", () => {
       const value = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable("hello");
-          return yield* sub.get;
+          return yield* Subscribable.get(sub);
         }),
       );
       assert.equal(value, "hello");
@@ -39,7 +39,7 @@ describe("Source.toSubscribable", () => {
       const values = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(42);
-          return yield* pipe(sub.changes, Stream.runCollect);
+          return yield* pipe(Subscribable.changes(sub), Stream.runCollect);
         }),
       );
       assert.deepEqual(values, [42]);
@@ -50,7 +50,7 @@ describe("Source.toSubscribable", () => {
         Effect.scoped(
           Effect.gen(function* () {
             const sub = yield* Source.toSubscribable("x");
-            return yield* Effect.exit(sub.get);
+            return yield* Effect.exit(Subscribable.get(sub));
           }),
         ),
       );
@@ -67,7 +67,7 @@ describe("Source.toSubscribable", () => {
       const value = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(Effect.succeed("from-effect"));
-          return yield* sub.get;
+          return yield* Subscribable.get(sub);
         }),
       );
       assert.equal(value, "from-effect");
@@ -77,7 +77,7 @@ describe("Source.toSubscribable", () => {
       const values = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(Effect.succeed(7));
-          return yield* pipe(sub.changes, Stream.runCollect);
+          return yield* pipe(Subscribable.changes(sub), Stream.runCollect);
         }),
       );
       assert.deepEqual(values, [7]);
@@ -94,9 +94,9 @@ describe("Source.toSubscribable", () => {
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
           // Consume via get twice and via changes once.
-          const v1 = yield* sub.get;
-          const v2 = yield* sub.get;
-          const items = yield* pipe(sub.changes, Stream.runCollect);
+          const v1 = yield* Subscribable.get(sub);
+          const v2 = yield* Subscribable.get(sub);
+          const items = yield* pipe(Subscribable.changes(sub), Stream.runCollect);
           assert.equal(v1, "once");
           assert.equal(v2, "once");
           assert.deepEqual(items, ["once"]);
@@ -117,8 +117,8 @@ describe("Source.toSubscribable", () => {
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
           // Drain the first emission so the ref is populated.
-          yield* pipe(sub.changes, Stream.take(1), Stream.runDrain);
-          return yield* sub.get;
+          yield* pipe(Subscribable.changes(sub), Stream.take(1), Stream.runDrain);
+          return yield* Subscribable.get(sub);
         }),
       );
       assert.equal(value, "first");
@@ -132,11 +132,11 @@ describe("Source.toSubscribable", () => {
           // whether the hot SubscriptionRef replays the intermediate `1` or only
           // the current value, unlike a fixed `take(2)` (which races the pump).
           yield* pipe(
-            sub.changes,
+            Subscribable.changes(sub),
             Stream.takeUntil((v) => v === 2),
             Stream.runDrain,
           );
-          return yield* sub.get;
+          return yield* Subscribable.get(sub);
         }),
       );
       assert.equal(value, 2);
@@ -156,7 +156,7 @@ describe("Source.toSubscribable", () => {
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
           // Fork get: it should park because the gate is not yet open.
-          const getFiber = yield* Effect.forkChild(sub.get);
+          const getFiber = yield* Effect.forkChild(Subscribable.get(sub));
           // Open the gate, supplying the first (and only) value.
           yield* Deferred.succeed(gate, "parked-value");
           return yield* Fiber.join(getFiber);
@@ -175,7 +175,7 @@ describe("Source.toSubscribable", () => {
       const error = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(Stream.empty, "myProp");
-          return yield* Effect.flip(sub.get);
+          return yield* Effect.flip(Subscribable.get(sub));
         }),
       );
       assert.ok(error instanceof NoPropValue);
@@ -186,7 +186,7 @@ describe("Source.toSubscribable", () => {
       const error = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(Stream.empty);
-          return yield* Effect.flip(sub.get);
+          return yield* Effect.flip(Subscribable.get(sub));
         }),
       );
       assert.ok(error instanceof NoPropValue);
@@ -208,7 +208,7 @@ describe("Source.toSubscribable", () => {
       const exit = await scoped(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
-          return yield* pipe(sub.changes, Stream.runDrain, Effect.exit);
+          return yield* pipe(Subscribable.changes(sub), Stream.runDrain, Effect.exit);
         }),
       );
       assert.ok(Exit.isFailure(exit), "changes surfaces the source failure");
@@ -225,8 +225,8 @@ describe("Source.toSubscribable", () => {
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
           // Drain the first emission (the failure fires afterwards).
-          yield* pipe(sub.changes, Stream.take(1), Stream.runDrain, Effect.ignore);
-          return yield* sub.get;
+          yield* pipe(Subscribable.changes(sub), Stream.take(1), Stream.runDrain, Effect.ignore);
+          return yield* Subscribable.get(sub);
         }),
       );
       assert.equal(value, "a");
@@ -251,9 +251,9 @@ describe("Source.toSubscribable", () => {
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(source);
           // Wait for the pump to process the single emission.
-          yield* pipe(sub.changes, Stream.take(1), Stream.runDrain);
-          const v1 = yield* sub.get;
-          const v2 = yield* sub.get;
+          yield* pipe(Subscribable.changes(sub), Stream.take(1), Stream.runDrain);
+          const v1 = yield* Subscribable.get(sub);
+          const v2 = yield* Subscribable.get(sub);
           assert.equal(v1, "shared");
           assert.equal(v2, "shared");
           assert.equal(runs, 1);
@@ -289,7 +289,7 @@ describe("Source.toSubscribable", () => {
             Effect.gen(function* () {
               const sub = yield* Source.toSubscribable(existing);
               assert.equal(sub, existing);
-              return yield* sub.get;
+              return yield* Subscribable.get(sub);
             }),
           ),
           Effect.exit,
@@ -311,7 +311,7 @@ describe("Source.toSubscribable", () => {
           Effect.gen(function* () {
             const sub = yield* Source.toSubscribable(Stream.empty, "label");
             // @effect-diagnostics-next-line missingReturnYieldStar:off
-            yield* sub.get;
+            yield* Subscribable.get(sub);
           }),
           Effect.sandbox,
           Effect.flip,

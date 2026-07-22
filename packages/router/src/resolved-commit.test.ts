@@ -83,12 +83,12 @@ describe("resolved-commit stash (AC-R2)", () => {
 });
 
 describe("staged match view (AC-R4)", () => {
-  test("currentMatch.get resolves to the target; everything else delegates to the live service", async () => {
+  test("Subscribable.get(currentMatch) resolves to the target; everything else delegates to the live service", async () => {
     const live = fakeRouter(matched("/about"));
     const target = matched("/users/7");
     const staged = stageMatch(live, target);
 
-    const seen = await Effect.runPromise(staged.currentMatch.get);
+    const seen = await Effect.runPromise(Subscribable.get(staged.currentMatch));
     assert.equal(seen, target);
     // Live members delegate: reactive subscriptions and navigation are not staged.
     assert.equal(staged.navigate, live.navigate);

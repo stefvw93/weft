@@ -14,7 +14,7 @@ When you navigate to a route, the router is **deferred-commit**. It resolves the
 That resolve window is exposed as a reactive signal, [`Router.navigating`](../reference/router.md#routernavigating), that you read to render pending UI.
 
 ```typescript
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Stream } from "effect";
 
@@ -25,7 +25,7 @@ const Shell = Component.gen(function* () {
     h.div({
       id: "nav-progress",
       "aria-hidden": "true",
-      class: Stream.map(nav.changes, (s) =>
+      class: Stream.map(Subscribable.changes(nav), (s) =>
         s._tag === "Navigating" ? "nav-progress is-navigating" : "nav-progress",
       ),
     }),

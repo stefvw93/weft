@@ -1549,13 +1549,13 @@ function renderList(
     const regionScope = yield* Scope.fork(context.scope, "sequential");
 
     // Normalize `of` (static Iterable / Effect / Stream / Subscribable) and
-    // subscribe to its `.changes`. The pump fiber lives in the region scope.
+    // subscribe to its changes stream. The pump fiber lives in the region scope.
     const subscribable = yield* Source.toSubscribable(of).pipe(
       Effect.provideService(Scope.Scope, regionScope),
     );
     // E/R are satisfied by the captured runtime context; runtime failures still
     // surface via the subscription fiber's exit and are routed to a boundary.
-    const changes = subscribable.changes as Stream.Stream<Iterable<unknown>>;
+    const changes = Subscribable.changes(subscribable) as Stream.Stream<Iterable<unknown>>;
 
     // Persistent reconciler state across emissions.
     let state: ListState = { records: HashMap.empty(), order: [] };
@@ -2703,7 +2703,7 @@ function hydrateList(
     const subscribable = yield* Source.toSubscribable(of).pipe(
       Effect.provideService(Scope.Scope, regionScope),
     );
-    const changes = subscribable.changes as Stream.Stream<Iterable<unknown>>;
+    const changes = Subscribable.changes(subscribable) as Stream.Stream<Iterable<unknown>>;
 
     let state: ListState = { records: HashMap.empty(), order: [] };
     let isFirst = true;

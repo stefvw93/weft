@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { AppRpcClientTag, Component, h } from "@weftui/core";
+import { AppRpcClientTag, Component, h, Subscribable } from "@weftui/core";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Context, Effect, Exit, Fiber, Layer, Option, Schema, Scope, Stream } from "effect";
 import { JSDOM } from "jsdom";
@@ -175,11 +175,11 @@ function gateLoader(slot: ComponentSlot): {
 const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
 const readNav = (s: Router["Service"]): Promise<{ readonly _tag: string; readonly to?: string }> =>
-  Effect.runPromise(s.navigating.get);
+  Effect.runPromise(Subscribable.get(s.navigating));
 const readMatch = (
   s: Router["Service"],
 ): Promise<{ readonly _tag: string; readonly url?: string }> =>
-  Effect.runPromise(s.currentMatch.get);
+  Effect.runPromise(Subscribable.get(s.currentMatch));
 
 describe("RouterLive: pending navigation (deferred commit)", () => {
   test("AC-N1/AC-N5: a lazy nav holds match + url until the chunk resolves; navigating Idle→Navigating→Idle", async () => {
@@ -417,7 +417,7 @@ describe("RouterLive: resolve-before-commit (leaf effect pre-run)", () => {
     const service = await readServiceFor(fixture());
     const emissions: string[] = [];
     const collector = Effect.runFork(
-      Stream.runForEach(service.navigating.changes, (s) =>
+      Stream.runForEach(Subscribable.changes(service.navigating), (s) =>
         Effect.sync(() => {
           emissions.push(s._tag);
         }),

@@ -1,3 +1,4 @@
+import { Subscribable } from "@weftui/core";
 import { Effect, Schema } from "effect";
 import { href, type HrefArgs } from "../href";
 import type { Fields, RouteNode } from "../route-tree";
@@ -90,7 +91,7 @@ function applyQuery(
 ): Effect.Effect<void, never, Router> {
   return Effect.gen(function* () {
     const router = yield* Router;
-    const match = yield* router.currentMatch.get;
+    const match = yield* Subscribable.get(router.currentMatch);
     if (match._tag !== "Matched") return;
     const next = transform(match.query);
     const encoded = Schema.encodeUnknownSync(match.leaf.querySchema)(next) as Record<

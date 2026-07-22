@@ -86,10 +86,10 @@ export function takeResolvedCommit(
 
 /**
  * The staged `Router` view the pre-run executes under (AC-R4): identical to
- * `router` except `currentMatch.get` resolves to the **target** match. The URL
+ * `router` except `Subscribable.get(currentMatch)` resolves to the **target** match. The URL
  * ref has not moved yet, and one-shot reads (`Router.params`, `Router.query`,
- * `currentMatch.get`) inside the pre-running component body must decode the
- * destination, not the page being left. `currentMatch.changes` (and `navigate` /
+ * `Subscribable.get(currentMatch)`) inside the pre-running component body must decode the
+ * destination, not the page being left. `Subscribable.changes(currentMatch)` (and `navigate` /
  * `httpApiClient` / `navigating`) delegate to the live service, so reactive
  * subscriptions, which occur at render/mount time post-commit, observe the
  * committed match onward.
@@ -99,7 +99,7 @@ export function stageMatch(router: Router["Service"], target: RouteMatch): Route
     ...router,
     currentMatch: Subscribable.make({
       get: Effect.succeed(target),
-      changes: router.currentMatch.changes,
+      changes: Subscribable.changes(router.currentMatch),
     }),
   };
 }

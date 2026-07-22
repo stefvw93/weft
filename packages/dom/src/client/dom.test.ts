@@ -1833,7 +1833,7 @@ describe("AC-10/12/13/14: toSubscribable pump scope lifetime", () => {
   const Comp = (props: { val: Source.Source<string> }) =>
     Effect.gen(function* () {
       const sub = yield* Source.toSubscribable(props.val);
-      const v = yield* sub.get;
+      const v = yield* Subscribable.get(sub);
       return h.div({}, v);
     });
 
@@ -1947,7 +1947,7 @@ describe("scope lifetime: advanced cases", () => {
     const Comp = (props: { val: Source.Source<string> }) =>
       Effect.gen(function* () {
         const sub = yield* Source.toSubscribable(props.val);
-        const v = yield* sub.get;
+        const v = yield* Subscribable.get(sub);
         // {SubscriptionRef.changes(internalRef)} creates a reactive region *inside* the component.
         // Re-emitting it rotates a child contentScope: the pump in instanceScope
         // must not be touched.
@@ -1988,7 +1988,7 @@ describe("scope lifetime: advanced cases", () => {
     const Inner = (props: { val: Source.Source<string> }) =>
       Effect.gen(function* () {
         const sub = yield* Source.toSubscribable(props.val);
-        const v = yield* sub.get;
+        const v = yield* Subscribable.get(sub);
         return h.span({}, v);
       });
 
@@ -2041,8 +2041,8 @@ describe("scope lifetime: advanced cases", () => {
       Effect.gen(function* () {
         const subA = yield* Source.toSubscribable(props.a, "a");
         const subB = yield* Source.toSubscribable(props.b, "b");
-        const vA = yield* subA.get;
-        const vB = yield* subB.get;
+        const vA = yield* Subscribable.get(subA);
+        const vB = yield* Subscribable.get(subB);
         return h.div({}, [vA, " ", vB]);
       });
 
@@ -2083,7 +2083,7 @@ describe("scope lifetime: advanced cases", () => {
       Effect.gen(function* () {
         // toSubscribable short-circuits to identity: no pump forked.
         const sub = yield* Source.toSubscribable(props.val);
-        const v = yield* sub.get;
+        const v = yield* Subscribable.get(sub);
         return h.div({}, v);
       });
 
@@ -2129,7 +2129,7 @@ describe("scope lifetime: advanced cases", () => {
       Stream.fromEffect(
         Effect.gen(function* () {
           const sub = yield* Source.toSubscribable(props.val);
-          const v = yield* sub.get;
+          const v = yield* Subscribable.get(sub);
           return h.div({}, v) as Renderable;
         }),
       );
@@ -2169,7 +2169,7 @@ describe("scope lifetime: advanced cases", () => {
     const Comp = (props: { val: Source.Source<string> }) =>
       Effect.gen(function* () {
         const sub = yield* Source.toSubscribable(props.val);
-        const v = yield* sub.get;
+        const v = yield* Subscribable.get(sub);
         return h.div({}, v);
       });
 

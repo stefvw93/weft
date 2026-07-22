@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { Boundary, Component, h } from "@weftui/core";
+import { Boundary, Component, h, Subscribable } from "@weftui/core";
 import type { Node } from "@weftui/core";
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Context, Deferred, Effect, Layer, Schema } from "effect";
@@ -317,7 +317,7 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
     const fromValue =
       (f: (s: string) => Node<never, never>) => (resource: Boundary.Resource<string>) =>
         Effect.gen(function* () {
-          const data = yield* resource.value.get;
+          const data = yield* Subscribable.get(resource.value);
           return yield* f(data);
         });
     const stockDef = Router.router(

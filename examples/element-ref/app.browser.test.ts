@@ -5,7 +5,7 @@
  * element ref captures the live DOM node so the example can act on it
  * imperatively. Three sections are covered:
  *
- * - auto-focus: a `forkScoped` observer of `ref.changes` focuses the input,
+ * - auto-focus: a `forkScoped` observer of `SubscriptionRef.changes(ref)` focuses the input,
  * - measure: a `forkScoped` observer reads `getBoundingClientRect()`,
  * - scroll-into-view: a click handler reads the ref on demand and scrolls it.
  *

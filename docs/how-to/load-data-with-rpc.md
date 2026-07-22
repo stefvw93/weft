@@ -14,7 +14,7 @@ description: Boundary.rpc, server-resolved and client-refreshable data; the cont
 A `Boundary.rpc` is a **thin consumer**. It carries an rpc, a payload thunk, and a `render` that receives a reactive [`Resource`](../reference/core.md#resourcea). The renderer resolves the rpc through the ambient [`AppRpcClientTag`](../reference/core.md#apprpcclienttag) seam (provided by `@weftui/router`). The same rpc serves every lifecycle, so SSR-replay, refetch, and client-first mount are one mechanism, not three.
 
 ```typescript
-import { Boundary, h } from "@weftui/core";
+import { Boundary, h, Subscribable } from "@weftui/core";
 import { Stream } from "effect";
 import { GetStock } from "./data/inventory";
 
@@ -26,7 +26,7 @@ Boundary.rpc(
   ) =>
     h.p([
       "in stock: ",
-      h.span([Stream.map(resource.value.changes, (s) => String(s.units))]),
+      h.span([Stream.map(Subscribable.changes(resource.value), (s) => String(s.units))]),
       h.button({ type: "button", onclick: () => resource.refetch }, "Refresh"),
     ]),
   { fallback: h.p("loading stock…") }, // shown only on a client-first mount
@@ -127,8 +127,8 @@ Because the SSR path seeds `value` await-first (it emits the seed immediately), 
 ```typescript
 (resource) =>
   h.section({ class: "product" }, [
-    h.span([Stream.map(resource.value.changes, (s) => String(s.units))]),
-    h.span([Stream.map(resource.pending.changes, (p) => (p ? "refreshing…" : ""))]),
+    h.span([Stream.map(Subscribable.changes(resource.value), (s) => String(s.units))]),
+    h.span([Stream.map(Subscribable.changes(resource.pending), (p) => (p ? "refreshing…" : ""))]),
     h.button({ type: "button", onclick: () => resource.refetch }, "Refresh stock"),
   ]);
 ```

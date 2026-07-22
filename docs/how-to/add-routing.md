@@ -117,10 +117,10 @@ That error bubbles into the app node's aggregate `E`, so a user may recover it w
 
 ### Reactive accessors: `paramsStream` / `queryStream`
 
-`Router.paramsStream(fields)` / `Router.queryStream(fields)` are the reactive counterparts of `params` / `query`. Each resolves a `Subscribable` derived from `currentMatch.changes`, so a component can update **in place** even when the same leaf stays mounted, the case a query-only navigation (`setQuery` / `patchQuery`, see [Programmatic navigation](#programmatic-navigation)) produces and a snapshot `Router.query` would miss:
+`Router.paramsStream(fields)` / `Router.queryStream(fields)` are the reactive counterparts of `params` / `query`. Each resolves a `Subscribable` derived from `Subscribable.changes(currentMatch)`, so a component can update **in place** even when the same leaf stays mounted, the case a query-only navigation (`setQuery` / `patchQuery`, see [Programmatic navigation](#programmatic-navigation)) produces and a snapshot `Router.query` would miss:
 
 ```typescript
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Schema, Stream } from "effect";
 
@@ -130,7 +130,7 @@ const ProductsPage = Component.gen(function* () {
   const query = yield* Router.queryStream(sortQuery);
   return yield* h.section([
     h.h2("Products"),
-    h.p(["sort: ", Stream.map(query.changes, (q) => q.sort ?? "none")]),
+    h.p(["sort: ", Stream.map(Subscribable.changes(query), (q) => q.sort ?? "none")]),
   ]);
 });
 ```

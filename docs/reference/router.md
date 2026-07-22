@@ -111,7 +111,7 @@ Router.params<F extends Fields>(fields: F): Effect<FieldsType<F>, RouterParamsEr
 Router.query<F extends Fields>(fields: F): Effect<FieldsType<F>, RouterParamsError, Router>;
 ```
 
-Snapshot accessors that read the **live match** (`currentMatch.get`) and pick the requested `fields` keys from the decoded path/query. The matcher already decoded the values against the leaf's full schema, so they are returned directly (no re-validation).
+Snapshot accessors that read the **live match** (`Subscribable.get(currentMatch)`) and pick the requested `fields` keys from the decoded path/query. The matcher already decoded the values against the leaf's full schema, so they are returned directly (no re-validation).
 
 Readable from **any** component, not just the leaf: this is the dependency-injection path layouts and deep nodes use (leaves can instead take [handler-arg props](#routerroute)). They fail with a [`RouterParamsError`](#routerparamserror) (`source: "path" | "query"`, plus the requested `keys`) when no route matches.
 
@@ -122,7 +122,7 @@ Router.paramsStream<F extends Fields>(fields: F): Effect<Subscribable<FieldsType
 Router.queryStream<F extends Fields>(fields: F): Effect<Subscribable<FieldsType<F>>, never, Router>;
 ```
 
-The **reactive** counterparts. Each resolves a `Subscribable<FieldsType<F>>` derived from `currentMatch.changes`. A component can render `[(yield* Router.queryStream(fields)).changes]` and update **in place** even when the outlet keeps the same leaf mounted. That is exactly the query-only case (`setQuery` / `patchQuery`) a snapshot `Router.query` would miss.
+The **reactive** counterparts. Each resolves a `Subscribable<FieldsType<F>>` derived from `Subscribable.changes(currentMatch)`. A component can render `[Subscribable.changes(yield* Router.queryStream(fields))]` and update **in place** even when the outlet keeps the same leaf mounted. That is exactly the query-only case (`setQuery` / `patchQuery`) a snapshot `Router.query` would miss.
 
 Resilient across navigations: a `NotFound` match yields the empty subset rather than failing, so the stream stays live.
 

@@ -14,7 +14,7 @@
  * - **AC-N4 (revisit synchronous).** A revisit renders from the per-slot memo.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { WeftApp } from "@weftui/dom/client";
 import type { RouterDef } from "@weftui/router";
 import { push, Router, RouterApp, RouterLive } from "@weftui/router/client";
@@ -55,7 +55,9 @@ function makeDef(load: () => Promise<typeof LazyBody>): RouterDef {
           const nav = yield* Router.navigatingStream;
           return yield* h.div({ id: "app" }, [
             h.div({ id: "nav-indicator" }, [
-              Stream.map(nav.changes, (s) => (s._tag === "Navigating" ? "loading" : "idle")),
+              Stream.map(Subscribable.changes(nav), (s) =>
+                s._tag === "Navigating" ? "loading" : "idle",
+              ),
             ]),
             h.main([outlet]),
           ]);

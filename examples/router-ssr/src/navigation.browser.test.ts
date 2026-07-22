@@ -12,7 +12,7 @@
  * not update.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { WeftApp } from "@weftui/dom/client";
 import type { RouterDef } from "@weftui/router";
 import {
@@ -45,7 +45,9 @@ const searchRoute = Router.route("search", {
   query: tabQuery,
   component: Component.gen(function* () {
     const q = yield* Router.queryStream(tabQuery);
-    return yield* h.div([h.span({ id: "tab" }, [Stream.map(q.changes, (x) => x.tab ?? "none")])]);
+    return yield* h.div([
+      h.span({ id: "tab" }, [Stream.map(Subscribable.changes(q), (x) => x.tab ?? "none")]),
+    ]);
   }),
 });
 

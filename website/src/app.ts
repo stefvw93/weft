@@ -13,7 +13,7 @@
  * uniformly through `/docs/:category/:slug`.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { Stream } from "effect";
 import { DocsShell } from "./layouts/docs-shell";
@@ -50,7 +50,7 @@ const RootLayout = Component.gen(function* () {
       {
         id: "nav-progress",
         "aria-hidden": "true",
-        class: Stream.map(nav.changes, (s) =>
+        class: Stream.map(Subscribable.changes(nav), (s) =>
           NAV_PROGRESS_ENABLED && s._tag === "Navigating"
             ? `${NAV_PROGRESS_BASE} is-navigating opacity-100 transition-opacity delay-150 duration-0`
             : `${NAV_PROGRESS_BASE} opacity-0`,

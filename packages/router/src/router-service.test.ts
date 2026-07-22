@@ -102,18 +102,18 @@ describe("Router.paramsStream / Router.queryStream", () => {
 
   test("paramsStream.get reads the live match's decoded path params", async () => {
     const sub = await streamAt(Router.paramsStream(idParam), "/users/42");
-    assert.deepEqual(await Effect.runPromise(sub.get), { id: 42 });
+    assert.deepEqual(await Effect.runPromise(Subscribable.get(sub)), { id: 42 });
   });
 
   test("queryStream.get reads the live match's decoded query (present and absent)", async () => {
     const present = await streamAt(Router.queryStream(sortQuery), "/users/42?sort=asc");
-    assert.deepEqual(await Effect.runPromise(present.get), { sort: "asc" });
+    assert.deepEqual(await Effect.runPromise(Subscribable.get(present)), { sort: "asc" });
     const absent = await streamAt(Router.queryStream(sortQuery), "/users/42");
-    assert.deepEqual(await Effect.runPromise(absent.get), { sort: undefined });
+    assert.deepEqual(await Effect.runPromise(Subscribable.get(absent)), { sort: undefined });
   });
 
   test("paramsStream stays live on NotFound, yielding the empty subset (no failure)", async () => {
     const sub = await streamAt(Router.paramsStream(idParam), "/nope");
-    assert.deepEqual(await Effect.runPromise(sub.get), { id: undefined });
+    assert.deepEqual(await Effect.runPromise(Subscribable.get(sub)), { id: undefined });
   });
 });

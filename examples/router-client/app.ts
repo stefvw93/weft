@@ -19,7 +19,7 @@
  * so `main.ts` and the browser test can mount it themselves.
  */
 
-import { Component, h } from "@weftui/core";
+import { Component, h, Subscribable } from "@weftui/core";
 import { href, notFound, Router, type RouteNode } from "@weftui/router";
 import { Schema, Stream } from "effect";
 
@@ -82,7 +82,7 @@ export const usersRoute: RouteNode<{}, typeof sortQuery, never, Router> = Router
         " · ",
         h.a({ href: href(usersRoute, { query: { sort: "desc" } }) }, "desc"),
       ]),
-      Stream.map(query.changes, ({ sort }) =>
+      Stream.map(Subscribable.changes(query), ({ sort }) =>
         h.ul(
           { id: "user-list", "data-sort": sort ?? "none" },
           sortUsers(sort).map((user) =>

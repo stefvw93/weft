@@ -193,13 +193,13 @@ When a caller passes a plain string, the component's node type has `never` for t
 Splicing a `Source` straight into `h` (`[props.label]`) is enough when you only place it in the tree. When the body needs to **read or derive** from the value (combine two props, feed a stream operator, drive logic), normalize it first with [`Source.toSubscribable`](../reference/core.md#sourcetosubscribablesource-key). It turns any `Source<A>` into an await-first, hot `Subscribable<A>`:
 
 ```typescript
-import { Component, h, Source } from "@weftui/core";
+import { Component, h, Source, Subscribable } from "@weftui/core";
 import { Stream } from "effect";
 
 const LoudLabel = Component.gen(function* (props: { label: Source.Source<string> }) {
   const label = yield* Source.toSubscribable(props.label); // Subscribable<string>
   // Now derive from it like any Subscribable: static, Effect, and Stream inputs all work.
-  return yield* h.strong([Stream.map(label.changes, (text) => text.toUpperCase())]);
+  return yield* h.strong([Stream.map(Subscribable.changes(label), (text) => text.toUpperCase())]);
 });
 ```
 

@@ -81,13 +81,13 @@ On the server, `renderToStreamHydratable` emits the fallback inline and appends 
 Conceptually it is the same idea as the other boundaries: a node that decides what renders in a subtree. But the thing it intercepts is a **round-trip to a server handler**. Instead of a children array, it takes a `render` function that receives a reactive [`Resource`](../reference/core.md#resourcea).
 
 ```typescript
-import { Boundary, h } from "@weftui/core";
+import { Boundary, h, Subscribable } from "@weftui/core";
 import { Stream } from "effect";
 
 Boundary.rpc(
   GetStock,
   () => ({ id: productId }),
-  (resource) => h.span([Stream.map(resource.value.changes, (s) => String(s.units))]),
+  (resource) => h.span([Stream.map(Subscribable.changes(resource.value), (s) => String(s.units))]),
   { fallback: h.p("loading…") },
 );
 ```
