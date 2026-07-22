@@ -5,7 +5,7 @@ description: "Step 8 of the Weft TDD workflow. Use after /review-step is clean: 
 
 # /document: Documentation sweep (TDD step 8)
 
-Bring all documentation touched by the change up to date. Commits are blocked until this step completes; it ends with branch + PR.
+Bring all documentation touched by the change up to date. Commits are blocked until this step completes.
 
 ## When to run
 
