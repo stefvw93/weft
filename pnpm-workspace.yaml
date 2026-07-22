@@ -11,7 +11,7 @@ onlyBuiltDependencies:
   - esbuild
 catalog:
   "@types/node": ^26.1.1
-  effect: 4.0.0-beta.98
+  effect: 4.0.0-beta.100
   tstyche: ^7.2.2
   tsx: ^4.23.1
   typescript: ^7.0.2
