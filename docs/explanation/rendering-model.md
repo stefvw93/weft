@@ -45,13 +45,11 @@ This also fixes the update _shape_. Because the structure is fixed, an update is
 
 ## The Loom: one scheduler per app, committing asynchronously
 
-Every woven stream feeds one shared scheduler per `WeftApp`: the **Loom**. Each reactive region or prop holds a single latest-value cell; one flush fiber drains every dirty cell and commits it to the DOM.
+Every woven stream feeds one shared scheduler per `WeftApp`: the **Loom**. It keeps one latest-value slot per reactive region or prop and commits changes to the DOM in passes.
 
-The name follows the metaphor: individual streams spin as fast as they like, like threads paid out from a bobbin. The loom only ever weaves the newest state of each thread into the fabric, one pass at a time. A cell that receives several writes before the flush fiber gets to it collapses to its last value: intermediate emissions are conflated, never committed. This bounds DOM work to what the flush fiber can keep up with, no matter how fast a source publishes.
+The name follows the metaphor: individual streams spin as fast as they like, like threads paid out from a bobbin. The loom only ever weaves the newest state of each thread into the fabric, one pass at a time. A region that receives several values before its next commit collapses to the last one: intermediate emissions are conflated, never committed. This bounds DOM work no matter how fast a source publishes.
 
-Within one flush pass, cells commit in registration order, outer regions before the inner regions nested in their output. A parent re-render that replaces its children unregisters the stale cells first, so a pass never commits into DOM that is already gone.
-
-Commits are asynchronous: writing a new value marks a cell dirty and wakes the flush fiber. The DOM update happens on that fiber's own turn, not synchronously with the write. `RootHandle.awaitCommit` is the acknowledgement. It resolves once everything dirty at call time has either committed or been discarded, returning the commit generation. See the [`RootHandle` reference](../reference/dom.md#roothandle) for its exact semantics.
+Commits are asynchronous: they happen on the scheduler's own turn, not synchronously with the write. `RootHandle.awaitCommit` is the acknowledgement. It resolves once everything pending at call time has either committed or been discarded, returning the commit generation. See the [`RootHandle` reference](../reference/dom.md#roothandle) for its exact semantics.
 
 None of this changes what you write. You still thread a `Stream`, `Effect`, or `Subscribable` through a prop or child; the Loom is an implementation detail of how those emissions reach the DOM. Code that must observe every intermediate value, not just the settled one, should consume the stream directly instead of relying on what lands in the DOM (see [Reactive Primitives](./reactive-primitives.md#latest-value-wins-conflation)).
 
@@ -68,7 +66,7 @@ Because the same `Node<E, R>` describes both passes, there is nothing to keep in
 
 - **No diff cost.** Updates are O(changed value), not O(tree). There is no reconciliation pass to pay for.
 - **Local reasoning.** A stream woven at one point cannot affect another. What is reactive is exactly what you made reactive.
-- **Bounded commit work.** The Loom conflates bursts to one commit per cell, so a fast-publishing source cannot outrun the DOM.
+- **Bounded commit work.** The Loom conflates bursts to one commit per region, so a fast-publishing source cannot outrun the DOM.
 - **Type-honest edges.** The app node's `E`/`R` is the whole app's error and dependency surface, checked at compile time and discharged once at the edge.
 - **Flash-free SSR by construction.** Hydration adopts rather than replaces, because the tree is identical on both sides.
 

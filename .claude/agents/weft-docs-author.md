@@ -45,6 +45,29 @@ Rules of engagement:
 - At least one fully working copy/paste example: the complete file set needed to run (entry file, app file, `index.html` or server file as applicable), all imports included, no elided `...` bodies.
 - Existing how-to pages are upgraded to these requirements opportunistically when next touched, not in a bulk sweep.
 
+## Internals: When NOT to Document
+
+Public docs serve users of Weft, not its maintainers. Before writing about any mechanism, apply one test: **does this change what a user predicts or does?** If not, it does not belong in `docs/`.
+
+Document (these pass the test):
+
+- **Public API surface.** Anything exported and reachable by a user. Reference coverage is obligatory, never optional.
+- **Observable semantics and contracts.** Behavior a user can see from outside: conflation, async commit timing, error routing, settle guarantees. Document the behavior and its consequences, not the machinery that produces it.
+- **Gotchas users will actually hit.** A changed timing model that breaks `set`-then-read code, a value that may never render, a promise that resolves earlier or later than before.
+
+Do not document (these fail the test):
+
+- **Internal machinery users cannot act on**: scheduler data structures, fiber counts and topology, registration or drain order, scope bookkeeping, wake latches, module-private helpers and their file paths.
+- **Implementation strategies that can change without breaking users.** If maintainers could rewrite it tomorrow with no user-visible difference, describing it in public docs only creates future staleness.
+- **Internal names as load-bearing concepts.** A subsystem name (the Loom) may be introduced for identity and mental-model value, but introduce the name without exposing its internals; one sentence of metaphor is enough.
+
+Boundary rules:
+
+- **Correcting a false claim about internals is mandatory; adding new internal detail is not.** If a page claims "there is no scheduler" and now there is one, fix the claim. Fixing it does not license a tour of the scheduler.
+- When an internal change alters observable behavior, the docs change is about the behavior. Say "bursts conflate to the newest value", not "a flush fiber drains dirty cells in seq order".
+- Internals have homes: co-located `specs.md` files and code comments, both owned by the main thread. Cross-link user-facing docs to reference pages, never to specs.
+- When in doubt, write the shorter version. A user who needs the machinery can read the source; a user misled by stale machinery-docs cannot tell.
+
 ## Communication Style
 
 - Write for a competent TypeScript/Effect developer: precise, confident, and concise. Avoid filler, hype, and marketing fluff.
