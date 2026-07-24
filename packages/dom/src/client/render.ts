@@ -2,6 +2,7 @@ import {
   Cause,
   Deferred,
   Effect,
+  Equal,
   Exit,
   Fiber,
   HashMap,
@@ -1684,7 +1685,8 @@ function projectKeys(
  * duplicate-key guard (KR1), insert new keys (KR2), reuse persisted keys without
  * re-invoking `render` (KR3), remove dropped keys and close their scopes (KR4),
  * and reorder retained items with a longest-increasing-subsequence so only items
- * outside the LIS are moved (KR5).
+ * outside the LIS are moved (KR5). A pure suffix append (the previous order
+ * unchanged, plus new keys) takes a bulk fast path ({@link appendListTail}).
  */
 function reconcileList(
   items: readonly unknown[],
@@ -1702,6 +1704,22 @@ function reconcileList(
   return Effect.gen(function* () {
     // 1. Project keys and guard duplicates *before* rendering anything (KR1).
     const keys = yield* projectKeys(items, by);
+
+    // Fast path: monotonic append. When the emission is the previous order,
+    // unchanged and in order, followed by new keys, skip the prevIndex build,
+    // drop-set walk, and LIS: the prefix is reused in place, only the tail is
+    // rendered and inserted before the region end marker. `projectKeys` already
+    // proved every key unique (KR1), so a matching prefix guarantees the tail
+    // keys are new. Returns the same {@link ListState} the general path would
+    // (see {@link appendListTail}). Guarded to a non-empty prefix: the empty
+    // previous state (mount) case is handled by the general path here.
+    if (
+      prev.order.length > 0 &&
+      keys.length > prev.order.length &&
+      prev.order.every((key, i) => Equal.equals(keys[i], key))
+    ) {
+      return yield* appendListTail(keys, items, render, prev, regionScope, regionEnd, context);
+    }
 
     // Previous key → DOM-order index, for LIS move computation (Effect-keyed so
     // structural keys compare via Equal).
@@ -1770,6 +1788,58 @@ function reconcileList(
     // 5. New identity map + DOM order.
     let nextRecords = HashMap.empty<unknown, ItemRecord>();
     for (const record of records) {
+      nextRecords = HashMap.set(nextRecords, record.key, record);
+    }
+    return { records: nextRecords, order: keys };
+  });
+}
+
+/**
+ * Fast path for a monotonic-append emission (previous order unchanged, plus a
+ * new suffix), detected in {@link reconcileList}. The prefix records are reused
+ * untouched (their DOM and scopes are already correct and positioned); only the
+ * appended tail is rendered and inserted, in one pass, before the region end
+ * marker. The returned {@link ListState} is identical to what the general path
+ * yields for the same append, so later reconciles behave the same.
+ */
+function appendListTail(
+  keys: readonly unknown[],
+  items: readonly unknown[],
+  render: (item: unknown, index: number) => Renderable,
+  prev: ListState,
+  regionScope: Scope.Scope,
+  regionEnd: Comment,
+  context: RenderContext["Service"],
+): Effect.Effect<
+  ListState,
+  StreamSubscriptionError | RenderError | UnsupportedNodeTypeError,
+  RenderContext
+> {
+  return Effect.gen(function* () {
+    // Render each appended item once under its own forked per-item scope (KR2).
+    // The tail keys are guaranteed new (see the caller's guard).
+    const tail: ItemRecord[] = [];
+    for (let j = prev.order.length; j < items.length; j++) {
+      tail.push(yield* renderItem(keys[j], items[j], j, render, regionScope, context));
+    }
+
+    // Single-pass insert of the tail ranges before the region end marker, in
+    // order. The prefix already sits correctly before regionEnd and is untouched.
+    const parent = regionEnd.parentNode;
+    if (parent !== null) {
+      for (const record of tail) {
+        parent.insertBefore(record.startMarker, regionEnd);
+        for (const node of record.nodes) {
+          parent.insertBefore(node, regionEnd);
+        }
+        parent.insertBefore(record.endMarker, regionEnd);
+      }
+    }
+
+    // Extend the identity map with the tail; the prefix entries are unchanged
+    // (structurally shared from `prev.records`).
+    let nextRecords = prev.records;
+    for (const record of tail) {
       nextRecords = HashMap.set(nextRecords, record.key, record);
     }
     return { records: nextRecords, order: keys };

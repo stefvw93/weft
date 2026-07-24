@@ -191,3 +191,12 @@ region cell's commit on the app's flush fiber, so snapshot bursts conflate to
 the newest snapshot (latest-value-wins) instead of reconciling every queued
 one. Sequential-snapshot ordering holds by construction: a single pump writes
 the cell and a single flush fiber commits it.
+
+_(amended by list-append-fast-path.specs.md, issue #171 / #168 residual)_
+`reconcileList` takes a behavior-preserving **monotonic-append fast path** when
+the emission is the previous order, unchanged and in order, followed by new keys
+(guarded to a non-empty previous order). It skips the `prevIndex` build,
+drop-set walk, and LIS: the prefix is reused in place and only the tail is
+rendered and inserted before the region end marker. The post-reconcile
+`ListState` is identical to the general path, so every MR/KR/SC/ID guarantee is
+unchanged. Details and ACs (AP1-AP7) live in that spec.
