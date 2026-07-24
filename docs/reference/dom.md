@@ -185,6 +185,10 @@ the DOM or been discarded, yielding the commit generation.
   asynchronous, so give the pump a beat (or check the DOM, or compare
   `commitGeneration`) before treating one `awaitCommit` as covering that
   specific write.
+- **A region's first value may already be painted.** When a woven source
+  delivers its first emission synchronously, that content is in the DOM as
+  soon as `mount` resolves, before any commit. The "give it a beat" guidance
+  above is about a later `set`, not a region's initial content.
 - **Resolves across `WeftApp.dispose`.** Interrupting the app's flush fiber
   resolves every outstanding barrier; no caller hangs across app disposal.
 - **App-scoped, not root-scoped.** One Loom is shared by every root of a

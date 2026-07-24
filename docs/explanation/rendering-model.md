@@ -51,6 +51,15 @@ The name follows the metaphor: individual streams spin as fast as they like, lik
 
 Commits are asynchronous: they happen on the scheduler's own turn, not synchronously with the write. `RootHandle.awaitCommit` is the acknowledgement. It resolves once everything pending at call time has either committed or been discarded, returning the commit generation. See the [`RootHandle` reference](../reference/dom.md#roothandle) for its exact semantics.
 
+One exception applies to a region's very first value. A woven source can deliver its first emission synchronously:
+
+- a static value or array,
+- a synchronous `Effect`,
+- a `SubscriptionRef`/`Subscribable` change stream, or
+- a synchronous cold `Stream`.
+
+When it does, that value paints inline during the mount pass, not on a later Loom commit. It is already in the DOM when `mount` resolves. Every later emission, and any source that does not deliver synchronously, still commits through the Loom exactly as described above.
+
 None of this changes what you write. You still thread a `Stream`, `Effect`, or `Subscribable` through a prop or child; the Loom is an implementation detail of how those emissions reach the DOM. Code that must observe every intermediate value, not just the settled one, should consume the stream directly instead of relying on what lands in the DOM (see [Reactive Primitives](./reactive-primitives.md#latest-value-wins-conflation)).
 
 ## One tree, two sides, hydrate in place

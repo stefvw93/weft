@@ -155,6 +155,26 @@ export interface LoomCell<A> {
    * A failed commit fork-interrupts it alongside unregistering the cell.
    */
   readonly attachPumpFiber: (fiber: Fiber.Fiber<unknown, unknown>) => void;
+  /**
+   * Record that the region painted its first value inline during the mount pass,
+   * without a flush pass: marks the cell written and committed, and fires
+   * `onFirstCommit` exactly as {@link Loom}'s flush would. Keeps a suspense
+   * fallback settling tick-free and stops `onDiscard` firing for a region that
+   * did produce content. Does not advance the commit generation, which counts
+   * flush passes (see first-paint.specs.md LC1-LC4).
+   */
+  readonly markCommitted: Effect.Effect<void>;
+  /**
+   * Route a cause raised by an inline first paint exactly as a failed commit is
+   * routed: to the cell's boundary when present, else `reportUnhandled`, then
+   * unregister the cell and fork-interrupt its pump. Lets the mount pass fail a
+   * region without failing `mount`, keeping error routing identical for
+   * synchronous and asynchronous first emissions (see first-paint.specs.md FE1).
+   *
+   * Interrupt-only causes are ignored, matching the flush pass: teardown noise
+   * must never reach a boundary and trigger recovery (LM18).
+   */
+  readonly reportAndDiscard: (cause: Cause.Cause<unknown>) => Effect.Effect<void>;
 }
 
 /**
@@ -219,6 +239,17 @@ export class RenderContext extends Context.Service<
      * DOM commits run only on its flush fiber (see `client/loom.ts`).
      */
     readonly loom: Loom;
+    /**
+     * Whether a reactive region created here may fork its pump with
+     * `{ startImmediately: true }` and paint its first value inline.
+     *
+     * True only on a mount pass, which runs on the caller's own fiber. False
+     * inside every Loom commit, every hydration path, and every forked
+     * continuation that renders (a boundary fallback, an rpc-resolved subtree):
+     * those already run on a forked fiber, and hydration takes its first paint
+     * from server HTML. See first-paint.specs.md MG1-MG4.
+     */
+    readonly syncFirstPaint: boolean;
     readonly streamIdCounter: { current: number };
     /**
      * Hydration interactivity-barrier latch (see {@link HydrationReady}).

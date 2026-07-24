@@ -546,3 +546,123 @@ describe("Loom settle-on-commit ordering", () => {
       }),
     ));
 });
+
+// ============================================================================
+// Inline first paint (first-paint.specs.md LC1-LC5)
+// ============================================================================
+
+describe("LC: inline first paint bookkeeping", () => {
+  it("LC1: markCommitted marks the cell written and fires onFirstCommit synchronously", () =>
+    run((h) =>
+      Effect.gen(function* () {
+        let firsts = 0;
+        let commits = 0;
+        const cell = yield* register<number>(h, {
+          commit: () => Effect.sync(() => void commits++),
+          onFirstCommit: Effect.sync(() => void firsts++),
+        });
+
+        yield* cell.markCommitted;
+
+        assert.equal(firsts, 1, "onFirstCommit fired without a flush pass");
+        assert.equal(commits, 0, "the inline paint did the DOM work, not the commit closure");
+        assert.equal(cell.everWritten(), true, "the region counts as having produced a value");
+      }),
+    ));
+
+  it("LC2: a later flush-pass commit does not fire onFirstCommit a second time", () =>
+    run((h) =>
+      Effect.gen(function* () {
+        let firsts = 0;
+        const cell = yield* register<number>(h, {
+          commit: () => Effect.void,
+          onFirstCommit: Effect.sync(() => void firsts++),
+        });
+
+        yield* cell.markCommitted;
+        yield* cell.write(2);
+        yield* h.loom.awaitCommit;
+
+        assert.equal(firsts, 1, "committedOnce already set by the inline paint");
+      }),
+    ));
+
+  it("LC3: onDiscard does not fire for a cell that painted inline", () =>
+    run((h) =>
+      Effect.gen(function* () {
+        let discarded = 0;
+        const scope = yield* Scope.fork(h.appScope, "sequential");
+        const cell = yield* register<number>(h, {
+          scope,
+          commit: () => Effect.void,
+          onDiscard: Effect.sync(() => void discarded++),
+        });
+
+        yield* cell.markCommitted;
+        yield* Scope.close(scope, Exit.void);
+
+        assert.equal(discarded, 0, "the region did produce content, so it was never discarded");
+      }),
+    ));
+
+  it("LC4: markCommitted does not advance the commit generation", () =>
+    run((h) =>
+      Effect.gen(function* () {
+        const cell = yield* register<number>(h, { commit: () => Effect.void });
+        const before = yield* h.loom.commitGeneration;
+
+        yield* cell.markCommitted;
+
+        assert.equal(yield* h.loom.commitGeneration, before, "generation counts flush passes");
+        assert.equal(yield* h.loom.awaitCommit, before, "awaitCommit is immediate when idle");
+
+        yield* cell.write(1);
+        yield* h.loom.awaitCommit;
+        assert.equal(yield* h.loom.commitGeneration, before + 1, "updates still advance it");
+      }),
+    ));
+
+  it("LC5: reportAndDiscard routes to the boundary, unregisters the cell, and interrupts the pump", () =>
+    run((h) =>
+      Effect.gen(function* () {
+        const routed: Cause.Cause<unknown>[] = [];
+        let commits = 0;
+        const cell = yield* register<number>(h, {
+          commit: () => Effect.sync(() => void commits++),
+          boundary: Option.some({
+            reportError: (cause: Cause.Cause<unknown>) =>
+              Effect.sync(() => void routed.push(cause)),
+          } as never),
+        });
+        const pump = yield* Effect.forkIn(Effect.never, h.appScope);
+        cell.attachPumpFiber(pump);
+
+        yield* cell.reportAndDiscard(Cause.fail(new Error("inline boom")));
+
+        assert.equal(routed.length, 1, "cause routed to the boundary, not reportUnhandled");
+        assert.deepEqual(h.unhandled, []);
+
+        // A dead cell is never committed again (LM20).
+        yield* cell.write(1);
+        yield* h.loom.awaitCommit;
+        assert.equal(commits, 0, "the cell was unregistered");
+
+        const exit = yield* Fiber.await(pump).pipe(Effect.timeoutOption("500 millis"));
+        assert.ok(Option.isSome(exit), "the pump fiber was interrupted");
+      }),
+    ));
+
+  it("LC5: reportAndDiscard falls back to reportUnhandled when no boundary encloses", () =>
+    run((h) =>
+      Effect.gen(function* () {
+        const cell = yield* register<number>(h, {
+          commit: () => Effect.void,
+          label: "list:stream-1",
+        });
+
+        yield* cell.reportAndDiscard(Cause.fail(new Error("inline boom")));
+
+        assert.deepEqual(h.unhandled, ["list:stream-1"], "published under the region label");
+      }),
+    ));
+});

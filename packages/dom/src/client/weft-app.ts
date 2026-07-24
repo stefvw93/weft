@@ -214,6 +214,10 @@ function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement) {
       scope: rootScope,
       rootScope,
       loom: state.loom,
+      // A mount pass renders on the caller's own fiber, where an
+      // immediately-started pump fork is interrupted by scope close as
+      // documented. `hydrate` overrides this to false (first-paint.specs.md MG4).
+      syncFirstPaint: true,
       streamIdCounter: { current: 0 },
       reportUnhandled: (cause, region) => publishUnhandled(state, { cause, region, root: handle }),
     };
@@ -393,7 +397,9 @@ export function hydrate<R, E>(
     // its fork and settles once its first emission has hydrated; `hydrate`
     // awaits the latch before returning the handle (hydrate-ready.specs.md).
     const hydrationReady = yield* makeHydrationReady();
-    const hydrateContext = { ...context, hydrationReady };
+    // MG4: server HTML already supplies the first paint, and the hydrator adopts
+    // it eagerly. Probing for an inline head here would only risk a double render.
+    const hydrateContext = { ...context, hydrationReady, syncFirstPaint: false };
 
     // Advance the id counter past every marker already in the server DOM, so
     // ids minted for content inserted after hydration never collide.
