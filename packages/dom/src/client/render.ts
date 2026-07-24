@@ -1684,7 +1684,9 @@ function projectKeys(
  * duplicate-key guard (KR1), insert new keys (KR2), reuse persisted keys without
  * re-invoking `render` (KR3), remove dropped keys and close their scopes (KR4),
  * and reorder retained items with a longest-increasing-subsequence so only items
- * outside the LIS are moved (KR5).
+ * outside the LIS are moved (KR5). An emission against empty previous state
+ * (first emission, empty refill, or hydration divergence recovery) takes the
+ * bulk mount fast path ({@link mountListFast}).
  */
 function reconcileList(
   items: readonly unknown[],
@@ -1700,6 +1702,15 @@ function reconcileList(
   RenderContext
 > {
   return Effect.gen(function* () {
+    // Fast path: empty previous state (a region's first emission, or one that
+    // emptied and is refilling). Nothing to reuse, drop, or move, so skip the
+    // prevIndex build, drop-set walk, and LIS and mount in a single bulk pass.
+    // Returns the same {@link ListState} the general path would (see
+    // {@link mountListFast}), so later reconciles are identical.
+    if (prev.order.length === 0 && HashMap.isEmpty(prev.records)) {
+      return yield* mountListFast(items, by, render, regionScope, regionEnd, context);
+    }
+
     // 1. Project keys and guard duplicates *before* rendering anything (KR1).
     const keys = yield* projectKeys(items, by);
 
@@ -1772,6 +1783,62 @@ function reconcileList(
     for (const record of records) {
       nextRecords = HashMap.set(nextRecords, record.key, record);
     }
+    return { records: nextRecords, order: keys };
+  });
+}
+
+/**
+ * Bulk mount path for a {@link reconcileList} emission that has no previous state
+ * (first emission, or an emptied region refilling). Every item is new, so there
+ * is nothing to reuse, drop, or move: the duplicate guard (KR1) and per-item
+ * render (MR2) run exactly as in the general path, then all item ranges are
+ * inserted in one pass before the region end marker and the identity map is
+ * built in bulk. The returned {@link ListState} is identical to what the general
+ * path yields for empty previous state, so later reconciles behave the same.
+ */
+function mountListFast(
+  items: readonly unknown[],
+  by: ((item: unknown, index: number) => unknown) | undefined,
+  render: (item: unknown, index: number) => Renderable,
+  regionScope: Scope.Scope,
+  regionEnd: Comment,
+  context: RenderContext["Service"],
+): Effect.Effect<
+  ListState,
+  StreamSubscriptionError | RenderError | UnsupportedNodeTypeError,
+  RenderContext
+> {
+  return Effect.gen(function* () {
+    // Equal-aware duplicate guard, before any DOM is touched (KR1), identical to
+    // the general path.
+    const keys = yield* projectKeys(items, by);
+
+    // Render each item once under its own forked per-item scope (MR2). No
+    // previous state means no `HashMap.get` reuse lookups and no move sources.
+    const records: ItemRecord[] = [];
+    for (let j = 0; j < items.length; j++) {
+      records.push(yield* renderItem(keys[j], items[j], j, render, regionScope, context));
+    }
+
+    // Single-pass insert: append each item's range before the region end marker,
+    // in order. Inserting before `regionEnd` each time preserves item order and
+    // matches the general path's final DOM for all-new items (KR2).
+    const parent = regionEnd.parentNode;
+    if (parent !== null) {
+      for (const record of records) {
+        parent.insertBefore(record.startMarker, regionEnd);
+        for (const node of record.nodes) {
+          parent.insertBefore(node, regionEnd);
+        }
+        parent.insertBefore(record.endMarker, regionEnd);
+      }
+    }
+
+    // Bulk-build the identity map (same HashMap the general path yields via
+    // repeated `set`); `keys` are already de-duplicated so last-wins never fires.
+    const nextRecords = HashMap.fromIterable(
+      records.map((record) => [record.key, record] as const),
+    );
     return { records: nextRecords, order: keys };
   });
 }
