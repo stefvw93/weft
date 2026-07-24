@@ -421,6 +421,26 @@ type Source.Source<A, E, R> = A | Effect.Effect<A, E, R> | Stream.Stream<A, E, R
 
 Any prop or child that supports reactivity accepts a `Source.Source`. Static values, Effects, Streams, and Subscribables are all valid.
 
+#### `Source.changes(source)`
+
+Returns the change stream of any `Source`, without normalizing through
+`Subscribable` first:
+
+```typescript
+Source.changes<A, E, R>(source: Source.Source<A, E, R>): Stream.Stream<A, E, R>
+```
+
+Variant mapping:
+
+- **`Subscribable`** → its `changes` stream, by reference
+- **`Stream`** → returned as-is (identity, no wrap)
+- **`Effect`** → `Stream.fromEffect(source)`, emitting the resolved value once
+- **Static value** → `Stream.make(value)`, emitting once
+
+Unlike `Source.toSubscribable`, this allocates no `SubscriptionRef`, latch, or
+pump fiber. Use it where only the change stream is needed, e.g. list
+reconciliation reading a `Source<Iterable<A>>` directly.
+
 #### `Source.toSubscribable(source, key?)`
 
 Normalizes any `Source.Source` into a hot `Subscribable<A, E | NoPropValue, R>` scoped to the enclosing `Scope`:

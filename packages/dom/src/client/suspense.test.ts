@@ -905,3 +905,31 @@ describe("Round-trip: SSR → patch script → hydrate", () => {
     await Effect.runPromise(handle.unmount());
   });
 });
+
+// ============================================================================
+// LM15 (loom.specs.md): empty stream under suspense settles
+// ============================================================================
+
+describe("LM15: empty stream under suspense settles", () => {
+  it("resolves the fallback when a suspended component's stream completes without emitting", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    function EmptyChild() {
+      return Stream.empty as Stream.Stream<unknown>;
+    }
+
+    await runMount(
+      Boundary.suspend({ fallback: h.span({ class: "fallback" }, "Loading") }, [EmptyChild()]),
+      root,
+    );
+
+    await waitFor(150);
+    assert.equal(
+      root.querySelector(".fallback"),
+      null,
+      "Fallback must resolve for an empty stream (settle on silent exit)",
+    );
+    assert.equal(getSuspenseComments(root).length, 0, "Suspense markers must be cleaned up");
+  });
+});

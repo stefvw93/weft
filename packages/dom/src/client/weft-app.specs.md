@@ -290,4 +290,11 @@ lifetime, cross-island reactivity):
 - **`boundary.specs.md`:** outermost escape now routes to the hub (WA11); AC15
   nested propagation untouched (WA15).
 - **`hydrate.specs.md` / `hydrate-ready.specs.md`:** hydration mechanics
-  unchanged (WA19).
+  unchanged (WA19). _(later amended by loom.specs.md LM12–LM14: the readiness
+  barrier now settles on committed DOM, ack-or-exit.)_
+- **`loom.specs.md`** _(amendment)_: `RootHandle` gains `awaitCommit` and
+  `commitGeneration` (LM11), backed by the app's Loom scheduler. `AppState`
+  gains `loom`; the single flush fiber is forked into the app scope at first
+  root setup (`ensureFlushFiber`, idempotent). `dispose` closing the app scope
+  interrupts the flush fiber, which resolves all outstanding `awaitCommit`
+  barriers (LM10), so no caller hangs across dispose.

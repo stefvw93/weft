@@ -324,3 +324,50 @@ describe("Source.toSubscribable", () => {
     assert.equal(failure.value.key, "label");
   });
 });
+
+describe("Source.changes", () => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // LM23: variant mapping (loom.specs.md, packages/dom)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it("LM23: a stream passes through by reference (identity, no wrap)", async () => {
+    const stream = Stream.make(1, 2, 3);
+    const changed = Source.changes(stream);
+    assert.equal(changed, stream);
+    const values = await Effect.runPromise(Stream.runCollect(changed));
+    assert.deepEqual(values, [1, 2, 3]);
+  });
+
+  it("LM23: a subscribable maps to its changes stream", async () => {
+    const sub = Subscribable.make({
+      get: Effect.succeed(0),
+      changes: Stream.make(10, 20),
+    });
+    const values = await Effect.runPromise(Stream.runCollect(Source.changes(sub)));
+    assert.deepEqual(values, [10, 20]);
+  });
+
+  it("LM23: an effect emits its resolved value exactly once", async () => {
+    let runs = 0;
+    const eff = Effect.sync(() => {
+      runs++;
+      return "resolved";
+    });
+    const values = await Effect.runPromise(Stream.runCollect(Source.changes(eff)));
+    assert.deepEqual(values, ["resolved"]);
+    assert.equal(runs, 1);
+  });
+
+  it("LM23: a static value emits once then completes", async () => {
+    const values = await Effect.runPromise(Stream.runCollect(Source.changes("static")));
+    assert.deepEqual(values, ["static"]);
+  });
+
+  it("LM23: a failing effect surfaces its error on the stream", async () => {
+    const exit = await Effect.runPromiseExit(
+      Stream.runCollect(Source.changes(Effect.fail("nope" as const))),
+    );
+    assert.ok(Exit.isFailure(exit));
+    assert.equal(Cause.squash(exit.cause), "nope");
+  });
+});

@@ -85,8 +85,9 @@ Suspense model from SolidJS and React.
 - **When** the renderer calls `renderComponent(C, props)`
 - **Then**:
   - `SuspenseContext.register` is called before the Effect is forked
-  - `SuspenseContext.settle` is called exactly once, immediately after the Effect's
-    first emission is processed
+  - `SuspenseContext.settle` is called exactly once, after the Effect's first
+    emission is **committed** to the DOM _(amended by loom.specs.md LM15: the
+    settle hook rides the region cell's first successful commit)_
   - All subsequent emissions from the same component do not call `settle` again
 
 ### AC7: Function component returning `Stream<Renderable>` triggers suspension
@@ -95,10 +96,14 @@ Suspense model from SolidJS and React.
 - **When** the renderer processes the stream
 - **Then**:
   - `SuspenseContext.register` is called before the stream is subscribed
-  - `SuspenseContext.settle` is called exactly once, when the stream emits its
-    **first** value
-  - If `someStream` never emits, the boundary is never settled (and the fallback is
-    shown indefinitely — this is expected; timeouts are user-land concerns)
+  - `SuspenseContext.settle` is called exactly once, when the stream's **first**
+    value is committed _(amended by loom.specs.md LM15)_
+  - _(amended by loom.specs.md LM15)_ A stream that **completes without ever
+    emitting** (e.g. `Stream.empty`) now settles via the silent-exit route: the
+    fallback resolves instead of hanging. A stream that never emits **and**
+    never completes still leaves the fallback shown indefinitely (expected;
+    timeouts are user-land concerns). A region discarded before its first
+    commit also settles.
 
 ### AC8: Non-component reactive values do not trigger suspension
 

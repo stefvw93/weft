@@ -499,3 +499,42 @@ describe("List.each: Errors (ER)", () => {
     assert.ok(root.querySelector("#fallback"), "boundary swapped to fallback on source failure");
   });
 });
+
+// ============================================================================
+// LM24/LM3 (loom.specs.md): snapshot burst conflates to the final DOM
+// ============================================================================
+
+describe("LM24: snapshot burst -> final DOM via awaitCommit", () => {
+  it("a burst of 200 appends lands on the final list state", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const app = WeftApp.make();
+
+    const handle = await Effect.runPromise(
+      Effect.gen(function* () {
+        const ref = yield* SubscriptionRef.make<readonly Person[]>([]);
+        const list = List.each({ of: SubscriptionRef.changes(ref), by: (x) => x.id }, (x) =>
+          h.li({ id: x.id }, x.name),
+        );
+        const handle = yield* WeftApp.mount(app, h.ul({}, [list]) as never, root);
+
+        // Burst: 200 successive snapshots, each appending one row.
+        yield* Effect.forEach(
+          Array.from({ length: 200 }, (_, i) => i + 1),
+          (n) => SubscriptionRef.update(ref, (people) => [...people, p(`item-${n}`, `#${n}`)]),
+        );
+        yield* Effect.promise(() => waitFor(100));
+        yield* handle.awaitCommit;
+        return handle;
+      }),
+    );
+
+    const ids = itemIds(root);
+    assert.equal(ids.length, 200, "All appended rows must be present after awaitCommit");
+    assert.equal(ids[0], "item-1");
+    assert.equal(ids[199], "item-200");
+
+    await Effect.runPromise(handle.unmount());
+    await Effect.runPromise(WeftApp.dispose(app));
+  });
+});

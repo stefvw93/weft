@@ -181,3 +181,13 @@ keeping them globally unique within one render tree.
 
 Animation / FLIP move hooks; a dedicated positional `List.index` variant (subsumed by
 `by`); nested-list–specific optimizations beyond what recursion already provides.
+
+## Amendments
+
+_(amended by loom.specs.md LM24)_ The `of` source is consumed via
+`Source.changes(of)` directly: the `toSubscribable` hop (SubscriptionRef +
+first-value latch + pump fiber per list) is gone. Reconciliation runs as the
+region cell's commit on the app's flush fiber, so snapshot bursts conflate to
+the newest snapshot (latest-value-wins) instead of reconciling every queued
+one. Sequential-snapshot ordering holds by construction: a single pump writes
+the cell and a single flush fiber commits it.

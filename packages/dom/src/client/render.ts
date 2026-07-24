@@ -328,14 +328,31 @@ function camelToKebab(str: string): string {
 }
 
 /**
- * Forks a reactive-subscription effect into `scope` and supervises its exit.
+ * True when every reason in the cause is teardown noise: fiber interruption
+ * (unmount, content-scope rotation) or the internal `Cause.Done`
+ * producer-shutdown signal a pump can surface when its source queue closes
+ * mid-teardown. Such exits are never reported as errors.
+ */
+function isTeardownCause(cause: Cause.Cause<unknown>): boolean {
+  return cause.reasons.every(
+    (reason) =>
+      reason._tag === "Interrupt" ||
+      (reason._tag === "Fail" && Cause.isDone(reason.error)) ||
+      (reason._tag === "Die" && Cause.isDone(reason.defect)),
+  );
+}
+
+/**
+ * Forks a reactive-subscription effect into `scope`, self-supervised: the
+ * single forked fiber reports its own exit via `Effect.onExit` (no watcher
+ * fiber).
  *
- * With an enclosing Boundary, failure causes are routed to
- * `BoundaryContext.reportError` (unchanged behavior). Without one, the exit is
- * observed here and the failure is published to the owning app's
- * unhandled-error hub via `reportUnhandled` (default: `Effect.logError`
- * annotated with `weft.region` while the hub has no subscribers).
- * Interruption (unmount teardown) is never reported.
+ * With an enclosing Boundary, non-interrupt failure causes are routed to
+ * `BoundaryContext.reportError`. Without one, the failure is published to the
+ * owning app's unhandled-error hub via `reportUnhandled` (default:
+ * `Effect.logError` annotated with `weft.region` while the hub has no
+ * subscribers). Interrupt-only exits (unmount teardown, content-scope
+ * rotation) are never reported in either branch.
  *
  * @param effect - The subscription effect to fork (e.g. a `Stream.runForEach` pump).
  * @param scope - The scope owning the forked fiber's lifetime.
@@ -350,34 +367,22 @@ function forkSupervised<A, E, R>(
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> {
   return Effect.gen(function* () {
     const boundaryCtx = yield* Effect.serviceOption(BoundaryContext);
-    if (Option.isNone(boundaryCtx)) {
-      // No enclosing Boundary: observe the forked fiber's exit ourselves and
-      // publish an unhandled failure to the app hub. Interruption (unmount
-      // teardown) is never reported. Effect 4 removed the
-      // unhandled-error-log-level FiberRef (and `withUnhandledErrorLogLevel`), so
-      // the report is explicit here rather than deferred to the runtime, which
-      // mirrors the with-Boundary branch below and is deterministic (exactly once).
-      const fiber = yield* Effect.forkIn(effect, scope);
-      yield* pipe(
-        Fiber.await(fiber),
-        Effect.flatMap((exit) =>
-          Exit.isFailure(exit) && !Cause.hasInterruptsOnly(exit.cause)
-            ? reportUnhandled(exit.cause, errorContext)
-            : Effect.void,
-        ),
-        Effect.forkIn(scope),
-      );
-      return fiber;
-    }
-    const fiber = yield* Effect.forkIn(effect, scope);
-    yield* pipe(
-      Fiber.await(fiber),
-      Effect.flatMap((exit) =>
-        Exit.isFailure(exit) ? boundaryCtx.value.reportError(exit.cause) : Effect.void,
+    // Single fiber: the pump self-reports via `Effect.onExit` (no watcher
+    // fiber, LM17). Interrupt-only exits (unmount/content-scope teardown) are
+    // never reported, in the with-Boundary branch too (LM18): unmounting a
+    // boundary-enclosed region must not trigger recovery. Mixed causes
+    // (failure + interrupt) still route.
+    const supervised = pipe(
+      effect,
+      Effect.onExit((exit) =>
+        Exit.isFailure(exit) && !isTeardownCause(exit.cause)
+          ? Option.isSome(boundaryCtx)
+            ? boundaryCtx.value.reportError(exit.cause)
+            : reportUnhandled(exit.cause, errorContext)
+          : Effect.void,
       ),
-      Effect.forkIn(scope),
     );
-    return fiber;
+    return yield* Effect.forkIn(supervised, scope);
   });
 }
 
@@ -392,9 +397,24 @@ function subscribeToStream<A>(
 ): Effect.Effect<void, StreamSubscriptionError, RenderContext> {
   return Effect.gen(function* () {
     const context = yield* RenderContext;
+    const boundary = yield* Effect.serviceOption(BoundaryContext);
 
-    const effect = Stream.runForEach(stream, (value) => Effect.sync(() => void onValue(value)));
-    yield* forkSupervised(effect, context.scope, errorContext, context.reportUnhandled);
+    // Latest-value cell: the pump only overwrites it; the DOM write (`onValue`)
+    // runs on the app's single flush fiber, so bursts conflate structurally.
+    const cell = yield* context.loom.register<A>({
+      label: errorContext,
+      scope: context.scope,
+      boundary,
+      reportUnhandled: context.reportUnhandled,
+      commit: (value) => Effect.sync(() => void onValue(value)),
+    });
+    const fiber = yield* forkSupervised(
+      Stream.runForEach(stream, cell.write),
+      context.scope,
+      errorContext,
+      context.reportUnhandled,
+    );
+    cell.attachPumpFiber(fiber);
   });
 }
 
@@ -1118,30 +1138,30 @@ function renderComponent(
 
       // Check whether this component is inside a Suspense boundary.
       const suspenseCtx = yield* Effect.serviceOption(SuspenseContext);
-      let stream = toStream<Renderable>(result);
+      const stream = toStream<Renderable>(result);
 
+      // Ack-or-exit settle: fires exactly once, on the first *committed*
+      // emission, on discard before one, or on a silent pump exit. An empty
+      // stream therefore settles instead of hanging the fallback (LM15).
+      let settleOnce: Effect.Effect<void> | undefined;
       if (Option.isSome(suspenseCtx)) {
         // Register before subscribing so the boundary knows about this child.
         yield* suspenseCtx.value.register;
-
-        // Wrap the stream so `settle` is called exactly once (on the first
-        // emission) and subsequent emissions pass through unchanged.
-        stream = pipe(
-          stream,
-          Stream.zipWithIndex,
-          Stream.flatMap(([value, index]) =>
-            index === 0
-              ? Stream.fromEffect(Effect.as(suspenseCtx.value.settle, value))
-              : Stream.make(value),
-          ),
-        );
+        let settled = false;
+        settleOnce = Effect.suspend(() => {
+          if (settled) {
+            return Effect.void;
+          }
+          settled = true;
+          return suspenseCtx.value.settle;
+        });
       }
 
       // AC22: Component returning stream treated as stream child.
       // Thread instanceScope as both the ambient Scope.Scope (satisfies
       // forkScoped inside the component body) and RenderContext.scope (so
       // nested handleStreamChild calls fork into instanceScope).
-      return yield* handleStreamChild(stream).pipe(
+      return yield* handleStreamChild(stream, { onFirstCommit: settleOnce }).pipe(
         Effect.provideService(RenderContext, instanceContext),
         Effect.provideService(Scope.Scope, instanceScope),
       );
@@ -1153,16 +1173,25 @@ function renderComponent(
 }
 
 /**
- * Handles a child that is a Stream by setting up comment markers and subscriptions.
+ * Handles a child that is a Stream by setting up comment markers and a
+ * latest-value Loom cell.
  *
  * AC-13/14: A fresh **content scope** is forked from `context.scope` for each
- * emission. The previous content scope is closed before the new one is opened,
- * so nested fibers/pumps from the previous emission are cancelled on re-emit
- * rather than accumulating. The subscription fiber itself lives in
- * `context.scope` (the enclosing scope), not in the content scope.
+ * committed emission, inside the commit closure (which runs only on the app's
+ * flush fiber). The previous content scope is closed before the new one is
+ * opened, so nested fibers/pumps from the previous emission are cancelled on
+ * re-emit rather than accumulating. The pump fiber itself lives in
+ * `context.scope` (the enclosing scope), not in the content scope. Emissions
+ * arriving faster than commits drain conflate to the newest value.
+ *
+ * `options.onFirstCommit` is the ack-or-exit settle hook (idempotent at the
+ * caller): it fires on the first successful commit, when the cell is discarded
+ * before one, or when the pump exits without ever writing (empty/failed
+ * stream). Suspense passes its `settle` here (LM15).
  */
 function handleStreamChild(
   stream: Stream.Stream<Renderable>,
+  options?: { readonly onFirstCommit?: Effect.Effect<void> },
 ): Effect.Effect<
   readonly Node[],
   StreamSubscriptionError | RenderError | UnsupportedNodeTypeError,
@@ -1170,6 +1199,11 @@ function handleStreamChild(
 > {
   return Effect.gen(function* () {
     const context = yield* RenderContext;
+    const boundary = yield* Effect.serviceOption(BoundaryContext);
+    // Ambient snapshot for the commit closure: commits run on the flush fiber,
+    // which has none of the subscribe-site's optional services (Boundary,
+    // Suspense). The old pump inherited them via fork; re-provide explicitly.
+    const ambient = yield* Effect.context<never>();
 
     // AC19: Create comment markers
     const streamId = yield* nextStreamId();
@@ -1179,38 +1213,56 @@ function handleStreamChild(
     // Closed before each new emission so nested fibers don't accumulate.
     let currentContentScope: Scope.Closeable | null = null;
 
-    // AC20: Set up subscription. One fiber per stream, content scope per emission.
-    const effect = Stream.runForEach(stream, (value) =>
-      Effect.gen(function* () {
-        // Close the previous content scope (cancels any nested fibers/pumps).
-        if (currentContentScope !== null) {
-          yield* Scope.close(currentContentScope, Exit.void);
-        }
-        // Fork a fresh child scope for this emission from the enclosing scope.
-        currentContentScope = yield* Scope.fork(context.scope, "sequential");
-        const contentContext = { ...context, scope: currentContentScope };
+    const cell = yield* context.loom.register<Renderable>({
+      label: `child:stream-${streamId}`,
+      scope: context.scope,
+      boundary,
+      reportUnhandled: context.reportUnhandled,
+      onFirstCommit: options?.onFirstCommit,
+      onDiscard: options?.onFirstCommit,
+      commit: (value) =>
+        Effect.gen(function* () {
+          // Close the previous content scope (cancels any nested fibers/pumps).
+          if (currentContentScope !== null) {
+            yield* Scope.close(currentContentScope, Exit.void);
+          }
+          // Fork a fresh child scope for this emission from the enclosing scope.
+          currentContentScope = yield* Scope.fork(context.scope, "sequential");
+          const contentContext = { ...context, scope: currentContentScope };
 
-        // Render under the content scope: RenderContext.scope and Scope.Scope
-        // both point at currentContentScope per the governing rule.
-        yield* updateStreamChild(startMarker, endMarker, value).pipe(
-          Effect.provideService(RenderContext, contentContext),
-          Effect.provideService(Scope.Scope, currentContentScope),
-        );
-      }),
-    );
+          // Render under the content scope: RenderContext.scope and Scope.Scope
+          // both point at currentContentScope per the governing rule.
+          yield* updateStreamChild(startMarker, endMarker, value).pipe(
+            Effect.provideService(RenderContext, contentContext),
+            Effect.provideService(Scope.Scope, currentContentScope),
+          );
+        }).pipe(Effect.provide(ambient)),
+    });
 
-    // Subscription fiber lives in the enclosing context.scope (not content scope).
-    // Failures route to the nearest BoundaryContext, or are reported by the
-    // Effect runtime when no boundary encloses the region (AC8).
-    yield* forkSupervised(
-      effect,
+    // Pump: overwrite the cell per emission; commits run on the flush fiber.
+    // Ack-or-exit: a stream that ends without ever writing settles here.
+    let pump = Stream.runForEach(stream, cell.write);
+    if (options?.onFirstCommit !== undefined) {
+      const onSilentExit = options.onFirstCommit;
+      pump = pipe(
+        pump,
+        Effect.ensuring(Effect.suspend(() => (cell.everWritten() ? Effect.void : onSilentExit))),
+      );
+    }
+
+    // Pump fiber lives in the enclosing context.scope (not content scope).
+    // Source failures route to the nearest BoundaryContext, or the app hub
+    // when no boundary encloses the region (AC8).
+    const fiber = yield* forkSupervised(
+      pump,
       context.scope,
       `child:stream-${streamId}`,
       context.reportUnhandled,
     );
+    cell.attachPumpFiber(fiber);
 
     // AC19: Return markers to be inserted.
-    // Content will be updated asynchronously by the daemon fiber.
+    // Content will be committed asynchronously by the flush fiber.
     return [startMarker, endMarker] as const;
   });
 }
@@ -1522,11 +1574,13 @@ interface ListState {
  * Unlike a generic reactive child ({@link handleStreamChild}), this path does
  * **not** rotate a single content scope per emission. It brackets the region with
  * the usual `stream-start`/`stream-end` markers, forks a persistent region scope,
- * normalizes `of` to a `Subscribable`, and reconciles each emission against a
- * persistent `HashMap<K, ItemRecord>` so surviving keys keep both their DOM nodes
- * and their running subscription fibers (only added/removed/moved items touch the
- * DOM). Source/reconcile failures are routed to the nearest `BoundaryContext`,
- * mirroring {@link handleStreamChild}.
+ * consumes `Source.changes(of)` directly (no Subscribable hop, LM24), and
+ * reconciles each committed snapshot against a persistent
+ * `HashMap<K, ItemRecord>` so surviving keys keep both their DOM nodes and
+ * their running subscription fibers (only added/removed/moved items touch the
+ * DOM). Snapshots arriving faster than reconciles drain conflate to the newest
+ * (latest-value-wins). Source/reconcile failures are routed to the nearest
+ * `BoundaryContext`, mirroring {@link handleStreamChild}.
  */
 function renderList(
   props: ListProps,
@@ -1547,30 +1601,47 @@ function renderList(
     // Forked from the enclosing scope so region teardown (SC3) cascades to all
     // item scopes when the enclosing render scope closes.
     const regionScope = yield* Scope.fork(context.scope, "sequential");
+    const boundary = yield* Effect.serviceOption(BoundaryContext);
+    // Ambient snapshot for the commit closure (see handleStreamChild): item
+    // renders during reconciliation must still see Boundary/Suspense services.
+    const ambient = yield* Effect.context<never>();
 
-    // Normalize `of` (static Iterable / Effect / Stream / Subscribable) and
-    // subscribe to its changes stream. The pump fiber lives in the region scope.
-    const subscribable = yield* Source.toSubscribable(of).pipe(
-      Effect.provideService(Scope.Scope, regionScope),
-    );
-    // E/R are satisfied by the captured runtime context; runtime failures still
-    // surface via the subscription fiber's exit and are routed to a boundary.
-    const changes = Subscribable.changes(subscribable) as Stream.Stream<Iterable<unknown>>;
+    // The `of` change stream, hop-free (no SubscriptionRef/latch/pump). E/R
+    // are satisfied by the captured runtime context; source failures surface
+    // via the pump fiber's exit and are routed to a boundary.
+    const changes = Source.changes(of) as Stream.Stream<Iterable<unknown>>;
 
-    // Persistent reconciler state across emissions.
+    // Persistent reconciler state across emissions. Single-writer by
+    // construction: only the flush fiber runs the commit below.
     let state: ListState = { records: HashMap.empty(), order: [] };
 
-    const effect = Stream.runForEach(changes, (iterable) =>
-      Effect.gen(function* () {
-        // KR6: materialize the iterable so iteration order is fixed for this emission.
-        const items = Array.from(iterable);
-        state = yield* reconcileList(items, by, render, state, regionScope, endMarker, context);
-      }),
-    );
+    const cell = yield* context.loom.register<Iterable<unknown>>({
+      label: `list:stream-${streamId}`,
+      scope: regionScope,
+      boundary,
+      reportUnhandled: context.reportUnhandled,
+      commit: (iterable) =>
+        Effect.gen(function* () {
+          // KR6: materialize the iterable so iteration order is fixed for this emission.
+          const items = Array.from(iterable);
+          state = yield* reconcileList(items, by, render, state, regionScope, endMarker, context);
+        }).pipe(
+          // Commits run on the flush fiber: re-provide the region's context.
+          Effect.provideService(RenderContext, context),
+          Effect.provideService(Scope.Scope, regionScope),
+          Effect.provide(ambient),
+        ),
+    });
 
-    // Subscription fiber lives in the region scope; failures route to a
-    // boundary, or are reported by the Effect runtime when none encloses (AC8).
-    yield* forkSupervised(effect, regionScope, `list:stream-${streamId}`, context.reportUnhandled);
+    // Pump fiber lives in the region scope; source failures route to a
+    // boundary, or are reported to the app hub when none encloses (AC8).
+    const fiber = yield* forkSupervised(
+      Stream.runForEach(changes, cell.write),
+      regionScope,
+      `list:stream-${streamId}`,
+      context.reportUnhandled,
+    );
+    cell.attachPumpFiber(fiber);
 
     return [startMarker, endMarker] as const;
   });
@@ -2067,52 +2138,69 @@ function hydrateReactive(
 
     // The first emission was server-rendered: hydrate it against the adopted
     // content (flash-free). Later emissions are client-rendered: patch via the
-    // shared update flow. Content scope is rotated per emission (same rule as
-    // handleStreamChild) so nested fibers don't accumulate across re-emits.
-    // Interactivity latch: settle once the first emission has hydrated, or on
-    // stream exit (empty/errored) so the region never hangs hydrate's barrier.
+    // shared update flow. Content scope is rotated per committed emission (same
+    // rule as handleStreamChild) so nested fibers don't accumulate.
+    // Interactivity latch, ack-or-exit (LM12-LM14): settle once the first
+    // emission has *committed* to the DOM, when the cell dies before one, or
+    // on a silent stream exit, so the region never hangs hydrate's barrier.
     const settleOnce = makeSettleOnce(context.hydrationReady);
+    const boundary = yield* Effect.serviceOption(BoundaryContext);
+    // Ambient snapshot for the commit closure (see handleStreamChild).
+    const ambient = yield* Effect.context<never>();
 
     let isFirst = true;
     let currentContentScope: Scope.Closeable | null = null;
-    const effect = Stream.runForEach(stream, (value) =>
-      Effect.gen(function* () {
-        if (currentContentScope !== null) {
-          yield* Scope.close(currentContentScope, Exit.void);
-        }
-        currentContentScope = yield* Scope.fork(context.scope, "sequential");
-        const contentContext = { ...context, scope: currentContentScope };
-
-        yield* Effect.gen(function* () {
-          if (isFirst) {
-            isFirst = false;
-            yield* hydrateFirstEmission(value, startMarker, endMarker, path);
-            yield* settleOnce;
-          } else {
-            yield* updateStreamChild(startMarker, endMarker, value);
+    const cell = yield* context.loom.register<Renderable>({
+      label: `hydrate:stream-${parsed.id} (${path})`,
+      scope: context.scope,
+      boundary,
+      reportUnhandled: context.reportUnhandled,
+      onFirstCommit: settleOnce,
+      onDiscard: settleOnce,
+      commit: (value) =>
+        Effect.gen(function* () {
+          if (currentContentScope !== null) {
+            yield* Scope.close(currentContentScope, Exit.void);
           }
-        }).pipe(
-          Effect.provideService(RenderContext, contentContext),
-          Effect.provideService(Scope.Scope, currentContentScope),
-        );
-      }),
-    ).pipe(Effect.ensuring(settleOnce));
+          currentContentScope = yield* Scope.fork(context.scope, "sequential");
+          const contentContext = { ...context, scope: currentContentScope };
+
+          yield* Effect.gen(function* () {
+            if (isFirst) {
+              isFirst = false;
+              yield* hydrateFirstEmission(value, startMarker, endMarker, path);
+            } else {
+              yield* updateStreamChild(startMarker, endMarker, value);
+            }
+          }).pipe(
+            Effect.provideService(RenderContext, contentContext),
+            Effect.provideService(Scope.Scope, currentContentScope),
+          );
+        }).pipe(Effect.provide(ambient)),
+    });
+
+    // Ack-or-exit: a stream that ends or fails without ever writing settles.
+    const pump = pipe(
+      Stream.runForEach(stream, cell.write),
+      Effect.ensuring(Effect.suspend(() => (cell.everWritten() ? Effect.void : settleOnce))),
+    );
 
     // Register before the fork so hydrate's sentinel release can't settle the
     // latch before this region is accounted for.
     if (context.hydrationReady !== undefined) {
       yield* context.hydrationReady.register;
     }
-    // Route stream failures to the nearest BoundaryContext, or leave the exit
-    // unobserved so the Effect runtime reports it when no boundary encloses
-    // (AC-H15, parity with handleStreamChild). Covers post-hydrate live
-    // failures such as a page failing after client-side navigation.
-    yield* forkSupervised(
-      effect,
+    // Route stream failures to the nearest BoundaryContext, or the app hub
+    // when no boundary encloses (AC-H15, parity with handleStreamChild).
+    // Covers post-hydrate live failures such as a page failing after
+    // client-side navigation.
+    const fiber = yield* forkSupervised(
+      pump,
       context.scope,
       `hydrate:stream-${parsed.id} (${path})`,
       context.reportUnhandled,
     );
+    cell.attachPumpFiber(fiber);
 
     return endMarker.nextSibling;
   });
@@ -2700,56 +2788,74 @@ function hydrateList(
     // Region scope: parent of every per-item scope and of the `of` pump fiber
     // (mirrors renderList). Closing the enclosing scope cascades teardown.
     const regionScope = yield* Scope.fork(context.scope, "sequential");
-    const subscribable = yield* Source.toSubscribable(of).pipe(
-      Effect.provideService(Scope.Scope, regionScope),
-    );
-    const changes = Subscribable.changes(subscribable) as Stream.Stream<Iterable<unknown>>;
+    const boundary = yield* Effect.serviceOption(BoundaryContext);
+    // Ambient snapshot for the commit closure (see handleStreamChild).
+    const ambient = yield* Effect.context<never>();
+    // Hop-free change stream (mirrors renderList, LM24).
+    const changes = Source.changes(of) as Stream.Stream<Iterable<unknown>>;
 
     let state: ListState = { records: HashMap.empty(), order: [] };
     let isFirst = true;
 
-    // Interactivity latch: settle once the first emission is materialized, or on
-    // stream exit (empty/errored) so the region never hangs hydrate's barrier.
+    // Interactivity latch, ack-or-exit (LM12-LM14): settle once the first
+    // emission has committed, when the cell dies before one, or on a silent
+    // stream exit, so the region never hangs hydrate's barrier.
     const settleOnce = makeSettleOnce(context.hydrationReady);
 
-    const effect = Stream.runForEach(changes, (iterable) =>
-      Effect.gen(function* () {
-        const items = Array.from(iterable);
-        if (isFirst) {
-          isFirst = false;
-          state = yield* hydrateFirstListEmission(
-            items,
-            by,
-            render,
-            adopted,
-            regionScope,
-            startMarker,
-            endMarker,
-            context,
-            path,
-          );
-          yield* settleOnce;
-        } else {
-          // KR6 already materialized; later emissions reconcile like mount.
-          state = yield* reconcileList(items, by, render, state, regionScope, endMarker, context);
-        }
-      }),
-    ).pipe(Effect.ensuring(settleOnce));
+    const cell = yield* context.loom.register<Iterable<unknown>>({
+      label: `hydrate:list-${parsed.id} (${path})`,
+      scope: regionScope,
+      boundary,
+      reportUnhandled: context.reportUnhandled,
+      onFirstCommit: settleOnce,
+      onDiscard: settleOnce,
+      commit: (iterable) =>
+        Effect.gen(function* () {
+          const items = Array.from(iterable);
+          if (isFirst) {
+            isFirst = false;
+            state = yield* hydrateFirstListEmission(
+              items,
+              by,
+              render,
+              adopted,
+              regionScope,
+              startMarker,
+              endMarker,
+              context,
+              path,
+            );
+          } else {
+            // KR6 already materialized; later emissions reconcile like mount.
+            state = yield* reconcileList(items, by, render, state, regionScope, endMarker, context);
+          }
+        }).pipe(
+          // Commits run on the flush fiber: re-provide the region's context.
+          Effect.provideService(RenderContext, context),
+          Effect.provideService(Scope.Scope, regionScope),
+          Effect.provide(ambient),
+        ),
+    });
+
+    const pump = pipe(
+      Stream.runForEach(changes, cell.write),
+      Effect.ensuring(Effect.suspend(() => (cell.everWritten() ? Effect.void : settleOnce))),
+    );
 
     // Register before the fork so hydrate's sentinel release can't settle the
     // latch before this region is accounted for.
     if (context.hydrationReady !== undefined) {
       yield* context.hydrationReady.register;
     }
-    // Subscription fiber lives in the region scope; failures route to a
-    // boundary, or are reported by the Effect runtime when none encloses
-    // (AC-H15).
-    yield* forkSupervised(
-      effect,
+    // Pump fiber lives in the region scope; failures route to a boundary, or
+    // are reported to the app hub when none encloses (AC-H15).
+    const fiber = yield* forkSupervised(
+      pump,
       regionScope,
       `hydrate:list-${parsed.id} (${path})`,
       context.reportUnhandled,
     );
+    cell.attachPumpFiber(fiber);
 
     return endMarker.nextSibling;
   });

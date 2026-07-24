@@ -49,5 +49,7 @@ graphify-out/cache/
 
 # effect 4 source reference clone (see CLAUDE.md "Effect 4 Reference")
 effect-src
+# leftover clone of the archived effect-smol repo (superseded by effect-src)
+effect-smol
 # design plans/specs scratch space (local only)
 plans/

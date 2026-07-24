@@ -694,3 +694,72 @@ describe("AC8: no boundary: runtime reports unhandled subscription failure", () 
     await Effect.runPromise(handle.unmount());
   });
 });
+
+// ============================================================================
+// LM18 (loom.specs.md): interrupt-only causes never trigger recovery
+// ============================================================================
+
+describe("LM18: interrupt-only causes do not trigger boundary recovery", () => {
+  it("a pump ending with an interrupt-only cause leaves content untouched (no fallback)", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    let fallbackCalls = 0;
+    const interruptingStream = Stream.concat(
+      Stream.make(h.div({ class: "content" }, "live")),
+      Stream.fromEffect(Effect.interrupt),
+    );
+
+    const handle = await runMount(
+      Boundary.catchCause(
+        {
+          fallback: () => {
+            fallbackCalls++;
+            return h.span({ class: "fallback" }, "fb");
+          },
+        },
+        [interruptingStream],
+      ),
+      root,
+    );
+
+    await waitFor(80);
+    assert.equal(fallbackCalls, 0, "Interrupt-only exit must not reach boundary recovery");
+    assert.equal(root.querySelector(".fallback"), null, "No fallback for interrupt-only exit");
+    assert.ok(root.querySelector(".content"), "Content stays as-is");
+
+    await Effect.runPromise(handle.unmount());
+  });
+
+  it("unmounting a boundary-enclosed region does not trigger recovery", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    let fallbackCalls = 0;
+    const liveStream = Stream.concat(
+      Stream.make(h.div({ class: "content" }, "live")),
+      Stream.never as Stream.Stream<never>,
+    );
+
+    const handle = await runMount(
+      Boundary.catchCause(
+        {
+          fallback: () => {
+            fallbackCalls++;
+            return h.span({ class: "fallback" }, "fb");
+          },
+        },
+        [liveStream],
+      ),
+      root,
+    );
+
+    await waitFor(50);
+    assert.ok(root.querySelector(".content"));
+
+    await Effect.runPromise(handle.unmount());
+    await waitFor(80);
+    assert.equal(fallbackCalls, 0, "Unmount teardown must not invoke the boundary fallback");
+    assert.equal(root.querySelector(".fallback"), null, "Unmount must not render the fallback");
+  });
+});

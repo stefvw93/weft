@@ -111,3 +111,9 @@ test("dispose returns a plain void Effect", () => {
   const app = WeftApp.make(configLayer);
   expect(WeftApp.dispose(app)).type.toBe<Effect.Effect<void>>();
 });
+
+test("RootHandle exposes the numeric commit-ack effects", () => {
+  const handle = {} as WeftApp.RootHandle;
+  expect(handle.awaitCommit).type.toBe<Effect.Effect<number>>();
+  expect(handle.commitGeneration).type.toBe<Effect.Effect<number>>();
+});

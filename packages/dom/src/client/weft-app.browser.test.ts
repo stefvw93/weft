@@ -104,3 +104,40 @@ describe("WeftApp: scoped layer lifetime across real events (issue #123)", () =>
     expect(count()?.textContent).toBe(frozen);
   });
 });
+
+describe("WeftApp: RootHandle.awaitCommit (loom.specs.md LM11)", () => {
+  it("set -> awaitCommit -> the DOM shows the latest value, no DOM polling", async () => {
+    const app = WeftApp.make();
+    const value = await Effect.runPromise(SubscriptionRef.make(0));
+
+    const handle = await Effect.runPromise(
+      WeftApp.mount(
+        app,
+        h.div({ id: "out" }, [Stream.map(SubscriptionRef.changes(value), String)]),
+        container,
+      ),
+    );
+    // Initial commit: ack, then read synchronously.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await Effect.runPromise(handle.awaitCommit);
+    expect(container.querySelector("#out")?.textContent).toBe("0");
+
+    // Burst of 50 sets: one bounded beat for pump delivery, then the ack; the
+    // DOM assertion itself is synchronous (no vi.waitFor polling).
+    const generationBefore = await Effect.runPromise(handle.commitGeneration);
+    await Effect.runPromise(
+      Effect.forEach(
+        Array.from({ length: 50 }, (_, index) => index + 1),
+        (n) => SubscriptionRef.set(value, n),
+        { discard: true },
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const generationAfter = await Effect.runPromise(handle.awaitCommit);
+    expect(container.querySelector("#out")?.textContent).toBe("50");
+    expect(generationAfter).toBeGreaterThan(generationBefore);
+
+    await Effect.runPromise(handle.unmount());
+    await Effect.runPromise(WeftApp.dispose(app));
+  });
+});

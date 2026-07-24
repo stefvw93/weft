@@ -1,4 +1,4 @@
-import { Cause, Context, Data, Effect, ManagedRuntime, Scope } from "effect";
+import { Cause, Context, Data, Effect, Fiber, ManagedRuntime, Option, Scope } from "effect";
 
 // ============================================================================
 // Error Types
@@ -112,6 +112,72 @@ export type HydrationReady = {
 };
 
 /**
+ * Options for registering a reactive region with the app's {@link Loom}.
+ * Internal to the client renderer (see `client/loom.ts`).
+ *
+ * @typeParam A - the value type the region's pump writes and `commit` renders
+ */
+export interface LoomRegisterOptions<A> {
+  /** Region label for error reporting, e.g. `"child:stream-3"`, `"attribute:class"`. */
+  readonly label: string;
+  /** Owning scope; its finalizer unregisters the cell (a dead cell is never committed). */
+  readonly scope: Scope.Scope;
+  /**
+   * Applies the latest value to the DOM. Runs only on the shared flush fiber,
+   * never on the pump, one commit at a time. A non-interrupt failure routes
+   * to {@link boundary} when present, else {@link reportUnhandled}; the cell
+   * is then unregistered and its pump interrupted, while the flush fiber
+   * survives. A commit whose cell dies mid-flight completes, but its hooks
+   * and error routing are suppressed (see loom.specs.md, edge cases).
+   */
+  readonly commit: (value: A) => Effect.Effect<void, unknown>;
+  /** Innermost enclosing boundary, captured at subscribe time. */
+  readonly boundary: Option.Option<BoundaryContext["Service"]>;
+  /** The owning root's unhandled-error publisher (from {@link RenderContext}). */
+  readonly reportUnhandled: RenderContext["Service"]["reportUnhandled"];
+  /** Fires exactly once, after the cell's first successful commit. */
+  readonly onFirstCommit?: Effect.Effect<void>;
+  /** Fires exactly once, if the cell dies before its first successful commit. */
+  readonly onDiscard?: Effect.Effect<void>;
+}
+
+/**
+ * A registered latest-value cell. The pump overwrites it via {@link write};
+ * conflation is structural (only the newest value is ever committed).
+ */
+export interface LoomCell<A> {
+  /** Overwrite the latest value, mark the cell dirty, and wake the flush fiber. */
+  readonly write: (value: A) => Effect.Effect<void>;
+  /** Whether the pump has ever written (drives the ack-or-exit settle routes). */
+  readonly everWritten: () => boolean;
+  /**
+   * Attach the pump fiber feeding this cell, once, right after it is forked.
+   * A failed commit fork-interrupts it alongside unregistering the cell.
+   */
+  readonly attachPumpFiber: (fiber: Fiber.Fiber<unknown, unknown>) => void;
+}
+
+/**
+ * The app-level render scheduler: N latest-value cells drained by one shared
+ * flush fiber, in ascending registration order (outer before inner). Flush
+ * completion is the commit acknowledgement surfaced publicly as
+ * `RootHandle.awaitCommit` / `commitGeneration`. One Loom per `WeftApp`;
+ * internal, not exported from the client barrel.
+ */
+export interface Loom {
+  /** Register a reactive region; returns its cell. Unregistered when `options.scope` closes. */
+  readonly register: <A>(options: LoomRegisterOptions<A>) => Effect.Effect<LoomCell<A>>;
+  /**
+   * Resolves when everything dirty at call time has committed or been
+   * discarded, with the commit generation. Immediate when idle. Outstanding
+   * barriers resolve on flush-fiber interrupt (app dispose), never hang.
+   */
+  readonly awaitCommit: Effect.Effect<number>;
+  /** Current commit generation: monotonic, +1 per flush pass that committed anything. */
+  readonly commitGeneration: Effect.Effect<number>;
+}
+
+/**
  * Service for managing rendering context including runtime, scope, and stream IDs
  */
 
@@ -147,6 +213,12 @@ export class RenderContext extends Context.Service<
      * `boundary:outermost`.
      */
     readonly reportUnhandled: (cause: Cause.Cause<unknown>, region: string) => Effect.Effect<void>;
+    /**
+     * The owning app's render scheduler (one per app, shared by all roots).
+     * Every reactive region and prop pump registers a latest-value cell here;
+     * DOM commits run only on its flush fiber (see `client/loom.ts`).
+     */
+    readonly loom: Loom;
     readonly streamIdCounter: { current: number };
     /**
      * Hydration interactivity-barrier latch (see {@link HydrationReady}).

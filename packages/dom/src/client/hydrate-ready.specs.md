@@ -128,6 +128,15 @@ nested reactive regions register, as above.)
   first emission; it does **not** wait for stream completion.
 - **AC-R7 (no deadlock — empty stream):** hydrating a region whose stream emits
   nothing and completes still resolves.
+
+_(amended by loom.specs.md LM12–LM14)_ Settle semantics are now **ack-or-exit**
+via the app's Loom scheduler: a region settles on its first **committed** DOM
+state (`onFirstCommit`), when its cell is discarded before one (`onDiscard`,
+e.g. an outer re-emission replacing it), or when its pump exits without ever
+writing (empty or failed stream). All AC-R1..R7 behaviors hold unchanged; the
+barrier now additionally guarantees the first emissions are real DOM, not
+merely received values.
+
 - **AC-R8 (errored first emission):** if a first emission fails, `hydrate` still
   resolves (or rejects via the existing error contract — to be decided in
   implementation) and never hangs; the failure routes to its boundary exactly as

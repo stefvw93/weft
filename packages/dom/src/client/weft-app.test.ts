@@ -817,3 +817,66 @@ describe("WA19: hydration mechanics unchanged", () => {
     await Effect.runPromise(WeftApp.dispose(app));
   });
 });
+
+// ============================================================================
+// LM11 (loom.specs.md): RootHandle commit-ack
+// ============================================================================
+
+describe("LM11: RootHandle.awaitCommit / commitGeneration", () => {
+  it("burst of sets then awaitCommit: DOM reflects the latest value with no DOM polling", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const app = WeftApp.make();
+
+    const { handle, text } = await Effect.runPromise(
+      Effect.gen(function* () {
+        const ref = yield* SubscriptionRef.make(0);
+        const out = h.div({ class: "out" }, [
+          pipe(SubscriptionRef.changes(ref), Stream.map(String)),
+        ]);
+        const handle = yield* WeftApp.mount(app, out, root);
+
+        yield* Effect.forEach(
+          Array.from({ length: 50 }, (_, i) => i + 1),
+          (n) => SubscriptionRef.set(ref, n),
+        );
+        // One bounded beat for pump delivery, then the ack; the DOM assertion
+        // itself is synchronous (no waitFor polling).
+        yield* Effect.promise(() => waitFor(50));
+        yield* handle.awaitCommit;
+        return { handle, text: root.querySelector(".out")?.textContent };
+      }),
+    );
+
+    assert.equal(text, "50", "After awaitCommit the DOM must show the latest value");
+    await Effect.runPromise(handle.unmount());
+    await Effect.runPromise(WeftApp.dispose(app));
+  });
+
+  it("commitGeneration is monotonic across committed updates", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const app = WeftApp.make();
+
+    const { before, after, handle } = await Effect.runPromise(
+      Effect.gen(function* () {
+        const ref = yield* SubscriptionRef.make("a");
+        const out = h.div({ class: "gen" }, [SubscriptionRef.changes(ref)]);
+        const handle = yield* WeftApp.mount(app, out, root);
+        yield* Effect.promise(() => waitFor(50));
+        yield* handle.awaitCommit;
+        const before = yield* handle.commitGeneration;
+
+        yield* SubscriptionRef.set(ref, "b");
+        yield* Effect.promise(() => waitFor(50));
+        const after = yield* handle.awaitCommit;
+        return { before, after, handle };
+      }),
+    );
+
+    assert.ok(after > before, `generation must advance (${before} -> ${after})`);
+    assert.equal(root.querySelector(".gen")?.textContent, "b");
+    await Effect.runPromise(handle.unmount());
+    await Effect.runPromise(WeftApp.dispose(app));
+  });
+});

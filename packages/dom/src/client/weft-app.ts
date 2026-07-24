@@ -19,10 +19,12 @@ import type {
 import { RenderContext } from "~/data";
 import type {
   HydrationMismatchError,
+  Loom,
   RenderError,
   StreamSubscriptionError,
   UnsupportedNodeTypeError,
 } from "~/data";
+import { ensureFlushFiber, makeLoomUnsafe } from "./loom";
 import { hydrateNode, makeHydrationReady, renderNode, seedStreamIdCounter } from "./render";
 
 /**
@@ -87,6 +89,16 @@ export interface RootHandle {
    * {@link element}. Idempotent. Teardown side effects fire once.
    */
   unmount(): Effect.Effect<void>;
+  /**
+   * Resolves when everything dirty at call time has committed to the DOM or
+   * been discarded, with the commit generation. Immediate when idle; resolves
+   * (never hangs) across `WeftApp.dispose`. App-scoped: with multiple roots it
+   * may also wait on sibling roots' pending commits (documented superset;
+   * per-root filtering is follow-up work).
+   */
+  readonly awaitCommit: Effect.Effect<number>;
+  /** Current commit generation: monotonic, app-scoped, +1 per flush pass that committed anything. */
+  readonly commitGeneration: Effect.Effect<number>;
 }
 
 /**
@@ -122,6 +134,8 @@ export interface WeftApp<in R = never, out E = never> {
 interface AppState {
   readonly appScope: Scope.Closeable;
   readonly hub: PubSub.PubSub<UnhandledError>;
+  /** The app's render scheduler; its flush fiber starts at first root setup. */
+  readonly loom: Loom;
   subscribers: number;
   disposed: boolean;
 }
@@ -173,6 +187,8 @@ function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement) {
   return Effect.gen(function* () {
     const state = stateOf(app);
     const rootScope = yield* Scope.fork(state.appScope, "sequential");
+    // Idempotent: forks the app's single flush fiber on the first root only.
+    yield* ensureFlushFiber(state.loom, state.appScope);
 
     let unmounted = false;
     const handle: RootHandle = {
@@ -185,6 +201,8 @@ function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement) {
           unmounted = true;
           return Scope.close(rootScope, Exit.void);
         }),
+      awaitCommit: state.loom.awaitCommit,
+      commitGeneration: state.loom.commitGeneration,
     };
 
     const context: RenderContext["Service"] = {
@@ -195,6 +213,7 @@ function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement) {
       runtime: app.runtime as unknown as ManagedRuntime.ManagedRuntime<never, never>,
       scope: rootScope,
       rootScope,
+      loom: state.loom,
       streamIdCounter: { current: 0 },
       reportUnhandled: (cause, region) => publishUnhandled(state, { cause, region, root: handle }),
     };
@@ -253,6 +272,9 @@ function makeImpl(
   states.set(app, {
     appScope: Scope.makeUnsafe("sequential"),
     hub,
+    // Pure allocation (mirrors the hub above); the flush fiber starts lazily
+    // at the first root setup, inside the app scope.
+    loom: makeLoomUnsafe(),
     subscribers: 0,
     disposed: false,
   });

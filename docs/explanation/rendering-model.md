@@ -37,11 +37,23 @@ When a stream emits, only the DOM at _that_ point updates. Nothing above it re-r
 
 ## Streams drive all updates
 
-There is no `setState`, no render-triggering scheduler, no "re-render this component." A region of the DOM is live **if and only if** a stream is woven into it. To make something update, you thread a stream through it; to keep something static, you pass a plain value.
+There is no `setState`, no "re-render this component," no vdom diff. A region of the DOM is live **if and only if** a stream is woven into it. To make something update, you thread a stream through it; to keep something static, you pass a plain value.
 
-The renderer subscribes to each woven stream and patches its target in place on every emission. It reuses the existing DOM node and patches text and attributes rather than recreating elements, so identity, focus, and typed input survive an update.
+The renderer reuses the existing DOM node and patches text and attributes in place rather than recreating elements, so identity, focus, and typed input survive an update. Updates stay local: a stream woven at one point never touches an untouched sibling or re-runs a parent.
 
 This also fixes the update _shape_. Because the structure is fixed, an update is always "new value into a known hole," never "reconcile these two trees." Even list rendering, where the number of children genuinely varies, is expressed as a keyed region ([`List.each`](../how-to/render-keyed-lists.md)). It reconciles by key rather than by structural diff.
+
+## The Loom: one scheduler per app, committing asynchronously
+
+Every woven stream feeds one shared scheduler per `WeftApp`: the **Loom**. Each reactive region or prop holds a single latest-value cell; one flush fiber drains every dirty cell and commits it to the DOM.
+
+The name follows the metaphor: individual streams spin as fast as they like, like threads paid out from a bobbin. The loom only ever weaves the newest state of each thread into the fabric, one pass at a time. A cell that receives several writes before the flush fiber gets to it collapses to its last value: intermediate emissions are conflated, never committed. This bounds DOM work to what the flush fiber can keep up with, no matter how fast a source publishes.
+
+Within one flush pass, cells commit in registration order, outer regions before the inner regions nested in their output. A parent re-render that replaces its children unregisters the stale cells first, so a pass never commits into DOM that is already gone.
+
+Commits are asynchronous: writing a new value marks a cell dirty and wakes the flush fiber. The DOM update happens on that fiber's own turn, not synchronously with the write. `RootHandle.awaitCommit` is the acknowledgement. It resolves once everything dirty at call time has either committed or been discarded, returning the commit generation. See the [`RootHandle` reference](../reference/dom.md#roothandle) for its exact semantics.
+
+None of this changes what you write. You still thread a `Stream`, `Effect`, or `Subscribable` through a prop or child; the Loom is an implementation detail of how those emissions reach the DOM. Code that must observe every intermediate value, not just the settled one, should consume the stream directly instead of relying on what lands in the DOM (see [Reactive Primitives](./reactive-primitives.md#latest-value-wins-conflation)).
 
 ## One tree, two sides, hydrate in place
 
@@ -56,6 +68,7 @@ Because the same `Node<E, R>` describes both passes, there is nothing to keep in
 
 - **No diff cost.** Updates are O(changed value), not O(tree). There is no reconciliation pass to pay for.
 - **Local reasoning.** A stream woven at one point cannot affect another. What is reactive is exactly what you made reactive.
+- **Bounded commit work.** The Loom conflates bursts to one commit per cell, so a fast-publishing source cannot outrun the DOM.
 - **Type-honest edges.** The app node's `E`/`R` is the whole app's error and dependency surface, checked at compile time and discharged once at the edge.
 - **Flash-free SSR by construction.** Hydration adopts rather than replaces, because the tree is identical on both sides.
 
@@ -65,3 +78,4 @@ Because the same `Node<E, R>` describes both passes, there is nothing to keep in
 - [Reactive Primitives](./reactive-primitives.md): the stream-shaped values you weave through the tree
 - [Boundaries and Suspense](./boundaries-and-suspense.md): how failure and async are modeled as nodes in the same tree
 - [Render on the Server](../how-to/render-on-the-server.md): the server/client split and `hydrate`
+- [`@weftui/dom` reference](../reference/dom.md#roothandle): `RootHandle.awaitCommit` and `commitGeneration`

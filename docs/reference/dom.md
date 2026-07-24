@@ -156,6 +156,8 @@ any root. Examples: `app.runtime.runFork(trackPageviews)` (see
 interface RootHandle {
   readonly element: HTMLElement;
   unmount(): Effect.Effect<void>;
+  readonly awaitCommit: Effect.Effect<number>;
+  readonly commitGeneration: Effect.Effect<number>;
 }
 ```
 
@@ -165,6 +167,47 @@ subscriptions and any scoped work forked from its event handlers.
 
 It does **not** dispose the app runtime, touch other roots, or remove the rendered
 DOM nodes from `element`. Idempotent: teardown side effects fire once.
+
+#### `RootHandle.awaitCommit`
+
+```ts
+readonly awaitCommit: Effect.Effect<number>;
+```
+
+Resolves when everything dirty at the time you run this effect has committed to
+the DOM or been discarded, yielding the commit generation.
+
+- **Immediate when idle.** If nothing is dirty, it resolves right away with the
+  current generation; there is no forced tick.
+- **Quiescence-scoped, not future-scoped.** It covers only writes already
+  delivered to the Loom at call time, not values a descendant pump writes
+  later. Stream delivery from a `set` to its region's cell is itself
+  asynchronous, so give the pump a beat (or check the DOM, or compare
+  `commitGeneration`) before treating one `awaitCommit` as covering that
+  specific write.
+- **Resolves across `WeftApp.dispose`.** Interrupting the app's flush fiber
+  resolves every outstanding barrier; no caller hangs across app disposal.
+- **App-scoped, not root-scoped.** One Loom is shared by every root of a
+  `WeftApp`. With multiple mounted roots, `awaitCommit` may also wait on a
+  sibling root's pending commits (a documented superset of "this root's
+  commits"). Per-root filtering is not implemented.
+
+```ts
+yield * SubscriptionRef.set(count, 1);
+yield * Effect.sleep("10 millis"); // let the emission reach the region's cell
+yield * handle.awaitCommit; // everything delivered so far is now in the DOM
+```
+
+#### `RootHandle.commitGeneration`
+
+```ts
+readonly commitGeneration: Effect.Effect<number>;
+```
+
+The app's current commit generation: a monotonic counter, shared across every
+root of the `WeftApp`, incremented once per flush pass that committed at least
+one cell. Reading it does not wait for anything in flight; pair it with
+`awaitCommit` to observe a specific commit rather than just the latest count.
 
 ### `UnhandledError`
 

@@ -311,3 +311,33 @@ describe("AC-R9: recoverable divergence settles the latch", () => {
     }
   });
 });
+
+// ============================================================================
+// LM13 (loom.specs.md): a region discarded before its first commit settles
+// ============================================================================
+
+describe("LM13: a discarded pending region does not hang hydrate", () => {
+  it("outer re-emission replacing a pending inner region still resolves", async () => {
+    createTestDOM();
+    // Inner region's first client value arrives at 500ms; the outer region
+    // replaces it at 20ms, discarding the inner cell before its first commit.
+    // The barrier must settle via the discard route, far before 500ms.
+    const inner = h.div({ class: "inner-host" }, [delayedRegion(h.span({}, "inner"), 500)]);
+    const outer = Stream.concat(
+      Stream.make<[Renderable]>(inner),
+      Stream.fromEffect(Effect.delay(Effect.succeed<Renderable>(h.p({}, "replaced")), "20 millis")),
+    );
+    const app = h.div({}, [outer]);
+    const root = await seedServerHtml(app);
+
+    await withTimeout(
+      Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root)),
+      400,
+      "discarded inner region hydrate",
+    );
+
+    await waitFor(50);
+    assert.equal(root.querySelector("p")?.textContent, "replaced");
+    assert.equal(root.querySelector(".inner-host"), null);
+  });
+});

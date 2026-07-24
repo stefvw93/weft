@@ -137,6 +137,31 @@ h.div({
 });
 ```
 
+## Latest-value-wins conflation
+
+Every reactive region and prop is drained by one shared commit scheduler, the
+Loom (see [The Rendering Model](./rendering-model.md#the-loom-one-scheduler-per-app-committing-asynchronously)).
+When a source emits faster than the DOM commits, the Loom conflates the burst:
+it keeps only the newest value per region and skips the intermediate ones.
+
+```typescript
+const ticks = Stream.range(0, 999); // publishes far faster than the DOM commits
+
+h.span([ticks]); // the span settles on 999; 0 through 998 may never render
+```
+
+The final DOM state always reflects the newest value; nothing is lost
+permanently. What is skipped are the values in between, by design: this is
+what keeps a fast-publishing source from piling up unbounded DOM work.
+
+Code that must observe every emission, not just the settled one (an audit
+log, a counter that sums each tick), should consume the stream directly
+instead of relying on what lands in the DOM:
+
+```typescript
+yield * Stream.runForEach(ticks, (n) => Effect.sync(() => total.push(n)));
+```
+
 ## NoPropValue
 
 A finite `Stream` prop can end without ever emitting, e.g. `Stream.empty` or `Stream.take(0, stream)`. When it does, the renderer raises a `NoPropValue` tagged error carrying an optional `key` that identifies the prop:

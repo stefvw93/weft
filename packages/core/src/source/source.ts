@@ -74,6 +74,35 @@ export namespace Source {
           : never;
 
   /**
+   * The change stream of a `Source<A>`, without the `Subscribable` hop.
+   *
+   * - existing `Subscribable` → its `changes` stream;
+   * - `Stream<A>` → returned as-is (identity, no wrap);
+   * - `Effect<A>` → `Stream.fromEffect` (emits the resolved value once);
+   * - static `A` → `Stream.make(value)` (emits once).
+   *
+   * Unlike {@link toSubscribable} this allocates no ref, latch, or pump fiber,
+   * so consumers that only ever read changes (e.g. list reconciliation) skip
+   * the extra hop entirely.
+   */
+  export function changes<A, E = never, R = never>(
+    source: Source.Source<A, E, R>,
+  ): Stream.Stream<A, E, R> {
+    if (Subscribable.isSubscribable(source)) {
+      return Subscribable.changes(source);
+    }
+    if (isStream(source)) {
+      // Identity: the union member is already the requested stream shape.
+      return source as Stream.Stream<A, E, R>;
+    }
+    if (Effect.isEffect(source)) {
+      return Stream.fromEffect(source as Effect.Effect<A, E, R>);
+    }
+    // Static value: emit once, no fiber.
+    return Stream.make(source as A);
+  }
+
+  /**
    * Normalize a `Source<A>` into an await-first, hot `Subscribable`.
    *
    * - existing `Subscribable` → returned by reference (no new ref/fiber);
