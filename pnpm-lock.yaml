@@ -10,8 +10,8 @@ catalogs:
       specifier: 4.1.10
       version: 4.1.10
     effect:
-      specifier: 4.0.0-beta.98
-      version: 4.0.0-beta.98
+      specifier: 4.0.0-beta.102
+      version: 4.0.0-beta.102
     tstyche:
       specifier: ^7.2.2
       version: 7.2.2
@@ -87,7 +87,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -109,7 +109,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -131,7 +131,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -153,7 +153,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -175,7 +175,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -197,7 +197,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -219,7 +219,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -241,7 +241,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -263,7 +263,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -285,7 +285,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -307,7 +307,7 @@ importers:
         version: link:../../packages/router
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -332,7 +332,7 @@ importers:
         version: link:../../packages/router
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -360,7 +360,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -382,7 +382,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -401,7 +401,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -429,7 +429,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -448,7 +448,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -476,7 +476,7 @@ importers:
         version: link:../../packages/dom
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.5
@@ -495,7 +495,7 @@ importers:
         version: 3.2.3
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
       tstyche:
         specifier: 'catalog:'
         version: 7.2.2(typescript@7.0.2)
@@ -526,7 +526,7 @@ importers:
         version: 26.1.1
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -563,7 +563,7 @@ importers:
         version: 26.1.1
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -597,7 +597,7 @@ importers:
         version: link:../core
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -618,7 +618,7 @@ importers:
         version: link:../packages/router
       effect:
         specifier: 'catalog:'
-        version: 4.0.0-beta.98
+        version: 4.0.0-beta.102
     devDependencies:
       '@radix-ui/colors':
         specifier: ^3.0.0
@@ -2289,8 +2289,8 @@ packages:
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
 
-  effect@4.0.0-beta.98:
-    resolution: {integrity: sha512-oz+bsG5h+6RNrw4t5GMfQrk/xBS8ROoqkYsuvRhBr5O7mCOrpvH/hbw+QrDzvKIpX4HJClwm86F94c87W0sJxg==}
+  effect@4.0.0-beta.102:
+    resolution: {integrity: sha512-z8Y+Q76Hh/kjLFZrXu8tGn6e+tDsg45R+UHhxd190pXxD53OGwf/G/zDxXTkse4HJ5mobNZfitLfUCp4fMvu6w==}
 
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
@@ -5086,7 +5086,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  effect@4.0.0-beta.98:
+  effect@4.0.0-beta.102:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.9.0
