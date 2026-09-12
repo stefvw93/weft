@@ -58,6 +58,6 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "effect": ">=4.0.0-rc.112 <4.0.0"
+    "effect": ">=4.0.0-rc.115 <4.0.0"
   }
 }
