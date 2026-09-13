@@ -39,7 +39,7 @@ Weft is a monorepo with three packages:
 npm install @weftui/core @weftui/dom @weftui/router effect@rc
 ```
 
-Weft tracks Effect 4's prerelease line (beta, then rc). This release is built and tested against `effect@4.0.0-rc.112`; the peer range accepts newer 4.0 prereleases, which may contain upstream breaking changes.
+Weft tracks Effect 4's prerelease line (beta, then rc). This release is built and tested against `effect@4.0.0-rc.115`; the peer range accepts newer 4.0 prereleases, which may contain upstream breaking changes.
 
 **New to Effect?** Check out the [Effect documentation](https://effect.website/docs/getting-started/introduction) to learn the fundamentals. These docs assume you know them.
 
