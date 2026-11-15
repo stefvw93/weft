@@ -24,6 +24,16 @@ newest value. Flush completion is the commit acknowledgement. Supervision is
 centralized. All commits become async; nothing relies on `runSync`-driven
 synchronous commits anymore.
 
+_(amended by first-paint.specs.md, issue #182)_ "All commits become async" now
+means all **flush-pass** commits. A region whose source delivers its first value
+synchronously paints that value inline during the mount pass, before `mount`
+resolves, and marks its cell committed via `LoomCell.markCommitted` without a
+flush pass. Only the **first** emission can do this, and only on a mount pass.
+Every later emission still goes through the cell and the flush fiber unchanged,
+so conflation, ordering, supervision, and `awaitCommit` are untouched. The commit
+generation still counts flush passes only, so an inline first paint does not
+advance it.
+
 The name follows the library metaphor: the loom is where all threads meet the
 fabric. Individual sources spin as fast as they like; the loom weaves only the
 latest state of each thread into the DOM, one pass at a time.

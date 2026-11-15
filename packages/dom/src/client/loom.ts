@@ -214,6 +214,45 @@ export function makeLoomUnsafe(): Loom {
           attachPumpFiber: (fiber) => {
             cellState.pumpFiber = fiber;
           },
+          markCommitted: Effect.suspend(() => {
+            if (!cellState.alive) {
+              return Effect.void; // torn down mid-mount: never fire hooks (LM19)
+            }
+            cellState.everWritten = true;
+            if (cellState.committedOnce) {
+              return Effect.void;
+            }
+            cellState.committedOnce = true;
+            return cellState.onFirstCommit !== undefined
+              ? contained(cellState.onFirstCommit)
+              : Effect.void;
+          }),
+          reportAndDiscard: (cause) =>
+            Effect.suspend(() => {
+              if (!cellState.alive) {
+                return Effect.void;
+              }
+              if (Cause.hasInterruptsOnly(cause)) {
+                // Same filter `flushPass` applies to a failed commit: teardown
+                // noise must never reach a boundary, or unmounting a
+                // boundary-enclosed region would trigger recovery (LM18).
+                return Effect.void;
+              }
+              const pump = cellState.pumpFiber;
+              return pipe(
+                contained(
+                  Option.isSome(cellState.boundary)
+                    ? cellState.boundary.value.reportError(cause)
+                    : cellState.reportUnhandled(cause, cellState.label),
+                ),
+                Effect.andThen(discard(state, cellState)),
+                Effect.andThen(
+                  pump !== undefined
+                    ? Effect.asVoid(pipe(Fiber.interrupt(pump), Effect.forkDetach))
+                    : Effect.void,
+                ),
+              );
+            }),
         };
         return cell;
       }),
