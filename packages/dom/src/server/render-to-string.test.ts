@@ -105,3 +105,17 @@ describe("renderToString - void elements", () => {
     );
   });
 });
+
+describe("renderToString - svg", () => {
+  it("serializes svg markup as-is (an HTML parser assigns the SVG namespace)", async () => {
+    assert.equal(
+      await run(
+        h.svg({ viewBox: "0 0 10 10" }, [
+          h.path({ d: "M0 0" }),
+          h.foreignObject({}, [h.div({}, "x")]),
+        ]),
+      ),
+      '<svg viewBox="0 0 10 10"><path d="M0 0"></path><foreignObject><div>x</div></foreignObject></svg>',
+    );
+  });
+});
