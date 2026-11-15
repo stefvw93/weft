@@ -2196,3 +2196,81 @@ describe("scope lifetime: advanced cases", () => {
     await Effect.runPromise(handle.unmount());
   });
 });
+
+// ============================================================================
+// SVG namespace
+// ============================================================================
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+describe("SVG namespace", () => {
+  it("creates svg and its descendants in the SVG namespace", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.svg({ viewBox: "0 0 10 10", class: "icon" }, [
+        h.g({}, [h.path({ d: "M0 0L10 10" }), h.circle({ cx: 5, cy: 5, r: 2 })]),
+      ]),
+      root,
+    );
+
+    const svg = root.querySelector("svg");
+    assert.ok(svg !== null);
+    assert.equal(svg.namespaceURI, SVG_NS);
+    assert.equal(svg.getAttribute("viewBox"), "0 0 10 10");
+    assert.equal(svg.getAttribute("class"), "icon");
+    for (const tag of ["g", "path", "circle"]) {
+      assert.equal(root.querySelector(tag)?.namespaceURI, SVG_NS, `<${tag}> namespace`);
+    }
+    assert.equal(root.querySelector("path")?.getAttribute("d"), "M0 0L10 10");
+    assert.equal(root.querySelector("circle")?.getAttribute("r"), "2");
+  });
+
+  it("switches back to HTML inside foreignObject", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.div({}, [h.svg({}, [h.foreignObject({}, [h.div({ id: "inner" }, "hi")])]), h.p({}, "x")]),
+      root,
+    );
+
+    assert.equal(root.querySelector("foreignObject")?.namespaceURI, SVG_NS);
+    assert.equal(root.querySelector("#inner")?.namespaceURI, HTML_NS);
+    assert.equal(root.querySelector("p")?.namespaceURI, HTML_NS);
+  });
+
+  it("keeps the SVG namespace for reactive children of an svg", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(h.svg({}, [Stream.make(h.rect({ width: 4 }))]), root);
+    await waitForStream();
+
+    assert.equal(root.querySelector("rect")?.namespaceURI, SVG_NS);
+  });
+
+  it("keeps the SVG namespace when a reused svg rebuilds its children", async () => {
+    const region = await Effect.runPromise(
+      SubscriptionRef.make<Renderable>(h.svg({}, [h.rect({})])),
+    );
+
+    createTestDOM();
+    const root = createRoot();
+    await runMount(SubscriptionRef.changes(region), root);
+    await waitForStream();
+    const svg = root.querySelector("svg");
+
+    await Effect.runPromise(SubscriptionRef.set(region, h.svg({}, [h.circle({}), h.circle({})])));
+    await waitForStreamUpdate();
+
+    assert.equal(root.querySelector("svg"), svg, "svg element should be reused");
+    const circles = root.querySelectorAll("circle");
+    assert.equal(circles.length, 2);
+    for (const circle of circles) {
+      assert.equal(circle.namespaceURI, SVG_NS);
+    }
+  });
+});
