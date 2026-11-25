@@ -184,6 +184,16 @@ Animation / FLIP move hooks; a dedicated positional `List.index` variant (subsum
 
 ## Amendments
 
+_(amended by first-paint.specs.md, issue #182)_ When `of` delivers its first
+snapshot synchronously (a static array, a `SubscriptionRef`/`Subscribable` change
+stream, a synchronous `Effect`, or a synchronous cold `Stream`), that snapshot is
+reconciled inline during the mount pass and its item ranges are returned in the
+mount node list. The region's items are therefore in the DOM when `mount`
+resolves, instead of one macrotask later. MR1's marker ordering is unchanged, and
+`render` still runs exactly once per key. A source that cannot deliver
+synchronously keeps today's behaviour: markers only at mount, first snapshot
+committed by the flush fiber.
+
 _(amended by loom.specs.md LM24)_ The `of` source is consumed via
 `Source.changes(of)` directly: the `toSubscribable` hop (SubscriptionRef +
 first-value latch + pump fiber per list) is gone. Reconciliation runs as the
