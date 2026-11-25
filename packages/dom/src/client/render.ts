@@ -5,7 +5,7 @@ import {
   Exit,
   Fiber,
   HashMap,
-  HashSet,
+  MutableHashSet,
   Option,
   Ref,
   Schema,
@@ -1660,10 +1660,10 @@ function projectKeys(
 ): Effect.Effect<readonly unknown[], RenderError> {
   return Effect.gen(function* () {
     const keys: unknown[] = [];
-    let seen = HashSet.empty<unknown>();
+    const seen = MutableHashSet.empty<unknown>();
     for (let i = 0; i < items.length; i++) {
       const key = by === undefined ? items[i] : by(items[i], i);
-      if (HashSet.has(seen, key)) {
+      if (MutableHashSet.has(seen, key)) {
         return yield* Effect.fail(
           new RenderError({
             cause: key,
@@ -1671,7 +1671,7 @@ function projectKeys(
           }),
         );
       }
-      seen = HashSet.add(seen, key);
+      MutableHashSet.add(seen, key);
       keys.push(key);
     }
     return keys;
@@ -1684,7 +1684,8 @@ function projectKeys(
  * duplicate-key guard (KR1), insert new keys (KR2), reuse persisted keys without
  * re-invoking `render` (KR3), remove dropped keys and close their scopes (KR4),
  * and reorder retained items with a longest-increasing-subsequence so only items
- * outside the LIS are moved (KR5).
+ * outside the LIS are moved (KR5). Empty previous state skips the drop and move
+ * passes. A failed render closes every item scope this emission created.
  */
 function reconcileList(
   items: readonly unknown[],
@@ -1703,6 +1704,9 @@ function reconcileList(
     // 1. Project keys and guard duplicates *before* rendering anything (KR1).
     const keys = yield* projectKeys(items, by);
 
+    // Nothing to drop or move when no item was rendered before (FE1, FE6).
+    const isMount = prev.order.length === 0;
+
     // Previous key → DOM-order index, for LIS move computation (Effect-keyed so
     // structural keys compare via Equal).
     let prevIndex = HashMap.empty<unknown, number>();
@@ -1714,31 +1718,49 @@ function reconcileList(
     //    `sources[j]` is the item's previous DOM index, or -1 when newly created.
     const records: ItemRecord[] = [];
     const sources: number[] = [];
-    for (let j = 0; j < items.length; j++) {
-      const key = keys[j];
-      const existing = HashMap.get(prev.records, key);
-      if (Option.isSome(existing)) {
-        records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
-        sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
-      } else {
-        const record = yield* renderItem(key, items[j], j, render, regionScope, context);
-        records.push(record);
-        sources.push(-1);
-      }
-    }
+    const createdScopes: Scope.Closeable[] = [];
+    yield* pipe(
+      Effect.gen(function* () {
+        for (let j = 0; j < items.length; j++) {
+          const key = keys[j];
+          const existing = isMount ? Option.none() : HashMap.get(prev.records, key);
+          if (Option.isSome(existing)) {
+            records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
+            sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
+          } else {
+            const record = yield* renderItem(
+              key,
+              items[j],
+              j,
+              render,
+              regionScope,
+              createdScopes,
+              context,
+            );
+            records.push(record);
+            sources.push(-1);
+          }
+        }
+      }),
+      // These scopes never reach ListState, so nothing else would close them (FE8).
+      Effect.onError((cause) =>
+        Effect.forEach(createdScopes, (scope) => Scope.close(scope, Exit.failCause(cause)), {
+          discard: true,
+        }),
+      ),
+    );
 
     // 3. Remove dropped keys: close their scopes (interrupting subscriptions) and
     //    delete their DOM range, markers included (KR4).
-    let nextKeySet = HashSet.empty<unknown>();
-    for (const key of keys) {
-      nextKeySet = HashSet.add(nextKeySet, key);
-    }
-    for (const key of prev.order) {
-      if (!HashSet.has(nextKeySet, key)) {
-        const dropped = HashMap.get(prev.records, key);
-        if (Option.isSome(dropped)) {
-          yield* Scope.close(dropped.value.scope, Exit.void);
-          removeItemRange(dropped.value.startMarker, dropped.value.endMarker);
+    if (!isMount) {
+      const nextKeySet = MutableHashSet.fromIterable(keys);
+      for (const key of prev.order) {
+        if (!MutableHashSet.has(nextKeySet, key)) {
+          const dropped = HashMap.get(prev.records, key);
+          if (Option.isSome(dropped)) {
+            yield* Scope.close(dropped.value.scope, Exit.void);
+            removeItemRange(dropped.value.startMarker, dropped.value.endMarker);
+          }
         }
       }
     }
@@ -1747,7 +1769,7 @@ function reconcileList(
     //    form the LIS are already in relative order and are not touched; every
     //    other item (new, or retained-but-out-of-order) is (re)inserted before the
     //    next item's start marker, right-to-left so anchors are already in place.
-    const keep = longestIncreasingSubsequence(sources);
+    const keep = isMount ? new Set<number>() : longestIncreasingSubsequence(sources);
     const parent = regionEnd.parentNode;
     if (parent !== null) {
       for (let j = records.length - 1; j >= 0; j--) {
@@ -1768,10 +1790,11 @@ function reconcileList(
     }
 
     // 5. New identity map + DOM order.
-    let nextRecords = HashMap.empty<unknown, ItemRecord>();
-    for (const record of records) {
-      nextRecords = HashMap.set(nextRecords, record.key, record);
-    }
+    const nextRecords = HashMap.mutate(HashMap.empty<unknown, ItemRecord>(), (draft) => {
+      for (const record of records) {
+        HashMap.set(draft, record.key, record);
+      }
+    });
     return { records: nextRecords, order: keys };
   });
 }
@@ -1780,7 +1803,8 @@ function reconcileList(
  * Renders a single new list item under a fresh per-item scope forked from the
  * region scope (MR2/KR2). The scope persists across emissions until the item is
  * removed; brackets the rendered nodes with per-item markers so the item moves
- * and is removed as a unit.
+ * and is removed as a unit. The scope is recorded in `createdScopes` before
+ * rendering so the caller can close it if any render fails.
  */
 function renderItem(
   key: unknown,
@@ -1788,6 +1812,7 @@ function renderItem(
   index: number,
   render: (item: unknown, index: number) => Renderable,
   regionScope: Scope.Scope,
+  createdScopes: Scope.Closeable[],
   context: RenderContext["Service"],
 ): Effect.Effect<
   ItemRecord,
@@ -1796,6 +1821,7 @@ function renderItem(
 > {
   return Effect.gen(function* () {
     const itemScope = yield* Scope.fork(regionScope, "sequential");
+    createdScopes.push(itemScope);
     const itemContext = { ...context, scope: itemScope };
 
     const itemId = yield* nextStreamId();

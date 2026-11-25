@@ -191,3 +191,8 @@ region cell's commit on the app's flush fiber, so snapshot bursts conflate to
 the newest snapshot (latest-value-wins) instead of reconciling every queued
 one. Sequential-snapshot ordering holds by construction: a single pump writes
 the cell and a single flush fiber commits it.
+
+_(amended by list-mount-fast-path.specs.md, issue #178)_ When previous state is
+empty, `reconcileList` skips the drop and LIS passes. The resulting `ListState`
+is unchanged. A failed render closes every item scope that emission created
+(FE8), on mount and on update.
