@@ -46,6 +46,18 @@ Stream.map(Subscribable.changes(rows), (rs) => rs.map((r) => h.li(r.name)));
 
 The renderer diffs children by position, so a new array means every row's DOM node is recreated, even the ones that didn't move. `List.each` reconciles by key instead, so DOM identity (and the focus/scroll/typed-input state attached to it) survives across updates.
 
+## Static lists: use plain children
+
+`List.each` adds markers, a scope, and a key to every row so later updates can reuse its DOM.
+
+If a collection never changes after mount, render plain array children instead:
+
+```typescript
+h.ul(items.map((item) => h.li(item.name)));
+```
+
+Reach for `List.each` only when the source is reactive and items can reorder, insert, or remove.
+
 ## Refresh a row's content
 
 `render` runs **exactly once per key**, so reconciliation never re-runs it for a kept row. To make a row's content reactive, thread a `Stream` **inside** the row instead of expecting a re-render:
@@ -57,6 +69,8 @@ List.each({ of: Subscribable.changes(rows), by: (row) => row.id }, (row) =>
 ```
 
 ## Index-key footgun
+
+`by: index` defeats reconciliation: it identifies a position instead of an item.
 
 ```typescript
 // Wrong: reuses rows positionally. After a reorder, each position keeps its

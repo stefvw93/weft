@@ -1,12 +1,12 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "vite-plus/test";
-import { Effect, Stream, SubscriptionRef } from "effect";
+import { Effect, pipe, Stream, SubscriptionRef } from "effect";
 import { Boundary, h, List } from "@weftui/core";
 import { JSDOM } from "jsdom";
 import * as WeftApp from "./weft-app";
 
 // ============================================================================
-// Monotonic-append reconcile fast path (AP) — see list-append-fast-path.specs.md.
+// Monotonic-append reconcile fast path (AP), see list-append-fast-path.specs.md.
 //
 // The fast path is a behavior-preserving optimization of reconcileList: when an
 // emission is the previous order plus a new suffix, it skips the prevIndex diff,
@@ -168,6 +168,14 @@ describe("List.each: monotonic-append fast path (AP)", () => {
     await waitForStreamUpdate();
     assert.deepEqual(itemIds(root), ["c", "a"]);
 
+    // Grows, but only the last previous key mismatches.
+    await Effect.runPromise(SubscriptionRef.set(ref, [p("c"), p("d"), p("e")]));
+    await waitForStreamUpdate();
+    assert.deepEqual(itemIds(root), ["c", "d", "e"]);
+    await Effect.runPromise(SubscriptionRef.set(ref, [p("c"), p("a")]));
+    await waitForStreamUpdate();
+    assert.deepEqual(itemIds(root), ["c", "a"]);
+
     // Grows but the leading key differs from the previous first key: not an
     // append (prefix mismatch), even though it is longer.
     await Effect.runPromise(SubscriptionRef.set(ref, [p("z"), p("c"), p("a")]));
@@ -199,6 +207,72 @@ describe("List.each: monotonic-append fast path (AP)", () => {
     const fallback = root.querySelector("#fallback");
     assert.ok(fallback, "the boundary should have swapped to its fallback");
     assert.match(fallback.textContent ?? "", /duplicate key/i);
+  });
+
+  it("AP5: two equal tail keys fail with a duplicate-key RenderError", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([p("a")]));
+
+    await runMount(
+      Boundary.catch({ fallback: (e) => h.div({ id: "fallback" }, (e as Error).message) }, [
+        List.each({ of: SubscriptionRef.changes(ref), by: (x) => x.id }, (x) =>
+          h.li({ id: x.id }, x.name),
+        ),
+      ]),
+      root,
+    );
+    await waitForStream();
+
+    await Effect.runPromise(SubscriptionRef.set(ref, [p("a"), p("b"), p("b")]));
+    await waitForStreamUpdate();
+
+    assert.match(root.querySelector("#fallback")?.textContent ?? "", /duplicate key "b"/i);
+  });
+
+  it("AP8: a failed tail render closes the tail scopes and inserts nothing", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const ticks = new Map<string, number>();
+    const tickStream = (id: string) =>
+      pipe(
+        Stream.tick("10 millis"),
+        Stream.map(() => {
+          const next = (ticks.get(id) ?? 0) + 1;
+          ticks.set(id, next);
+          return String(next);
+        }),
+      );
+    const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([p("a")]));
+
+    // No boundary: the region stays mounted, so only the append's own cleanup can close `b`.
+    await runMount(
+      List.each({ of: SubscriptionRef.changes(ref), by: (x) => x.id }, (x) => {
+        if (x.id === "bad") {
+          throw new Error("boom");
+        }
+        return h.li({ id: x.id }, [tickStream(x.id)]);
+      }),
+      root,
+    );
+    await waitForStream();
+
+    const inserted: string[] = [];
+    const original = root.insertBefore.bind(root);
+    root.insertBefore = ((node: Node, anchor: Node | null) => {
+      inserted.push(node.nodeName);
+      return original(node, anchor);
+    }) as typeof root.insertBefore;
+    await Effect.runPromise(SubscriptionRef.set(ref, [p("a"), p("b"), p("bad")]));
+    await waitForStreamUpdate();
+    const settled = new Map(ticks);
+    await waitForStreamUpdate();
+    root.insertBefore = original;
+
+    assert.deepEqual(inserted, [], "no tail node was inserted");
+    assert.deepEqual(itemIds(root), ["a"]);
+    assert.equal(ticks.get("b"), settled.get("b"), "the discarded row's subscription is gone");
+    assert.ok((ticks.get("a") ?? 0) > (settled.get("a") ?? 0), "the prefix row keeps running");
   });
 
   it("AP6: a prefix item's subscription keeps running across appends", async () => {
@@ -241,7 +315,8 @@ describe("List.each: monotonic-append fast path (AP)", () => {
     const root = createRoot();
     const cancelled = new Set<string>();
     const itemStream = (id: string) =>
-      Stream.concat(Stream.make(id), Stream.never).pipe(
+      pipe(
+        Stream.concat(Stream.make(id), Stream.never),
         Stream.ensuring(Effect.sync(() => cancelled.add(id))),
       );
     const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([p("a")]));
@@ -298,11 +373,12 @@ describe("List.each: monotonic-append fast path (AP)", () => {
     root.insertBefore = original;
 
     assert.deepEqual(itemIds(root), ["a", "b", "c", "d", "e"]);
-    assert.ok(anchors.length > 0, "the append inserted the tail");
-    assert.equal(
-      new Set(anchors).size,
-      1,
-      "all inserts share one anchor (the region end marker): the fast-path signature",
+    const regionEnd = root.lastChild;
+    assert.match(regionEnd?.textContent ?? "", /stream-end/);
+    assert.equal(anchors.length, 2 * 3, "exactly two three-node ranges were inserted");
+    assert.ok(
+      anchors.every((anchor) => anchor === regionEnd),
+      "every insert is anchored at the region end marker: the fast-path signature",
     );
   });
 });

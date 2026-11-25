@@ -105,10 +105,8 @@ it("AP7: appending K rows to an N-row list touches only the K new ranges", async
   // are inserted before the region end marker, whose parent is the <ul>.
   const ul = container.querySelector("ul") as HTMLUListElement;
   const originalInsert = ul.insertBefore.bind(ul);
-  let inserts = 0;
   const anchors: (Node | null)[] = [];
   ul.insertBefore = ((node: Node, anchor: Node | null) => {
-    inserts++;
     anchors.push(anchor);
     return originalInsert(node, anchor);
   }) as typeof ul.insertBefore;
@@ -131,6 +129,8 @@ it("AP7: appending K rows to an N-row list touches only the K new ranges", async
   const firstAfter = container.querySelector('li[data-row="0"]');
   const lastAfter = container.querySelector(`li[data-row="${N - 1}"]`);
 
+  const regionEnd = ul.lastChild;
+
   await Effect.runPromise(handle.unmount());
   await Effect.runPromise(WeftApp.dispose(app));
   container.remove();
@@ -144,14 +144,14 @@ it("AP7: appending K rows to an N-row list touches only the K new ranges", async
   expect(lastAfter).toBe(lastBefore);
   // Cost is proportional to K, not N: each appended item inserts its 3-node
   // range (start marker, <li>, end marker); no existing row is re-inserted.
-  expect(inserts).toBeLessThanOrEqual(K * 3);
-  expect(inserts).toBeLessThan(N);
+  expect(anchors).toHaveLength(K * 3);
   // Fast-path signature: every tail range is inserted before the single region
   // end marker (one anchor). The behavior-identical general LIS path anchors
   // each new item to the next one (K distinct anchors), so a single distinct
   // anchor is what proves the append fast path actually ran (and fails if it is
   // removed, which the DOM-op count and timing alone cannot detect).
-  expect(new Set(anchors).size).toBe(1);
-  // Generous timing cap: a full O(N) diff+LIS on 5k rows would be far slower.
+  expect(regionEnd?.textContent).toMatch(/stream-end/);
+  expect(anchors.every((anchor) => anchor === regionEnd)).toBe(true);
+  // Catches only gross hangs; the insertion signature above guards the fast path.
   expect(appendMs).toBeLessThan(5_000);
 }, 120_000);

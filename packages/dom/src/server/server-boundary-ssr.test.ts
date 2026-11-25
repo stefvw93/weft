@@ -55,7 +55,7 @@ const StockKey = Schema.Struct({ id: Schema.Number });
 const Product = Schema.Struct({ name: Schema.String, price: Schema.Number });
 type ProductShape = typeof Product.Type;
 
-class LoadError extends Schema.TaggedErrorClass<LoadError>()("LoadError", {
+class LoadError extends Schema.TaggedError<LoadError>()("LoadError", {
   reason: Schema.String,
 }) {}
 

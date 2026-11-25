@@ -36,7 +36,7 @@ const Counter = () =>
   ]);
 ```
 
-`effect/unstable/reactivity` lives under Effect's `unstable` namespace: it ships with `effect@beta`, but its API may still change before it stabilizes.
+`effect/unstable/reactivity` lives under Effect's `unstable` namespace: it ships with `effect@rc`, but its API may still change before it stabilizes.
 
 ## How It Works
 

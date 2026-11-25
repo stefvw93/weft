@@ -6,7 +6,7 @@ import {
   Exit,
   Fiber,
   HashMap,
-  HashSet,
+  MutableHashSet,
   Option,
   Ref,
   Schema,
@@ -1648,23 +1648,29 @@ function renderList(
   });
 }
 
-/**
- * Projects each item to its reconciliation key (via `by`, or the item itself
- * under Effect `Equal`/`Hash`) and guards against duplicate keys within one
- * emission (KR1), failing with a descriptive {@link RenderError} *before* any
- * DOM is touched. Shared by {@link reconcileList} and {@link hydrateList}'s
- * first-emission adoption.
- */
+/** Projects each item to its reconciliation key (via `by`, or the item itself). */
 function projectKeys(
   items: readonly unknown[],
   by: ((item: unknown, index: number) => unknown) | undefined,
-): Effect.Effect<readonly unknown[], RenderError> {
+): readonly unknown[] {
+  return by === undefined ? items : items.map((item, i) => by(item, i));
+}
+
+/**
+ * Guards against duplicate keys within one emission (KR1), failing *before* any
+ * DOM is touched. Keys before `from` must be exactly the keys of `known`, which
+ * are already unique, so only the tail is hashed.
+ */
+function guardUniqueKeys(
+  keys: readonly unknown[],
+  from = 0,
+  known: ListState["records"] = HashMap.empty(),
+): Effect.Effect<void, RenderError> {
   return Effect.gen(function* () {
-    const keys: unknown[] = [];
-    let seen = HashSet.empty<unknown>();
-    for (let i = 0; i < items.length; i++) {
-      const key = by === undefined ? items[i] : by(items[i], i);
-      if (HashSet.has(seen, key)) {
+    const seen = MutableHashSet.empty<unknown>();
+    for (let i = from; i < keys.length; i++) {
+      const key = keys[i];
+      if (MutableHashSet.has(seen, key) || HashMap.has(known, key)) {
         return yield* Effect.fail(
           new RenderError({
             cause: key,
@@ -1672,10 +1678,8 @@ function projectKeys(
           }),
         );
       }
-      seen = HashSet.add(seen, key);
-      keys.push(key);
+      MutableHashSet.add(seen, key);
     }
-    return keys;
   });
 }
 
@@ -1685,8 +1689,9 @@ function projectKeys(
  * duplicate-key guard (KR1), insert new keys (KR2), reuse persisted keys without
  * re-invoking `render` (KR3), remove dropped keys and close their scopes (KR4),
  * and reorder retained items with a longest-increasing-subsequence so only items
- * outside the LIS are moved (KR5). A pure suffix append (the previous order
- * unchanged, plus new keys) takes a bulk fast path ({@link appendListTail}).
+ * outside the LIS are moved (KR5). Empty previous state skips the drop and move
+ * passes, and a pure append takes {@link appendListTail}. A failed render closes
+ * every item scope this emission created.
  */
 function reconcileList(
   items: readonly unknown[],
@@ -1702,24 +1707,22 @@ function reconcileList(
   RenderContext
 > {
   return Effect.gen(function* () {
-    // 1. Project keys and guard duplicates *before* rendering anything (KR1).
-    const keys = yield* projectKeys(items, by);
+    const keys = projectKeys(items, by);
 
-    // Fast path: monotonic append. When the emission is the previous order,
-    // unchanged and in order, followed by new keys, skip the prevIndex build,
-    // drop-set walk, and LIS: the prefix is reused in place, only the tail is
-    // rendered and inserted before the region end marker. `projectKeys` already
-    // proved every key unique (KR1), so a matching prefix guarantees the tail
-    // keys are new. Returns the same {@link ListState} the general path would
-    // (see {@link appendListTail}). Guarded to a non-empty prefix: the empty
-    // previous state (mount) case is handled by the general path here.
-    if (
+    // Pure append: the matching prefix is already unique and in place.
+    const isAppend =
       prev.order.length > 0 &&
       keys.length > prev.order.length &&
-      prev.order.every((key, i) => Equal.equals(keys[i], key))
-    ) {
+      prev.order.every((key, i) => Equal.equals(keys[i], key));
+    if (isAppend) {
       return yield* appendListTail(keys, items, render, prev, regionScope, regionEnd, context);
     }
+
+    // 1. Guard duplicates *before* rendering anything (KR1).
+    yield* guardUniqueKeys(keys);
+
+    // Nothing to drop or move when no item was rendered before (FE1, FE6).
+    const isMount = prev.order.length === 0;
 
     // Previous key → DOM-order index, for LIS move computation (Effect-keyed so
     // structural keys compare via Equal).
@@ -1732,31 +1735,44 @@ function reconcileList(
     //    `sources[j]` is the item's previous DOM index, or -1 when newly created.
     const records: ItemRecord[] = [];
     const sources: number[] = [];
-    for (let j = 0; j < items.length; j++) {
-      const key = keys[j];
-      const existing = HashMap.get(prev.records, key);
-      if (Option.isSome(existing)) {
-        records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
-        sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
-      } else {
-        const record = yield* renderItem(key, items[j], j, render, regionScope, context);
-        records.push(record);
-        sources.push(-1);
-      }
-    }
+    const createdScopes: Scope.Closeable[] = [];
+    yield* closeScopesOnError(
+      createdScopes,
+      Effect.gen(function* () {
+        for (let j = 0; j < items.length; j++) {
+          const key = keys[j];
+          const existing = isMount ? Option.none() : HashMap.get(prev.records, key);
+          if (Option.isSome(existing)) {
+            records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
+            sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
+          } else {
+            const record = yield* renderItem(
+              key,
+              items[j],
+              j,
+              render,
+              regionScope,
+              createdScopes,
+              context,
+            );
+            records.push(record);
+            sources.push(-1);
+          }
+        }
+      }),
+    );
 
     // 3. Remove dropped keys: close their scopes (interrupting subscriptions) and
     //    delete their DOM range, markers included (KR4).
-    let nextKeySet = HashSet.empty<unknown>();
-    for (const key of keys) {
-      nextKeySet = HashSet.add(nextKeySet, key);
-    }
-    for (const key of prev.order) {
-      if (!HashSet.has(nextKeySet, key)) {
-        const dropped = HashMap.get(prev.records, key);
-        if (Option.isSome(dropped)) {
-          yield* Scope.close(dropped.value.scope, Exit.void);
-          removeItemRange(dropped.value.startMarker, dropped.value.endMarker);
+    if (!isMount) {
+      const nextKeySet = MutableHashSet.fromIterable(keys);
+      for (const key of prev.order) {
+        if (!MutableHashSet.has(nextKeySet, key)) {
+          const dropped = HashMap.get(prev.records, key);
+          if (Option.isSome(dropped)) {
+            yield* Scope.close(dropped.value.scope, Exit.void);
+            removeItemRange(dropped.value.startMarker, dropped.value.endMarker);
+          }
         }
       }
     }
@@ -1765,7 +1781,7 @@ function reconcileList(
     //    form the LIS are already in relative order and are not touched; every
     //    other item (new, or retained-but-out-of-order) is (re)inserted before the
     //    next item's start marker, right-to-left so anchors are already in place.
-    const keep = longestIncreasingSubsequence(sources);
+    const keep = isMount ? new Set<number>() : longestIncreasingSubsequence(sources);
     const parent = regionEnd.parentNode;
     if (parent !== null) {
       for (let j = records.length - 1; j >= 0; j--) {
@@ -1786,21 +1802,36 @@ function reconcileList(
     }
 
     // 5. New identity map + DOM order.
-    let nextRecords = HashMap.empty<unknown, ItemRecord>();
-    for (const record of records) {
-      nextRecords = HashMap.set(nextRecords, record.key, record);
-    }
+    const nextRecords = HashMap.mutate(HashMap.empty<unknown, ItemRecord>(), (draft) => {
+      for (const record of records) {
+        HashMap.set(draft, record.key, record);
+      }
+    });
     return { records: nextRecords, order: keys };
   });
 }
 
 /**
- * Fast path for a monotonic-append emission (previous order unchanged, plus a
- * new suffix), detected in {@link reconcileList}. The prefix records are reused
- * untouched (their DOM and scopes are already correct and positioned); only the
- * appended tail is rendered and inserted, in one pass, before the region end
- * marker. The returned {@link ListState} is identical to what the general path
- * yields for the same append, so later reconciles behave the same.
+ * Closes `createdScopes` when `effect` fails: they never reach {@link ListState},
+ * so nothing else would close them (FE8).
+ */
+function closeScopesOnError<A, E, R>(
+  createdScopes: readonly Scope.Closeable[],
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> {
+  return pipe(
+    effect,
+    Effect.onError((cause) =>
+      Effect.forEach(createdScopes, (scope) => Scope.close(scope, Exit.failCause(cause)), {
+        discard: true,
+      }),
+    ),
+  );
+}
+
+/**
+ * Reconciles a pure append (previous order unchanged, plus a new suffix): renders
+ * and inserts only the tail. Returns the same {@link ListState} as the general path.
  */
 function appendListTail(
   keys: readonly unknown[],
@@ -1816,15 +1847,22 @@ function appendListTail(
   RenderContext
 > {
   return Effect.gen(function* () {
-    // Render each appended item once under its own forked per-item scope (KR2).
-    // The tail keys are guaranteed new (see the caller's guard).
-    const tail: ItemRecord[] = [];
-    for (let j = prev.order.length; j < items.length; j++) {
-      tail.push(yield* renderItem(keys[j], items[j], j, render, regionScope, context));
-    }
+    yield* guardUniqueKeys(keys, prev.order.length, prev.records);
 
-    // Single-pass insert of the tail ranges before the region end marker, in
-    // order. The prefix already sits correctly before regionEnd and is untouched.
+    // Render the whole tail before inserting any of it, so a failure touches no DOM.
+    const tail: ItemRecord[] = [];
+    const createdScopes: Scope.Closeable[] = [];
+    yield* closeScopesOnError(
+      createdScopes,
+      Effect.gen(function* () {
+        for (let j = prev.order.length; j < items.length; j++) {
+          tail.push(
+            yield* renderItem(keys[j], items[j], j, render, regionScope, createdScopes, context),
+          );
+        }
+      }),
+    );
+
     const parent = regionEnd.parentNode;
     if (parent !== null) {
       for (const record of tail) {
@@ -1836,12 +1874,11 @@ function appendListTail(
       }
     }
 
-    // Extend the identity map with the tail; the prefix entries are unchanged
-    // (structurally shared from `prev.records`).
-    let nextRecords = prev.records;
-    for (const record of tail) {
-      nextRecords = HashMap.set(nextRecords, record.key, record);
-    }
+    const nextRecords = HashMap.mutate(prev.records, (draft) => {
+      for (const record of tail) {
+        HashMap.set(draft, record.key, record);
+      }
+    });
     return { records: nextRecords, order: keys };
   });
 }
@@ -1850,7 +1887,8 @@ function appendListTail(
  * Renders a single new list item under a fresh per-item scope forked from the
  * region scope (MR2/KR2). The scope persists across emissions until the item is
  * removed; brackets the rendered nodes with per-item markers so the item moves
- * and is removed as a unit.
+ * and is removed as a unit. The scope is recorded in `createdScopes` before
+ * rendering so the caller can close it if any render fails.
  */
 function renderItem(
   key: unknown,
@@ -1858,6 +1896,7 @@ function renderItem(
   index: number,
   render: (item: unknown, index: number) => Renderable,
   regionScope: Scope.Scope,
+  createdScopes: Scope.Closeable[],
   context: RenderContext["Service"],
 ): Effect.Effect<
   ItemRecord,
@@ -1866,6 +1905,7 @@ function renderItem(
 > {
   return Effect.gen(function* () {
     const itemScope = yield* Scope.fork(regionScope, "sequential");
+    createdScopes.push(itemScope);
     const itemContext = { ...context, scope: itemScope };
 
     const itemId = yield* nextStreamId();
@@ -3007,7 +3047,8 @@ function hydrateFirstListEmission(
   path: string,
 ): Effect.Effect<ListState, HydrateError, RenderContext> {
   return Effect.gen(function* () {
-    const keys = yield* projectKeys(items, by);
+    const keys = projectKeys(items, by);
+    yield* guardUniqueKeys(keys);
 
     // Region-level divergence: server item count != first emission count.
     if (keys.length !== adopted.length) {

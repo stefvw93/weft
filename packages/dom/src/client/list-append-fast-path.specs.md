@@ -66,44 +66,42 @@ is identical to the general path, so later reconciles behave the same.
       general LIS path anchors each new item to the next (one anchor per item), so
       a single distinct anchor is what proves the fast path ran, and fails if it
       is removed. Added to (or alongside) `perf-list-backlog.browser.test.ts`.
+- [x] **AP8 (failed tail render):** When a tail render fails, every item scope the
+      append created is closed (as in FE8), no tail DOM is inserted, and prefix items
+      stay live.
+- [x] **AP9 (append after hydration):** An append onto a hydrated list reuses the
+      adopted items and renders only the tail. Later reconciles behave normally.
 
 ## Technical Requirements
 
-- **Trigger (design decision):** a branch inside `reconcileList`, after
-  `projectKeys` (so the duplicate guard and key projection run exactly as today),
-  taken when **all** hold:
-  1. `prev.order.length > 0` (there is a non-empty prefix to append onto; the
-     empty-previous-state / mount case is out of scope, left to the general path
-     and to Feature A's mount fast path when merged).
+- **Trigger (design decision):** a branch inside `reconcileList`, after key
+  projection and before the full duplicate guard, taken when **all** hold:
+  1. `prev.order.length > 0`: the mount case stays on the general path (list-mount-fast-path.specs.md).
   2. `keys.length > prev.order.length` (strictly grew).
   3. For every `i` in `[0, prev.order.length)`, `Equal.equals(keys[i],
 prev.order[i])` (the prefix is unchanged and in order).
-- **Why the tail is guaranteed new:** `projectKeys` already proved every key in
-  `keys` is globally unique (KR1). Combined with the prefix equalling `prev.order`,
-  every tail key differs from every prefix key, so no tail key is in `prev.records`.
-  No extra membership check is needed; correctness follows from projection +
-  prefix match.
+- **Duplicate guard (KR1):** the prefix equals `prev.order`, which is already unique.
+  `guardUniqueKeys` therefore hashes only the tail. It rejects a tail key that is in
+  `prev.records` or repeats within the tail, before any rendering.
 - **Fast-path body:** reuse `prev.records`' entries for the prefix untouched
   (their DOM and scopes are already correct and positioned). For each tail key,
   `renderItem` under a fresh per-item scope (identical to KR2). Insert each tail
   range `[startMarker, ...nodes, endMarker]` in order, once, before the region end
   marker (single pass). Build the next state: `records = prev.records` extended
-  with the tail entries (`HashMap.set` per tail item, O(tail)), `order = keys`.
+  with the tail entries (one `HashMap.mutate` batch, O(tail)), `order = keys`.
 - **Output parity:** the returned `ListState` is identical to what the general
   path yields for the same append, so every MR/KR/SC/ID/ER guarantee is preserved
   and later reconciles are unaffected.
 - **Cost:** removes the `prevIndex` build, the drop-set `HashSet` walk, the
-  `longestIncreasingSubsequence`, the per-prefix `HashMap.get` reuse lookups, and
-  the full `nextRecords` rebuild. `projectKeys` (one pass, the duplicate guard)
-  and an O(prefix) `Equal.equals` scan remain; DOM work is O(tail). The general
+  `longestIncreasingSubsequence`, the per-prefix `HashMap.get` reuse lookups,
+  the full `nextRecords` rebuild, and the prefix's share of the duplicate guard. Key
+  projection and an O(prefix) `Equal.equals` scan remain; DOM work is O(tail). The general
   path already produced O(tail) DOM ops for appends (LIS keeps the prefix), so the
   win is CPU, not DOM-op count.
 - **New import:** `Equal` from `effect` (for the positional prefix comparison),
   consistent with the `Equal`/`Hash` keying used throughout the list path.
-- **Merge note (Feature A):** Feature A (issue #178) adds an empty-previous-state
-  branch checked first. This feature's `prev.order.length > 0` guard keeps the two
-  disjoint: empty prev → Feature A's mount path; non-empty append → this path;
-  everything else → the general path.
+- **Mount path:** the non-empty guard keeps this branch disjoint from the mount path
+  (#178, list-mount-fast-path.specs.md). Both share the FE8 scope cleanup.
 
 ## Dependencies & Integrations (workflow-step applicability)
 
@@ -125,7 +123,7 @@ unchanged; internal-only optimization with no new type surface`.)
   being removed. The dedicated **insertion-signature** guard closes that gap: the
   fast path inserts every tail range before the single region end marker (one
   distinct anchor), whereas the general path anchors each new item to the next
-  (one anchor per item). Asserting a single distinct anchor is a genuine red→green
+  (one anchor per item). Asserting that every anchor is the region end marker is a genuine red→green
   signal that fails if the fast path is disabled, and runs at both the node level
   (`list-append-fast-path.test.ts`) and the browser level (AP7).
 - **`/e2e`: applies.** Extend `perf-list-backlog.browser.test.ts` (or add a
@@ -142,8 +140,8 @@ unchanged; internal-only optimization with no new type surface`.)
   compared, tail inserted. Handled.
 - A snapshot equal to `prev.order` (no growth): `keys.length === prev.order.length`
   fails condition 2 → general path (a pure reuse/reorder; correct there).
-- A "tail" key that reuses a prefix key: caught as a duplicate by `projectKeys`
-  (AP5), which runs before the branch; never reaches the fast-path body.
+- A "tail" key that reuses a prefix key or repeats in the tail: rejected by
+  `guardUniqueKeys` (AP5) before any render.
 - Reorder or mid-insert with the same length or growth but a changed prefix:
   condition 3 fails → general path (AP4).
 - Source/reconcile failures during a tail render route to the nearest

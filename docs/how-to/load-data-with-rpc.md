@@ -163,7 +163,7 @@ Give the rpc an `error` schema and a resolved rpc **error** on the SSR pass is `
 import { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { Schema } from "effect";
 
-export class OutOfStock extends Schema.TaggedErrorClass<OutOfStock>()("OutOfStock", {
+export class OutOfStock extends Schema.TaggedError<OutOfStock>()("OutOfStock", {
   reason: Schema.String,
 }) {}
 

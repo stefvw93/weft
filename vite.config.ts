@@ -42,10 +42,10 @@ export default defineConfig({
     projects: ["packages/*", "website"],
   },
   fmt: {
-    ignorePatterns: ["**/dist/**", "*.min.js", "**/.claude/**", "graphify-out"],
+    ignorePatterns: ["**/dist/**", "*.min.js", "**/.claude/**"],
   },
   lint: {
-    ignorePatterns: ["**/dist/**", "*.min.js", "**/.claude/**", "graphify-out"],
+    ignorePatterns: ["**/dist/**", "*.min.js", "**/.claude/**"],
     plugins: ["typescript", "unicorn", "oxc"],
     options: {
       typeAware: true,
