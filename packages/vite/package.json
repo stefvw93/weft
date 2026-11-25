@@ -7,8 +7,17 @@
     "vite-plugin",
     "weft"
   ],
+  "homepage": "https://weftui.dev",
+  "bugs": {
+    "url": "https://github.com/stefvw93/weft/issues"
+  },
   "license": "MIT",
   "author": "Stef van Wijchen",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stefvw93/weft",
+    "directory": "packages/vite"
+  },
   "files": [
     "dist",
     "virtual.d.ts"

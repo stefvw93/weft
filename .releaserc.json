@@ -16,7 +16,7 @@
       "@semantic-release/exec",
       {
         "prepareCmd": "node scripts/sync-versions.mjs ${nextRelease.version} && node scripts/bundle-package-docs.mjs && vp run pack",
-        "publishCmd": "vp dlx pnpm -r --filter @weftui/core --filter @weftui/dom --filter @weftui/router publish --access public --no-git-checks",
+        "publishCmd": "vp dlx pnpm -r --filter @weftui/core --filter @weftui/dom --filter @weftui/router --filter @weftui/vite publish --access public --no-git-checks",
         "successCmd": "node scripts/release-success.mjs ${nextRelease.version}"
       }
     ],
