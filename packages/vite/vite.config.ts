@@ -16,7 +16,8 @@ export default defineConfig({
     platform: "neutral",
     minify: true,
     deps: {
-      neverBundle: ["effect", /^@weftui\//, "vite", "vite-plus"],
+      // `node:` builtins are named explicitly: the neutral platform does not know them.
+      neverBundle: ["effect", /^@weftui\//, "vite", "vite-plus", /^node:/],
     },
   },
   resolve: {

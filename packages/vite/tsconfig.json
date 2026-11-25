@@ -6,6 +6,6 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "virtual.d.ts"],
   "exclude": ["dist"]
 }

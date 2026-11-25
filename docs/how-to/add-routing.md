@@ -418,7 +418,7 @@ const { html, status } = await Effect.runPromise(
 
 ### Full SSR example
 
-The same three routes as the [client-only app](#client-only-app), rendered on the server as hydratable HTML and hydrated in the browser. This is the whole file set (drop it alongside a dev server that bridges `entry-server.ts`'s `handler` into Vite or any Web-platform server; see [`examples/router-ssr/server.ts`](../../examples/router-ssr/server.ts) for a working one).
+The same three routes as the [client-only app](#client-only-app), rendered on the server as hydratable HTML and hydrated in the browser. This is the whole file set (serve it with the [`weft()` Vite plugin](./render-on-the-server.md#set-up-the-vite-plugin), or bridge `entry-server.ts`'s `handler` into any Web-platform server).
 
 ```typescript
 // src/app.ts
@@ -524,7 +524,7 @@ export const handler = RouterServer.toWebHandler(App, { document: documentShell 
 
 `render` provides both `Router.Outlet` (the app, per request) and `Router` (so the shell may read params). It renders through `renderToStringHydratable` so the client can `hydrate` in place. Neither `RouterLive` nor `RouterServer` needs an `rpc` option here: it's optional and only required once a page uses [`Boundary.rpc`](#boundaryrpc-interplay).
 
-`handler` still needs a server to call it. [`examples/router-ssr/server.ts`](../../examples/router-ssr/server.ts) shows the shape: a Node HTTP server that runs Vite in middleware mode, converts each request to a Web `Request`, calls `handler`, and runs HTML responses through `vite.transformIndexHtml` for HMR (non-HTML responses, like a `Boundary.rpc` refetch, are forwarded untouched). See that file and its co-located [`vite.config.ts`](../../examples/router-ssr/vite.config.ts) for the full dev-server wiring; it's the same shape in production behind any Web-platform host.
+`handler` still needs a server to call it. For a Vite app, export the Layer from `RouterServer.layer` instead and let [`weft()`](./render-on-the-server.md#set-up-the-vite-plugin) serve it in dev and build. [`examples/router-ssr`](../../examples/router-ssr) is a complete app on the plugin.
 
 ### `effect/http-api` is the spine
 

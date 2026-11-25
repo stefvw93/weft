@@ -1,6 +1,8 @@
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { playwright } from "vite-plus/test/browser-playwright";
 import type { ViteUserConfig } from "vite-plus/test/config";
+import { ASSETS_ID, inertAssetsModule } from "./packages/vite/src/assets-module";
 import { weftDocs } from "./website/src/lib/docs-plugin";
 
 /**
@@ -18,11 +20,29 @@ import { weftDocs } from "./website/src/lib/docs-plugin";
  * `defineConfig`) so the type-aware linter resolves `browser.provider` cleanly;
  * Vite+ accepts a default-exported config object directly.
  */
+/** File name the `virtual:weft/assets` stub is resolved to, beside its importer. */
+const WEFT_ASSETS_STUB = "__weft-assets-stub.js";
+
 const config: ViteUserConfig = {
   // The website's browser tests import the real `App` → `virtual:weft-docs`;
   // this flat config does not inherit per-package plugins, so the docs loader
   // plugin is registered here too (inert for tests that never import the module).
-  plugins: [weftDocs({ docsRoot: fileURLToPath(new URL("./docs", import.meta.url)) })],
+  // `examples/router-ssr` tests import its document shell → `virtual:weft/assets`.
+  // The real `weft()` plugin needs an app root, so the module is stubbed with its
+  // inert variant here: no tags from `ClientAssets()`, an empty `StaticAssets`.
+  plugins: [
+    weftDocs({ docsRoot: fileURLToPath(new URL("./docs", import.meta.url)) }),
+    {
+      name: "weft-assets-stub",
+      // Resolved to a path beside the importer (not a `\0` id), so the stub's bare
+      // imports of `@weftui/core` and `effect` resolve from that example's own deps.
+      resolveId: (id, importer) =>
+        id === ASSETS_ID && importer !== undefined
+          ? join(dirname(importer), WEFT_ASSETS_STUB)
+          : undefined,
+      load: (id) => (id.endsWith(WEFT_ASSETS_STUB) ? inertAssetsModule() : undefined),
+    },
+  ],
   // The website shell renders the release tag via this build-time define.
   define: {
     __WEFT_VERSION__: JSON.stringify("browser-test"),

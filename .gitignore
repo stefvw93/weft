@@ -49,3 +49,6 @@ effect-src
 effect-smol
 # design plans/specs scratch space (local only)
 plans/
+
+# scratch copies of fixture apps made by packages/vite tests
+.test-tmp

@@ -2,14 +2,130 @@
 title: Server-Side Rendering
 order: 2
 section: how-to
-description: renderToString / renderToStringHydratable / streaming variants, hydrate, and the server/client split.
+description: Serve a router app with the weft() Vite plugin, plus the renderToString / streaming renderers, hydrate, and the server/client split.
 ---
 
 # Server-Side Rendering
 
 Weft renders on the server and hydrates on the client: the server produces HTML, and the browser adopts that existing DOM in place instead of re-creating it.
 
+For a router app, the `@weftui/vite` plugin runs that loop for you in dev and in production. Your server entry default-exports one routes Layer, and `weft()` serves it.
+
+```typescript
+// vite.config.ts
+import { weft } from "@weftui/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({ plugins: [weft()] });
+```
+
 [`Boundary.rpc`](../reference/core.md#boundaryrpc) extends this to **rpc-backed server data**: resolve an rpc on the server, serialize its result into the HTML, and replay it on the client without a second request. The region then stays live for refetch.
+
+## Set up the Vite plugin
+
+Install the plugin and the router, plus `@effect/platform-node` if you run the built server on Node.
+
+```bash
+npm install -D @weftui/vite vite
+npm install @weftui/core @weftui/dom @weftui/router effect @effect/platform-node
+```
+
+With no options, `weft()` uses `src/entry-server.ts`, `src/entry-client.ts` and an optional `src/main.ts`. Override each path with `weft({ server, client, main })`. See the [`@weftui/vite` reference](../reference/vite.md).
+
+Add the type reference for the `virtual:weft/assets` module once.
+
+```typescript
+// src/env.d.ts
+/// <reference types="@weftui/vite/virtual" />
+```
+
+The complete file set for a one-page app follows. `app.ts` is shared by both entries.
+
+```typescript
+// src/app.ts
+import { h } from "@weftui/core";
+import { Router } from "@weftui/router";
+
+const home = Router.route("", { component: () => h.h1("Hello from the server") });
+
+export const App = Router.router(home, { notFound: () => h.h1("Not found") });
+```
+
+The server entry exports the routes Layer. `ClientAssets()` renders the script and stylesheet tags for the current mode, so the shell never names a file.
+
+```typescript
+// src/entry-server.ts
+import { Component, h } from "@weftui/core";
+import { Router } from "@weftui/router";
+import { RouterServer } from "@weftui/router/server";
+import { ClientAssets } from "virtual:weft/assets";
+import { App } from "./app";
+
+const documentShell = Component.gen(function* () {
+  const app = yield* Router.Outlet;
+  return yield* h.html({ lang: "en" }, [
+    h.head([h.meta({ charset: "utf-8" }), h.title("My app"), ClientAssets()]),
+    h.body([h.div({ id: "root" }, [app])]),
+  ]);
+});
+
+export default RouterServer.layer(App, { document: documentShell });
+```
+
+The client entry hydrates the server markup.
+
+```typescript
+// src/entry-client.ts
+import { WeftApp } from "@weftui/dom/client";
+import { RouterApp, RouterLive } from "@weftui/router/client";
+import { Effect } from "effect";
+import { App } from "./app";
+
+const root = document.getElementById("root")!;
+const app = WeftApp.make(RouterLive(App));
+void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
+```
+
+The production launcher merges the routes with `StaticAssets`, the built files in `dist/client`. The plugin bundles it into the server build and never runs it in dev.
+
+```typescript
+// src/main.ts
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node";
+import { Layer } from "effect";
+import { HttpRouter } from "effect/http";
+import { createServer } from "node:http";
+import { StaticAssets } from "virtual:weft/assets";
+import routes from "./entry-server";
+
+const Server = HttpRouter.serve(Layer.mergeAll(routes, StaticAssets)).pipe(
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 })),
+);
+
+NodeRuntime.runMain(Layer.launch(Server));
+```
+
+`NodeHttpServer.layer` supplies the HTTP server and the file services `StaticAssets` needs. Without `main.ts`, the server build emits the routes Layer only.
+
+### Run it
+
+```bash
+vite dev                   # server-rendered, streaming, with HMR
+vite build                 # dist/client and dist/server
+node dist/server/main.js   # production server
+```
+
+In a Weft workspace, use `vp dev` and `vp build`. [`examples/router-ssr`](../../examples/router-ssr) wraps them as tasks.
+
+### What to expect
+
+- In dev, one Layer serves all requests. When a server module changes, the old Layer is disposed and a new one is built.
+- Editing a server module while a response is still streaming can cut that response short.
+- Import CSS from the client entry's module graph. CSS imported only by server code is not linked in dev.
+- Prerendering is not supported. Runtimes other than Node need their own launcher in place of `main.ts`.
+
+## Rendering without the plugin
+
+The plugin builds on the renderers in `@weftui/dom/server`. Use them directly for a router-less app, or when you bring your own server and bundler. This server entry renders a hand-built tree to a string:
 
 ```typescript
 // entry-server.ts
@@ -220,7 +336,7 @@ Both Layers are built once per server and shared by every request. A page, layou
 
 ### Launching on Node
 
-Launch with Effect's `HttpRouter.serve` and a platform HTTP server Layer. `NodeHttpServer` comes from `@effect/platform-node`, which Weft does not install. See Effect's documentation for that package.
+Launch with Effect's `HttpRouter.serve` and a platform HTTP server Layer. `NodeHttpServer` comes from `@effect/platform-node`. Weft's packages do not depend on it, so your app adds it.
 
 ```typescript
 import { NodeHttpServer, NodeRuntime } from "@effect/platform-node";
@@ -259,7 +375,7 @@ export const { handler, dispose } = HttpRouter.toWebHandler(Server);
 - A captured app service takes precedence over a same-key service in the request context.
 - Per-request services (for example a session read from the request) are not supported.
 - The rpc path is fixed at `/_eui/rpc`.
-- Static assets and the Vite dev bridge are not served by the Layer.
+- The Layer does not serve static assets or bridge Vite. Use the [Vite plugin](#set-up-the-vite-plugin) and its `StaticAssets` Layer for both.
 
 `RouterServer.render`, `toWebHandler` and `toStreamingWebHandler` remain and are built on this Layer. Their `context` and `rpc.handlers` Layers are built once per memoized handler, not per render, and are never released. See the [`RouterServer` reference](../reference/router.md#routerserver).
 
@@ -270,6 +386,7 @@ export const { handler, dispose } = HttpRouter.toWebHandler(Server);
 
 ## See also
 
+- [`@weftui/vite` reference](../reference/vite.md): `weft()`, its options and errors, and `virtual:weft/assets`
 - [rpc data boundaries guide](./load-data-with-rpc.md): the full `Boundary.rpc` walkthrough, covering the contract/handler split, router wiring, the four lifecycles, and typed-failure replay
 - [Routing](./add-routing.md): `@weftui/router` builds on this SSR + hydration model for full-page nested routing
 - [`Boundary.rpc` API reference](../reference/core.md#boundaryrpc)

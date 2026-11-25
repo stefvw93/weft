@@ -27,11 +27,12 @@ The same tree renders to HTML on the server and `hydrate()`s in place on the cli
 
 ## Packages
 
-Weft is a monorepo with three packages:
+Weft is a monorepo with three runtime packages and a Vite plugin:
 
 - **`@weftui/core`**: Element builders and combinators. Exports `h` (with `h.fragment`), `Component` (`Component.gen` / `Component.make`), `Boundary` (six failure-catch variants, `Boundary.suspend`, `Boundary.rpc`), `List` (`List.each`), and the `Node<E, R>` / `Source<A, E, R>` types.
 - **`@weftui/dom`**: The renderer. `WeftApp.mount` and `WeftApp.hydrate` for the browser (`@weftui/dom/client`); `renderToString`, `renderToStringHydratable`, `renderToStream`, and `renderToStreamHydratable` for the server (`@weftui/dom/server`).
 - **`@weftui/router`**: Universal nested router. Authors a route tree with `Router.route` / `Router.layout` / `Router.router`, splits it with `Router.lazy`, and renders it on the server (`@weftui/router/server`) and the client (`@weftui/router/client`), with type-safe `href`s and dependency-injected params.
+- **`@weftui/vite`**: The Vite plugin. `weft()` serves a router app server-rendered in dev and builds it for production.
 
 ## Installation
 
@@ -71,12 +72,12 @@ void Effect.runPromise(WeftApp.mount(app, Counter(), document.getElementById("ro
 
 Full documentation lives in [`docs/`](./docs/index.md). Pick your entry point by what you are trying to do:
 
-|                                                          |                                                                                                                                                                       |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Tutorial](./docs/tutorial/01-your-first-app.md)**     | Learning-oriented. A four-step guided path: your first app → reactivity → services and async → errors and server rendering.                                           |
-| **[How-to guides](./docs/how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing, plus recipes for forms, keyed lists, refs, and more.                         |
-| **[Explanation](./docs/explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                             |
-| **[Reference](./docs/reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](./docs/reference/core.md), [`@weftui/dom`](./docs/reference/dom.md), [`@weftui/router`](./docs/reference/router.md). |
+|                                                          |                                                                                                                                                                                                                   |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Tutorial](./docs/tutorial/01-your-first-app.md)**     | Learning-oriented. A four-step guided path: your first app → reactivity → services and async → errors and server rendering.                                                                                       |
+| **[How-to guides](./docs/how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing, plus recipes for forms, keyed lists, refs, and more.                                                                     |
+| **[Explanation](./docs/explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                                                                         |
+| **[Reference](./docs/reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](./docs/reference/core.md), [`@weftui/dom`](./docs/reference/dom.md), [`@weftui/router`](./docs/reference/router.md), [`@weftui/vite`](./docs/reference/vite.md). |
 
 New to the model itself? Read [The Rendering Model](./docs/explanation/rendering-model.md): why there is no virtual DOM, and what "streams are the weft" means.
 
