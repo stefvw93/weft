@@ -174,4 +174,3 @@ bleed was the cause of the original jump.
    → no BEM class strings remain.
 7. `cd website && vp run build && NODE_ENV=production node server.ts` → prod
    parity, hashed CSS linked.
-8. `graphify update .` to refresh the knowledge graph.

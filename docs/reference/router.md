@@ -316,11 +316,11 @@ Dispatch runs through the `def.httpApi` spine via `HttpApiBuilder`: platform own
 
 ### `RouterNotFound`
 
-`Schema.TaggedErrorClass` with an optional `path: string`. Raised by [`notFound`](#notfound) or when no route matches. Caught by the router's internal not-found boundary; export it to place your own `Boundary.catchTag("RouterNotFound", …)` (a nearer user boundary wins).
+`Schema.TaggedError` with an optional `path: string`. Raised by [`notFound`](#notfound) or when no route matches. Caught by the router's internal not-found boundary; export it to place your own `Boundary.catchTag("RouterNotFound", …)` (a nearer user boundary wins).
 
 ### `RouterParamsError`
 
-`Schema.TaggedErrorClass` with `source: "path" | "query"` and `keys: readonly string[]`. Raised by `Router.params` / `Router.query` when the live match doesn't satisfy the requested fields. Bubbles into the tree's aggregate error channel.
+`Schema.TaggedError` with `source: "path" | "query"` and `keys: readonly string[]`. Raised by `Router.params` / `Router.query` when the live match doesn't satisfy the requested fields. Bubbles into the tree's aggregate error channel.
 
 ### `notFound`
 

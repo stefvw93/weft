@@ -551,7 +551,7 @@ Option.isSome(httpApiClient); // true under RouterLive, false under RouterServer
 | `RouterNotFound`    | `notFound()`, or no route matched                                     | `Boundary.catchTag(…)` (or the app-level `notFound` page) |
 | `RouterParamsError` | `Router.params` / `Router.query` on a missing/invalid key or no match | `Boundary.catchTag(…)`                                    |
 
-Both are modeled as `Schema.TaggedErrorClass`, so they encode/decode across the wire the same way `Boundary.rpc` replays typed failures.
+Both are modeled as `Schema.TaggedError`, so they encode/decode across the wire the same way `Boundary.rpc` replays typed failures.
 
 Recover locally by wrapping just the subtree that can fail, rather than relying on the app-level `notFound` page for everything:
 

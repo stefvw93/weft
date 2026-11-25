@@ -15,7 +15,7 @@ type CtxOf<T> = [T] extends [Effect.Effect<any, any, infer R>] ? R : never;
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
-class FooError extends Schema.TaggedErrorClass<FooError>()("Foo", { msg: Schema.String }) {}
+class FooError extends Schema.TaggedError<FooError>()("Foo", { msg: Schema.String }) {}
 
 const StockKey = Schema.Struct({ id: Schema.Number });
 const Stock = Schema.Struct({ units: Schema.Number });

@@ -9,10 +9,10 @@ Three entry points mirror `@weftui/dom`: `@weftui/router` (authoring + universal
 ## Installation
 
 ```bash
-npm install @weftui/core @weftui/dom @weftui/router effect@beta
+npm install @weftui/core @weftui/dom @weftui/router effect@rc
 ```
 
-Weft tracks Effect 4's beta line. This release is built and tested against `effect@4.0.0-beta.98`; the peer range accepts newer 4.0 betas, which may contain upstream breaking changes.
+Weft tracks Effect 4's prerelease line (beta, then rc). This release is built and tested against `effect@4.0.0-rc.112`; the peer range accepts newer 4.0 prereleases, which may contain upstream breaking changes.
 
 `effect` is a peer dependency; `@weftui/core` and `@weftui/dom` provide the tree and renderer.
 

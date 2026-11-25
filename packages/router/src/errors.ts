@@ -6,10 +6,10 @@ import { Effect, Schema } from "effect";
  * `Boundary.catchTag("RouterNotFound", …)` to override the fallback for a subtree
  * (the router's internal boundary is outermost, so a nearer user boundary wins).
  *
- * Modeled as a `Schema.TaggedErrorClass` so it can be encoded/decoded across the wire
+ * Modeled as a `Schema.TaggedError` so it can be encoded/decoded across the wire
  * the same way `Boundary.rpc` replays typed failures.
  */
-export class RouterNotFound extends Schema.TaggedErrorClass<RouterNotFound>()("RouterNotFound", {
+export class RouterNotFound extends Schema.TaggedError<RouterNotFound>()("RouterNotFound", {
   /** The path that could not be resolved, when known. */
   path: Schema.optional(Schema.String),
 }) {}
@@ -39,10 +39,10 @@ export const isRouterNotFound = (u: unknown): u is RouterNotFound =>
  * It bubbles up through the route tree's aggregate error channel, so a user may
  * place a `Boundary.catchTag("RouterParamsError", …)` to recover within a subtree.
  *
- * Modeled as a `Schema.TaggedErrorClass` so it can be encoded/decoded across the wire
+ * Modeled as a `Schema.TaggedError` so it can be encoded/decoded across the wire
  * the same way `RouterNotFound` and `Boundary.rpc` replay typed failures.
  */
-export class RouterParamsError extends Schema.TaggedErrorClass<RouterParamsError>()(
+export class RouterParamsError extends Schema.TaggedError<RouterParamsError>()(
   "RouterParamsError",
   {
     /** Which side of the match failed validation. */
