@@ -14,7 +14,7 @@
  * hand-rolled boundary id and refetch carries the product id as a real payload.
  */
 
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Context, Effect, Layer, Schema } from "effect";
 
 /** Wire contract for a product's live stock: encoded to JSON on the server, decoded on the client. */

@@ -526,9 +526,9 @@ export const handler = RouterServer.toWebHandler(App, { document: documentShell 
 
 `handler` still needs a server to call it. [`examples/router-ssr/server.ts`](../../examples/router-ssr/server.ts) shows the shape: a Node HTTP server that runs Vite in middleware mode, converts each request to a Web `Request`, calls `handler`, and runs HTML responses through `vite.transformIndexHtml` for HMR (non-HTML responses, like a `Boundary.rpc` refetch, are forwarded untouched). See that file and its co-located [`vite.config.ts`](../../examples/router-ssr/vite.config.ts) for the full dev-server wiring; it's the same shape in production behind any Web-platform host.
 
-### `effect/unstable/httpapi` is the spine
+### `effect/http-api` is the spine
 
-The tree is the authoring surface, but `effect/unstable/httpapi`'s `HttpApi` is the **single source of truth** for paths and schemas. Sealing the tree with `Router.router(...)` builds it once (`buildHttpApi`) and stamps it onto `def.httpApi`.
+The tree is the authoring surface, but `effect/http-api`'s `HttpApi` is the **single source of truth** for paths and schemas. Sealing the tree with `Router.router(...)` builds it once (`buildHttpApi`) and stamps it onto `def.httpApi`.
 
 The result is a single `"pages"` group with one GET endpoint per leaf at its full path pattern, carrying `params: pathSchema`, `query: querySchema`, and a `RouterNotFound → 404` error. Both sides read that one definition, so they always agree:
 
@@ -595,7 +595,7 @@ export const handler = RouterServer.toWebHandler(App, { document: documentShell,
 ## See also
 
 - [`@weftui/router` API reference](../reference/router.md)
-- [examples/router-ssr](../../examples/router-ssr): a runnable SSR + hydration app with nested layouts, persistent layout state, type-safe `href`s, handler-arg props, `Boundary.rpc`, and programmatic navigation over the `effect/unstable/httpapi` spine
+- [examples/router-ssr](../../examples/router-ssr): a runnable SSR + hydration app with nested layouts, persistent layout state, type-safe `href`s, handler-arg props, `Boundary.rpc`, and programmatic navigation over the `effect/http-api` spine
 - [examples/router-client](../../examples/router-client): the client-only counterpart, no server, no SSR, no `Boundary.rpc`
 - [Component Authoring](./author-components.md): `Component.make` / `Component.gen`, the idiomatic way to write route components
 - [Server-Side Rendering](./render-on-the-server.md): `renderToStringHydratable`, `hydrate`, and `Boundary.rpc`

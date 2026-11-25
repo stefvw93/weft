@@ -144,7 +144,7 @@ Boundary.suspend(
 
 #### `Boundary.rpc`
 
-A universal server/client render boundary backed by one `Rpc` from the app's merged `RpcGroup` ([`effect/unstable/rpc`](https://github.com/Effect-TS/effect)). The rpc **`_tag`** is the boundary's stable identity and its **payload schema** the typed input. The handler lives in the server-only rpc Layer (`group.toLayer(...)`), which the client never imports: tree-shaking does the client/server split structurally.
+A universal server/client render boundary backed by one `Rpc` from the app's merged `RpcGroup` ([`effect/rpc`](https://github.com/Effect-TS/effect)). The rpc **`_tag`** is the boundary's stable identity and its **payload schema** the typed input. The handler lives in the server-only rpc Layer (`group.toLayer(...)`), which the client never imports: tree-shaking does the client/server split structurally.
 
 Unlike the catch variants it takes a `render` function, not a children array. That `render` receives a reactive [`Resource`](#resourcea), not a bare value.
 
@@ -208,7 +208,7 @@ class AppRpcClientTag extends Context.Service<AppRpcClientTag, AppRpcClient>()(
 ) {}
 ```
 
-The ambient, package-neutral seam the renderer resolves a `Boundary.rpc` through: a **flat, untyped** caller `(tag, payload) => Effect<success>`. It lets `@weftui/dom` resolve a boundary without importing `effect/unstable/rpc` or `@weftui/router`. `@weftui/router` provides it: a **network** `RpcClient` (POST `/_eui/rpc`) in the browser, an **in-process** client over the handler Layer on the server.
+The ambient, package-neutral seam the renderer resolves a `Boundary.rpc` through: a **flat, untyped** caller `(tag, payload) => Effect<success>`. It lets `@weftui/dom` resolve a boundary without importing `effect/rpc` or `@weftui/router`. `@weftui/router` provides it: a **network** `RpcClient` (POST `/_eui/rpc`) in the browser, an **in-process** client over the handler Layer on the server.
 
 `call` returns the already-decoded success; the renderer owns `successSchema`/`errorSchema` decoding of the inline SSR payload only. Both `AppRpcClientTag` and the `AppRpcClient` type are re-exported from `@weftui/core`. Absent in a router-less mount, where a `Boundary.rpc` resolves to a descriptive "needs router/rpc" error (not a defect).
 

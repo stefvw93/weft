@@ -242,7 +242,7 @@ RouterLive(
 
 The client `Router` layer, backed by the History API. Seeds a `SubscriptionRef` from `window.location`, listens for `popstate`, installs the same-origin link-click interceptor, and derives the `HttpApiClient` exposed as `Router.httpApiClient` (over `FetchHttpClient`; `baseUrl` defaults to same-origin).
 
-Alongside `Router` it also provides the core [`AppRpcClientTag`](../reference/core.md#apprpcclienttag) seam: a **network** flat rpc client over the app's merged `RpcGroup` (`RpcClient.make` → `POST /_eui/rpc`). This lets `@weftui/dom` resolve a [`Boundary.rpc`](../reference/core.md#boundaryrpc) (hydrated refetch and client-first SPA mount) without depending on this package or `effect/unstable/rpc`. Pass the same merged `group` the server wires into [`RouterServer`](#routerserver).
+Alongside `Router` it also provides the core [`AppRpcClientTag`](../reference/core.md#apprpcclienttag) seam: a **network** flat rpc client over the app's merged `RpcGroup` (`RpcClient.make` → `POST /_eui/rpc`). This lets `@weftui/dom` resolve a [`Boundary.rpc`](../reference/core.md#boundaryrpc) (hydrated refetch and client-first SPA mount) without depending on this package or `effect/rpc`. Pass the same merged `group` the server wires into [`RouterServer`](#routerserver).
 
 **Scoped**: it must outlive the mount. Give it to `WeftApp.make` and the app runtime owns its lifetime (built lazily on first mount, released at `WeftApp.dispose`):
 

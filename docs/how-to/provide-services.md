@@ -45,12 +45,12 @@ A **scoped** layer (`Layer.effect` backed by `acquireRelease`, or anything else 
 
 There is no `mountScoped`, no `Effect.never`, no manual scope threading.
 
-`AtomRegistry.layer` (from `effect/unstable/reactivity`) is a real scoped layer. Its atom subscriptions are fibers forked for the app's whole lifetime:
+`AtomRegistry.layer` (from `effect/reactivity`) is a real scoped layer. Its atom subscriptions are fibers forked for the app's whole lifetime:
 
 ```typescript
 import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
-import { AtomRegistry } from "effect/unstable/reactivity";
+import { AtomRegistry } from "effect/reactivity";
 import { App } from "./app";
 
 const app = WeftApp.make(AtomRegistry.layer);

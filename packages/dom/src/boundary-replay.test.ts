@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { Boundary, List, getElementDescriptor, h } from "@weftui/core";
 import type { Renderable } from "@weftui/core";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { Effect, Schema, Stream } from "effect";
 import { describe, it } from "vite-plus/test";
 import { BOUNDARY_FAILURE_ATTR, collectServerBoundaries } from "./boundary-replay";

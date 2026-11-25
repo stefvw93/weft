@@ -22,7 +22,7 @@ router-less client app can **provide the seam directly**. Here `AppRpcClientLive
 in-process `AppRpcClient` whose `call` returns a product after a short delay. Mounting the
 boundary under that layer exercises the client-first mount end to end.
 
-## How it works
+## How It Works
 
 1. `App()` is a single `Boundary.rpc(GetProduct, () => ({ id: 1 }), render, { fallback })`.
 2. On mount, the boundary renders its **`fallback`** immediately, then **forks** the rpc
@@ -42,7 +42,7 @@ the boundary's forked rpc call. An `Effect.provide` wrapped around the mount cal
 reach it. `app.ts` stays side-effect-free and exports `App` + `AppRpcClientLive`; `main.ts`
 is the thin entry.
 
-## When to use
+## When to Use
 
 Reach for `Boundary.rpc` when data must be resolved on the server (behind a server-only
 service, credential, or private network) and rendered into the initial HTML, then remain

@@ -2,7 +2,7 @@
  * Recipe: effect-atom
  *
  * This recipe demonstrates driving Weft UI from Effect 4's built-in atom
- * state management module, `effect/unstable/reactivity`, the upstreamed
+ * state management module, `effect/reactivity`, the upstreamed
  * successor of effect-atom (https://github.com/tim-smart/effect-atom).
  * `AsyncResult` is the former effect-atom `Result`.
  *
@@ -17,7 +17,7 @@
 
 import { h } from "@weftui/core";
 import { Effect, Stream } from "effect";
-import { Atom, AsyncResult } from "effect/unstable/reactivity";
+import { Atom, AsyncResult } from "effect/reactivity";
 
 // ============================================================================
 // Atoms (module scope: state lives in the Registry, not the component)

@@ -39,7 +39,7 @@ Under the old `mount`/`hydrate` model this was a real footgun. Each call created
 Effect.runPromise(mount(App(), root).pipe(Effect.provide(SomeScopedLayer)));
 ```
 
-This is exactly what happened with the atom registry layer (`AtomRegistry.layer`, from `effect/unstable/reactivity`) in the [`effect-atom` example](../../examples/effect-atom) (issue #122). Every atom-driven region rendered empty, with no error, because the registry the streams read from had already been disposed.
+This is exactly what happened with the atom registry layer (`AtomRegistry.layer`, from `effect/reactivity`) in the [`effect-atom` example](../../examples/effect-atom) (issue #122). Every atom-driven region rendered empty, with no error, because the registry the streams read from had already been disposed.
 
 `WeftApp` closes this gap structurally instead of by convention. An app owns exactly **one** lazy `ManagedRuntime`. `WeftApp.make(layer)` builds the layer on the first `mount`/`hydrate`. It releases only at `WeftApp.dispose(app)`, never when any individual mount's render effect resolves.
 

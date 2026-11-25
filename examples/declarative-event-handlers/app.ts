@@ -42,7 +42,10 @@ const StreamCounter = () =>
           Stream.fromEventListener(decBtn, "click").pipe(Stream.map(() => -1)),
         ),
       ),
-      Stream.scan(0, (acc, delta) => acc + delta),
+      Stream.scan(
+        () => 0,
+        (acc, delta) => acc + delta,
+      ),
     );
 
     const count = Stream.concat(Stream.make(0), clickStream);
