@@ -174,6 +174,95 @@ export const handler = RouterServer.toWebHandler(App, { document: documentShell,
 
 In a router-less mount (like the `NoRpc` layer above) there is no seam, so the boundary resolves to a descriptive "needs router/rpc" error, not a defect.
 
+## Serving a router app as a Layer
+
+`RouterServer.layer` registers the page routes, an HTML not-found fallback, and (with `rpc`) `POST /_eui/rpc` into Effect's ambient `HttpRouter`. Merge it with your own routes and launch it like any Effect HTTP app.
+
+```typescript
+import { RouterServer } from "@weftui/router/server";
+import { Layer } from "effect";
+import { HttpRouter, HttpServerResponse } from "effect/http";
+import { App, documentShell } from "./app";
+import { StockRpcs } from "./data/inventory";
+
+const Pages = RouterServer.layer(App, { document: documentShell, rpc: StockRpcs });
+
+const Health = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"));
+
+export const Routes = Layer.mergeAll(Pages, Health);
+```
+
+`rpc` takes the `RpcGroup` contract only. Handlers and app services are requirements of the Layer, so discharge them with `Layer.provide`.
+
+```typescript
+// Continues the file above: `Routes` is the merged Layer.
+import { Context, Effect, Layer } from "effect";
+import { StockRpcs } from "./data/inventory";
+
+class Database extends Context.Service<Database, { readonly units: (id: number) => number }>()(
+  "app/Database",
+) {}
+
+const DatabaseLive = Layer.succeed(Database, { units: (id) => id * 10 });
+
+const StockLive = StockRpcs.toLayer({
+  GetStock: ({ id }) =>
+    Effect.gen(function* () {
+      const db = yield* Database;
+      return { units: db.units(id) };
+    }),
+});
+
+export const Server = Routes.pipe(Layer.provide(StockLive), Layer.provide(DatabaseLive));
+```
+
+Both Layers are built once per server and shared by every request. A page, layout or the document shell reads `Database` the same way the handler does.
+
+### Launching on Node
+
+Launch with Effect's `HttpRouter.serve` and a platform HTTP server Layer. `NodeHttpServer` comes from `@effect/platform-node`, which Weft does not install. See Effect's documentation for that package.
+
+```typescript
+import { NodeHttpServer, NodeRuntime } from "@effect/platform-node";
+import { Layer } from "effect";
+import { HttpRouter } from "effect/http";
+import { createServer } from "node:http";
+import { Server } from "./server";
+
+const Main = HttpRouter.serve(Server).pipe(
+  Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 })),
+);
+
+NodeRuntime.runMain(Layer.launch(Main));
+```
+
+### Launching on fetch-style runtimes
+
+`HttpRouter.toWebHandler` turns the same Layer into a `(Request) => Promise<Response>` handler. Call `dispose` to release the Layers on shutdown.
+
+```typescript
+import { HttpRouter } from "effect/http";
+import { Server } from "./server";
+
+export const { handler, dispose } = HttpRouter.toWebHandler(Server);
+```
+
+### Streaming and routing order
+
+- Responses stream by default. Pass `streaming: false` to buffer the whole body.
+- User routes outrank the HTML not-found fallback. A prefix catch-all such as `/api/*` also wins, so an unmatched `/api/missing` reaches your handler.
+- The fallback claims only GET. Other unmatched methods get the platform's default 404.
+
+### Limits
+
+- Two `RouterServer.layer` instances in one `HttpRouter` are unsupported.
+- A captured app service takes precedence over a same-key service in the request context.
+- Per-request services (for example a session read from the request) are not supported.
+- The rpc path is fixed at `/_eui/rpc`.
+- Static assets and the Vite dev bridge are not served by the Layer.
+
+`RouterServer.render`, `toWebHandler` and `toStreamingWebHandler` remain and are built on this Layer. Their `context` and `rpc.handlers` Layers are built once per memoized handler, not per render, and are never released. See the [`RouterServer` reference](../reference/router.md#routerserver).
+
 ## When to use
 
 - **`Boundary.rpc`**: data that must be resolved on the server (behind a server-only service, credential, or private network) and rendered into the initial HTML, then **refreshable** on the client (refetch / client-first SPA mount) over the same rpc.

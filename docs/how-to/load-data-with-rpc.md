@@ -97,7 +97,7 @@ const app = WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs } }));
 void Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root));
 ```
 
-- **Server** ([`RouterServer`](../reference/router.md#routerserver)) mounts the handler Layer at `POST /_eui/rpc`, so a client refetch re-runs it on the server. It also exposes an in-process client over the same handlers for SSR resolution, never a network hop.
+- **Server** ([`RouterServer`](../reference/router.md#routerserver), also available as a [Layer](./render-on-the-server.md#serving-a-router-app-as-a-layer)) mounts the handler Layer at `POST /_eui/rpc`, so a client refetch re-runs it on the server. It also exposes an in-process client over the same handlers for SSR resolution, never a network hop.
 - **Client** ([`RouterLive`](../reference/router.md#routerlive)) provides a network flat rpc client over the merged group, posting to `<origin>/_eui/rpc`.
 
 In a **router-less mount** there is no `AppRpcClientTag`, so a `Boundary.rpc` resolves to a typed, descriptive "needs router/rpc" error, not a defect.

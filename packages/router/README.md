@@ -20,17 +20,17 @@ Weft runs on stable Effect 4. This release is built and tested against `effect@4
 
 ## Key exports
 
-| Export                           | What it does                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------- |
-| `Router.route` / `Router.layout` | Author a leaf page (with `:param` segments + schemas) or a UI-only nesting layout.      |
-| `Router.router`                  | Seals a route tree into a `RouterDef` and captures the app-level not-found page.        |
-| `Router.lazy`                    | Code-splits a route's component into its own chunk; only the matched branch loads.      |
-| `Router.params` / `Router.query` | Read the live match (snapshot); `…Stream` variants for reactive query-in-place updates. |
-| `Router.navigating`              | Reactive `Idle`/`Navigating` signal for pending UI during deferred-commit navigation.   |
-| `href(ref, args)`                | Builds a type-safe URL for a leaf route reference.                                      |
-| `RouterApp` / `RouterOutlet`     | The universal router root node: render on both server and client.                       |
-| `RouterLive` (client)            | History-backed `Router` layer; also provides the `AppRpcClientTag` seam.                |
-| `RouterServer` (server)          | `RouterServer.render` / `RouterServer.toWebHandler` for SSR dispatch.                   |
+| Export                           | What it does                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Router.route` / `Router.layout` | Author a leaf page (with `:param` segments + schemas) or a UI-only nesting layout.                |
+| `Router.router`                  | Seals a route tree into a `RouterDef` and captures the app-level not-found page.                  |
+| `Router.lazy`                    | Code-splits a route's component into its own chunk; only the matched branch loads.                |
+| `Router.params` / `Router.query` | Read the live match (snapshot); `…Stream` variants for reactive query-in-place updates.           |
+| `Router.navigating`              | Reactive `Idle`/`Navigating` signal for pending UI during deferred-commit navigation.             |
+| `href(ref, args)`                | Builds a type-safe URL for a leaf route reference.                                                |
+| `RouterApp` / `RouterOutlet`     | The universal router root node: render on both server and client.                                 |
+| `RouterLive` (client)            | History-backed `Router` layer; also provides the `AppRpcClientTag` seam.                          |
+| `RouterServer` (server)          | `RouterServer.layer` serves the app as an `HttpRouter` Layer; `render` / `toWebHandler` adapt it. |
 
 Client-side navigation to a different path resets the window scroll to the top at commit; query-only navigations and browser back/forward preserve it (the latter via the browser's native `history.scrollRestoration`).
 
@@ -50,6 +50,23 @@ const App = Router.router(userRoute, { notFound: () => h.div("Not found") });
 
 href(userRoute, { path: { id: 42 } }); // "/users/42"
 ```
+
+## Serving
+
+`RouterServer.layer` registers the page routes, an HTML not-found fallback, and the optional rpc route into Effect's `HttpRouter`. Merge it with your own routes and launch it with `HttpRouter.serve`.
+
+```typescript
+import { RouterServer } from "@weftui/router/server";
+import { Layer } from "effect";
+import { HttpRouter, HttpServerResponse } from "effect/http";
+
+const Pages = RouterServer.layer(App, { document: documentShell });
+const Health = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"));
+
+export const { handler, dispose } = HttpRouter.toWebHandler(Layer.mergeAll(Pages, Health));
+```
+
+See [Serving a router app as a Layer](https://weftui.dev/docs/how-to/render-on-the-server) for rpc handlers, app services and the Node launch path.
 
 ## Documentation
 

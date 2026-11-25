@@ -104,7 +104,7 @@ FieldsType<Query> }`. The router passes `{ path, query }` into the leaf slot at
 | `src/client/router-live.ts`   | client | `Router` `Layer` backed by the History API                                      |
 | `src/client/link.ts`          | client | global same-origin click interceptor → SPA navigation                           |
 | `src/client/navigation.ts`    | client | typed `navigate`/`push`/`replace`/`back`/`forward`/`setQuery`/`patchQuery`      |
-| `src/server/router-server.ts` | server | per-request server `Router` + render + 404                                      |
+| `src/server/router-server.ts` | server | `RouterServer.layer` routes Layer, per-request server `Router`, render + 404    |
 
 ## Authoring API
 
@@ -223,6 +223,12 @@ browser (refactor _Feasibility constraint_). The compiled entries are memoized p
   outlet; the layout DOM node identity is preserved.
 
 ### Server render + 404 (`server/router-server.ts`)
+
+The routing described here has one implementation, exposed as the composable
+`RouterServer.layer` (spec: `src/server/router-server-layer.specs.md`). `render`,
+`toWebHandler` and `toStreamingWebHandler` are adapters over that Layer. Their
+`context` and `rpc.handlers` Layers are built once per memoized handler, not per
+render, and are never released.
 
 Server dispatch runs **through `effect/http-api` `HttpApiBuilder`** — the platform layer owns
 request→leaf matching and path/query decode. The handler builds a dispatch-only
