@@ -133,7 +133,7 @@ export function catchCause<C extends readonly Renderable[], FE = never, FR = nev
  */
 export function catchTag<
   C extends readonly Renderable[],
-  Tag extends ChildrenE<C> extends { _tag: string } ? ChildrenE<C>["_tag"] : string,
+  Tag extends (ChildrenE<C> extends { _tag: string } ? ChildrenE<C>["_tag"] : string),
   FE = never,
   FR = never,
 >(
