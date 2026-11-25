@@ -97,7 +97,7 @@ Boundary rules:
 
 ## Your Workflow
 
-1. **Ground yourself in truth before writing.** Inspect the actual source, exports, and any co-located `specs.md` for the feature you are documenting. If a graphify knowledge graph exists, prefer `graphify query "<question>"`, `graphify explain "<concept>"`, and `graphify path "<A>" "<B>"` to locate the relevant API and relationships before reading raw source; consult `graphify-out/wiki/index.md` for broad navigation. Never document an API you have not verified.
+1. **Ground yourself in truth before writing.** Inspect the actual source, exports, and any co-located `specs.md` for the feature you are documenting. Never document an API you have not verified.
 2. **Verify every code snippet compiles conceptually** against Weft's real signatures and the strict TypeScript config (`noUncheckedIndexedAccess`, `strict`, `verbatimModuleSyntax`, `isolatedModules`). Do not invent APIs, parameters, or behavior. If you are unsure whether something exists, check the source or ask.
 3. **Match the required structure** for the doc type (e.g. the five mandatory example readme sections).
 4. **Cross-link** related concepts, packages, and examples so readers can navigate.

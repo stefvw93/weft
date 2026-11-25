@@ -49,8 +49,8 @@ The new prerelease broke something upstream. On the bump branch:
 
 1. Read the failing output; identify the changed API. Confirm the change **against the newly installed dist** (`node_modules/.pnpm/effect@<new>/...`). Find the renamed/moved export or changed signature there.
 2. Apply the migration in workspace code. Loop `vp check --fix` → `vp run check` → `vp run test` (+ `test:browser`) until green (same loop as `/implement`).
-3. Sweep prose for the change: if the API appears in `docs/`, READMEs, example readmes, or `*.specs.md`, update those too (grep the old name repo-wide, excluding `effect-src/`, `node_modules/`, `graphify-out/`).
-4. Commit onto the bump branch (`fix:` because it ships with the bump), mark the PR ready, run `graphify update .`.
+3. Sweep prose for the change: if the API appears in `docs/`, READMEs, example readmes, or `*.specs.md`, update those too (grep the old name repo-wide, excluding `effect-src/`, `node_modules/`).
+4. Commit onto the bump branch (`fix:` because it ships with the bump) and mark the PR ready.
 
 If the breakage is too large to absorb now, close the PR and note why in an issue; the cron will re-propose with the then-latest prerelease.
 
