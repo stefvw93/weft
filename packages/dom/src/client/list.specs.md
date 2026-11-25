@@ -192,10 +192,7 @@ the newest snapshot (latest-value-wins) instead of reconciling every queued
 one. Sequential-snapshot ordering holds by construction: a single pump writes
 the cell and a single flush fiber commits it.
 
-_(amended by list-mount-fast-path.specs.md, issue #178)_ `reconcileList` takes
-a behavior-preserving **bulk mount fast path** when previous state is empty
-(first emission, empty refill, or HY2 divergence recovery): it skips the
-`prevIndex` build, drop-set walk, and LIS, rendering all items and inserting
-them in one pass. The post-mount `ListState` is identical to the general path,
-so every MR/KR/SC/ID guarantee here is unchanged. Details and ACs (FE1-FE7) live
-in that spec.
+_(amended by list-mount-fast-path.specs.md, issue #178)_ When previous state is
+empty, `reconcileList` skips the drop and LIS passes. The resulting `ListState`
+is unchanged. A failed render closes every item scope that emission created
+(FE8), on mount and on update.

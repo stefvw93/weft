@@ -48,15 +48,13 @@ The renderer diffs children by position, so a new array means every row's DOM no
 
 ## Static lists: use plain children
 
-`List.each` exists to reconcile a collection that changes after mount: it keys each row, forks a per-row scope, and brackets each item with start/end markers so a later reorder or removal reuses existing DOM.
+`List.each` adds markers, a scope, and a key to every row so later updates can reuse its DOM.
 
-If a collection never changes after mount, skip that machinery and render plain array children instead:
+If a collection never changes after mount, render plain array children instead:
 
 ```typescript
 h.ul(items.map((item) => h.li(item.name)));
 ```
-
-A list that never re-emits pays for markers, per-row scopes, and an identity map it never uses. Plain children render in one pass with none of that bookkeeping.
 
 Reach for `List.each` only when the source is reactive and items can reorder, insert, or remove.
 
@@ -72,7 +70,7 @@ List.each({ of: Subscribable.changes(rows), by: (row) => row.id }, (row) =>
 
 ## Index-key footgun
 
-`by: index` defeats reconciliation: nodes are reused by DOM position, not by item identity, so content goes stale after any reorder.
+`by: index` defeats reconciliation: it identifies a position instead of an item.
 
 ```typescript
 // Wrong: reuses rows positionally. After a reorder, each position keeps its

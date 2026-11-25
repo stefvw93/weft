@@ -1,14 +1,12 @@
 import { h, List } from "@weftui/core";
 import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
-import { expect, it, vi } from "vite-plus/test";
+import { expect, it, onTestFinished, vi } from "vite-plus/test";
 
-// Permanent perf guard for issue #178 (list-mount-fast-path.specs.md FE7): the
-// first emission of a large static `List.each` takes the bulk mount fast path
-// (no prevIndex/drop-walk/LIS, single-pass insert) and materializes close to
-// plain array children. Structural assertions are primary; a same-run plain-
-// children baseline plus a generous absolute cap guard the timing without
-// cross-run flakiness.
+// Scale guard for issue #178 (list-mount-fast-path.specs.md FE7): a 10k-row mount
+// is structurally correct and stays linear. Structural assertions are primary. The
+// timing bound catches superlinear growth only; per-item rendering dominates, so it
+// cannot (and does not claim to) detect changes to keyed bookkeeping.
 
 const ROWS = 10_000;
 
@@ -26,7 +24,7 @@ function countItemStartMarkers(container: Element): number {
   return count;
 }
 
-it("FE7: 10k static rows first-render via the bulk mount fast path", async () => {
+it("FE7: 10k static rows mount in order without superlinear cost", async () => {
   const rows: readonly Row[] = Array.from({ length: ROWS }, (_, id) => ({ id }));
 
   // Baseline: the same 10k rows as plain array children (no keyed region), on
@@ -34,8 +32,12 @@ it("FE7: 10k static rows first-render via the bulk mount fast path", async () =>
   const plainContainer = document.createElement("div");
   document.body.append(plainContainer);
   const plainApp = WeftApp.make();
+  onTestFinished(async () => {
+    await Effect.runPromise(WeftApp.dispose(plainApp));
+    plainContainer.remove();
+  });
   const plainStarted = performance.now();
-  const plainHandle = await Effect.runPromise(
+  await Effect.runPromise(
     WeftApp.mount(
       plainApp,
       h.ul(rows.map((row) => h.li({ "data-row": String(row.id) }, String(row.id)))),
@@ -47,14 +49,16 @@ it("FE7: 10k static rows first-render via the bulk mount fast path", async () =>
   });
   const plainMs = performance.now() - plainStarted;
 
-  // Fast path: the same 10k rows through `List.each`. A static array `of`
-  // emits once, so the first commit reconciles against empty state (the bulk
-  // mount branch).
+  // A static array `of` emits once, so its only commit is a mount.
   const listContainer = document.createElement("div");
   document.body.append(listContainer);
   const listApp = WeftApp.make();
+  onTestFinished(async () => {
+    await Effect.runPromise(WeftApp.dispose(listApp));
+    listContainer.remove();
+  });
   const listStarted = performance.now();
-  const listHandle = await Effect.runPromise(
+  await Effect.runPromise(
     WeftApp.mount(
       listApp,
       h.ul([
@@ -78,21 +82,6 @@ it("FE7: 10k static rows first-render via the bulk mount fast path", async () =>
   expect(lis[ROWS - 1]?.getAttribute("data-row")).toBe(String(ROWS - 1));
   expect(countItemStartMarkers(listContainer)).toBe(ROWS);
 
-  await Effect.runPromise(listHandle.unmount());
-  await Effect.runPromise(WeftApp.dispose(listApp));
-  await Effect.runPromise(plainHandle.unmount());
-  await Effect.runPromise(WeftApp.dispose(plainApp));
-  listContainer.remove();
-  plainContainer.remove();
-
-  // Generous absolute cap: catches a catastrophic regression to per-item
-  // immutable-HashSet + LIS work on 10k rows.
-  expect(listMs).toBeLessThan(20_000);
-  // Same-run ratio: DOM-node creation dominates both mounts, so the keyed
-  // fast path should stay within a small multiple of plain children. The 6x
-  // bound is deliberately generous for CI noise while still catching a return
-  // to the full reconcile walk. Guarded against a tiny/zero baseline.
-  if (plainMs >= 50) {
-    expect(listMs).toBeLessThan(plainMs * 6);
-  }
+  // Floored so a very fast baseline cannot make the bound flaky.
+  expect(listMs).toBeLessThan(Math.max(plainMs, 50) * 6);
 }, 120_000);
