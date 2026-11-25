@@ -125,7 +125,7 @@ describe("first-paint: capture window (CW)", () => {
     assert.deepEqual(values, [2, 3], "every later emission still reaches the sink");
   });
 
-  it("CW3 (burst): a synchronous burst captures only the first element, the rest reach the sink", async () => {
+  it("CW3 (burst): a synchronous burst conflates to its newest element", async () => {
     const { values, sink } = collector<number>();
 
     const head = await Effect.runPromise(
@@ -138,8 +138,8 @@ describe("first-paint: capture window (CW)", () => {
       ),
     );
 
-    assert.deepEqual(Option.getOrThrow(head), 1, "only the first element is the head");
-    assert.deepEqual(values, [2, 3], "the rest of the burst is neither lost nor re-captured");
+    assert.deepEqual(Option.getOrThrow(head), 3, "the newest element is the head");
+    assert.deepEqual(values, [], "superseded elements never reach the sink");
   });
 
   it("CW4: an asynchronous source captures nothing", async () => {
@@ -386,8 +386,8 @@ describe("first-paint: mount-pass gate (MG)", () => {
       refs.rows = rows;
       refs.inner = inner;
       // The item added later renders a nested reactive region. Its pump is
-      // forked from the flush fiber, so it must NOT use startImmediately (#179)
-      // and must still be interrupted when the item's scope closes.
+      // forked from the flush fiber, so it takes the deferred path and
+      // must still be interrupted when the item's scope closes.
       const tracked = Stream.tap(SubscriptionRef.changes(inner), () =>
         Effect.sync(() => {
           ticks++;
@@ -659,5 +659,166 @@ describe("first-paint: suspense (HS)", () => {
 
     assert.equal(root.querySelector(".fallback"), null, "no fallback frame for a sync child");
     assert.equal(root.querySelector("#reactive")?.textContent, "ready");
+  });
+});
+
+// ============================================================================
+// Loom hold (HD), prop ordering (FP8), and routing regressions
+//
+// Lists are large enough that the mount fiber exhausts its op budget and yields
+// mid-pass. Smaller lists mount in one turn and cannot expose these races.
+// ============================================================================
+
+const people = (n: number, from = 0): readonly Person[] =>
+  Array.from({ length: n }, (_, i) => p(String(from + i)));
+
+/** Emits `first` synchronously and `second` one scheduler turn later, mid-mount. */
+const thenNext = <A>(first: A, second: A): Stream.Stream<A> =>
+  Stream.concat(Stream.make(first), Stream.fromEffect(pipe(Effect.yieldNow, Effect.as(second))));
+
+const bigList = (n = 1000) =>
+  h.ul([List.each({ of: people(n), by: (x) => x.id }, (x) => h.li({ id: x.id }, x.name))]);
+
+describe("first-paint: a mount pass that yields (HD)", () => {
+  for (const n of [5, 100, 1000]) {
+    it(`HD1: a second snapshot of ${n} rows arriving mid-mount reconciles once`, async () => {
+      createTestDOM();
+      const root = createRoot();
+      let renders = 0;
+
+      await runMount(
+        h.ul([
+          List.each({ of: thenNext(people(n), people(n + 2, 1)), by: (x) => x.id }, (x) => {
+            renders++;
+            return h.li({ id: x.id }, x.name);
+          }),
+        ]),
+        root,
+      );
+      await waitForStream();
+
+      assert.deepEqual(
+        itemIds(root),
+        people(n + 2, 1).map((x) => x.id),
+      );
+      assert.equal(renders, n + 3, "each key rendered exactly once");
+    });
+  }
+
+  it("HD1: a child value arriving mid-mount replaces the inline one", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(h.div([thenNext(bigList(), h.p({ id: "second" }, "second"))]), root);
+    await waitForStream();
+
+    assert.ok(root.querySelector("#second"), "the newer value won");
+    assert.deepEqual(itemIds(root), []);
+  });
+
+  it("HD2: a boundary failing inline still shows its fallback", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.fragment([
+        Boundary.catch({ fallback: () => h.div({ id: "fallback" }, "dup") }, [
+          List.each({ of: [p("x"), p("x")], by: (x) => x.id }, () => h.b({}, "x")),
+          h.b({ id: "kid" }, "kid"),
+        ]),
+        bigList(),
+      ]),
+      root,
+    );
+    await waitForStream();
+
+    assert.ok(root.querySelector("#fallback"));
+    assert.equal(root.querySelector("#kid"), null);
+  });
+
+  it("HD2: a failing mount releases the hold for the app's other roots", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const other = createRoot();
+    const app = WeftApp.make();
+    const ref = await Effect.runPromise(SubscriptionRef.make("a"));
+
+    await Effect.runPromise(
+      WeftApp.mount(app, h.p({ id: "live" }, [SubscriptionRef.changes(ref)]) as never, root),
+    );
+    const exit = await Effect.runPromiseExit(
+      WeftApp.mount(app, { type: 1, props: {} } as never, other),
+    );
+    assert.equal(exit._tag, "Failure");
+
+    await Effect.runPromise(SubscriptionRef.set(ref, "b"));
+    await waitForStream();
+    assert.equal(root.querySelector("#live")?.textContent, "b");
+  });
+});
+
+describe("first-paint: prop ordering (FP8)", () => {
+  it("FP8: a reactive select value applies after its options exist", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.select({ value: Stream.make("b") }, [
+        h.option({ value: "a" }, "a"),
+        h.option({ value: "b" }, "b"),
+      ]),
+      root,
+    );
+
+    assert.equal(root.querySelector("select")?.value, "b");
+  });
+
+  it("FP8: a reactive range value applies after its static bounds", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(h.input({ value: Stream.make("150"), type: "range", max: "200" }), root);
+
+    assert.equal(root.querySelector("input")?.value, "150");
+  });
+});
+
+describe("first-paint: inline failure regressions (FE)", () => {
+  it("FE1: a first snapshot that throws while iterating does not fail mount", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const of = Stream.make(null as unknown as readonly Person[]);
+
+    await runMount(
+      List.each({ of, by: (x) => x.id }, (x) => h.li({ id: x.id }, x.name)),
+      root,
+    );
+    assert.deepEqual(itemIds(root), []);
+  });
+
+  it("FE5: an inline failure plus a construction failure renders one fallback", async () => {
+    createTestDOM();
+    const root = createRoot();
+    let fallbacks = 0;
+
+    await runMount(
+      Boundary.catch(
+        {
+          fallback: () => {
+            fallbacks++;
+            return h.div({ id: "fallback" }, "once");
+          },
+        },
+        [
+          List.each({ of: [p("a"), p("a")], by: (x) => x.id }, (x) => h.li({ id: x.id }, x.name)),
+          { type: 1, props: {} } as never,
+        ],
+      ),
+      root,
+    );
+    await waitForStream();
+
+    assert.equal(fallbacks, 1);
+    assert.equal(root.querySelectorAll("#fallback").length, 1);
   });
 });

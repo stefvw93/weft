@@ -30,6 +30,8 @@ interface LoomState {
   /** True while a flush pass is draining (dirty may be transiently empty). */
   flushing: boolean;
   flushStarted: boolean;
+  /** Present while mount passes are rendering: commits wait for `released`. */
+  held: { count: number; readonly released: Deferred.Deferred<void> } | undefined;
 }
 
 const states = new WeakMap<Loom, LoomState>();
@@ -75,6 +77,52 @@ function contained(effect: Effect.Effect<void, unknown>): Effect.Effect<void> {
   );
 }
 
+/** Marks the cell committed, firing `onFirstCommit` at most once. */
+function settleFirstCommit(cell: CellState): Effect.Effect<void> {
+  return Effect.suspend(() => {
+    if (cell.committedOnce) {
+      return Effect.void;
+    }
+    cell.committedOnce = true;
+    return cell.onFirstCommit !== undefined ? contained(cell.onFirstCommit) : Effect.void;
+  });
+}
+
+/**
+ * Routes a failed commit, kills the cell, and fork-interrupts its pump (LM16).
+ * Routing is contained so its own defects cannot abort the caller. Interrupt-only
+ * causes are teardown noise and are ignored (LM18).
+ */
+function routeFailure(
+  state: LoomState,
+  cell: CellState,
+  cause: Cause.Cause<unknown>,
+): Effect.Effect<void> {
+  return Effect.gen(function* () {
+    if (Cause.hasInterruptsOnly(cause)) {
+      return;
+    }
+    yield* contained(
+      Option.isSome(cell.boundary)
+        ? cell.boundary.value.reportError(cause)
+        : cell.reportUnhandled(cause, cell.label),
+    );
+    yield* discard(state, cell);
+    if (cell.pumpFiber !== undefined) {
+      yield* pipe(Fiber.interrupt(cell.pumpFiber), Effect.forkDetach);
+    }
+  });
+}
+
+/** Resolves once no mount pass holds the loom. Re-checks, since holds can overlap. */
+function awaitReleased(state: LoomState): Effect.Effect<void> {
+  return Effect.suspend(() =>
+    state.held === undefined
+      ? Effect.void
+      : pipe(Deferred.await(state.held.released), Effect.andThen(awaitReleased(state))),
+  );
+}
+
 /** Resolves and clears all outstanding barriers with the current generation. */
 function resolveBarriers(state: LoomState): Effect.Effect<void> {
   return Effect.suspend(() => {
@@ -103,6 +151,9 @@ function flushPass(state: LoomState): Effect.Effect<void> {
     while (state.dirty.size > 0) {
       const batch = [...state.dirty].sort((a, b) => a.seq - b.seq);
       for (const cell of batch) {
+        // A mounting root's markers may still be detached, and its inline paints
+        // own their region's state until the pass ends (first-paint.specs.md HD1).
+        yield* awaitReleased(state);
         state.dirty.delete(cell);
         if (!cell.alive) {
           continue;
@@ -131,25 +182,9 @@ function flushPass(state: LoomState): Effect.Effect<void> {
         }
         if (Exit.isSuccess(exit)) {
           committedAny = true;
-          if (!cell.committedOnce) {
-            cell.committedOnce = true;
-            if (cell.onFirstCommit !== undefined) {
-              yield* contained(cell.onFirstCommit);
-            }
-          }
-        } else if (!Cause.hasInterruptsOnly(exit.cause)) {
-          // Route the failure, kill the cell, fork-interrupt its pump; the
-          // flush fiber itself survives and keeps draining (LM16). Routing
-          // and hooks are contained: their own defects cannot abort the pass.
-          yield* contained(
-            Option.isSome(cell.boundary)
-              ? cell.boundary.value.reportError(exit.cause)
-              : cell.reportUnhandled(exit.cause, cell.label),
-          );
-          yield* discard(state, cell);
-          if (cell.pumpFiber !== undefined) {
-            yield* pipe(Fiber.interrupt(cell.pumpFiber), Effect.forkDetach);
-          }
+          yield* settleFirstCommit(cell);
+        } else {
+          yield* routeFailure(state, cell, exit.cause);
         }
       }
     }
@@ -177,6 +212,7 @@ export function makeLoomUnsafe(): Loom {
     generation: 0,
     flushing: false,
     flushStarted: false,
+    held: undefined,
   };
 
   const loom: Loom = {
@@ -219,40 +255,12 @@ export function makeLoomUnsafe(): Loom {
               return Effect.void; // torn down mid-mount: never fire hooks (LM19)
             }
             cellState.everWritten = true;
-            if (cellState.committedOnce) {
-              return Effect.void;
-            }
-            cellState.committedOnce = true;
-            return cellState.onFirstCommit !== undefined
-              ? contained(cellState.onFirstCommit)
-              : Effect.void;
+            return settleFirstCommit(cellState);
           }),
           reportAndDiscard: (cause) =>
-            Effect.suspend(() => {
-              if (!cellState.alive) {
-                return Effect.void;
-              }
-              if (Cause.hasInterruptsOnly(cause)) {
-                // Same filter `flushPass` applies to a failed commit: teardown
-                // noise must never reach a boundary, or unmounting a
-                // boundary-enclosed region would trigger recovery (LM18).
-                return Effect.void;
-              }
-              const pump = cellState.pumpFiber;
-              return pipe(
-                contained(
-                  Option.isSome(cellState.boundary)
-                    ? cellState.boundary.value.reportError(cause)
-                    : cellState.reportUnhandled(cause, cellState.label),
-                ),
-                Effect.andThen(discard(state, cellState)),
-                Effect.andThen(
-                  pump !== undefined
-                    ? Effect.asVoid(pipe(Fiber.interrupt(pump), Effect.forkDetach))
-                    : Effect.void,
-                ),
-              );
-            }),
+            Effect.suspend(() =>
+              cellState.alive ? routeFailure(state, cellState, cause) : Effect.void,
+            ),
         };
         return cell;
       }),
@@ -265,6 +273,27 @@ export function makeLoomUnsafe(): Loom {
       state.barriers.push(barrier);
       return Deferred.await(barrier);
     }),
+
+    hold: (effect) =>
+      Effect.acquireUseRelease(
+        Effect.sync(() => {
+          state.held ??= { count: 0, released: Deferred.makeUnsafe<void>() };
+          state.held.count++;
+          return state.held;
+        }),
+        () => effect,
+        (held) =>
+          Effect.suspend(() => {
+            held.count--;
+            if (held.count > 0) {
+              return Effect.void;
+            }
+            state.held = undefined;
+            return Effect.asVoid(Deferred.succeed(held.released, undefined));
+          }),
+      ),
+
+    awaitReleased: awaitReleased(state),
 
     commitGeneration: Effect.sync(() => state.generation),
   };

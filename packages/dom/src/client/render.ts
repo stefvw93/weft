@@ -118,6 +118,21 @@ export function setElementProps(
   });
 }
 
+/** True when applying the prop subscribes to a source. */
+function isReactiveProp(key: string, value: unknown): boolean {
+  if (key === "children" || key === "ref") {
+    return false;
+  }
+  const isReactive = (item: unknown) => isStream(item) || Effect.isEffect(item);
+  return (
+    isReactive(value) ||
+    (key === "style" &&
+      typeof value === "object" &&
+      value !== null &&
+      Object.values(value).some(isReactive))
+  );
+}
+
 /**
  * Determines if a prop should be set as property vs attribute
  */
@@ -361,9 +376,7 @@ function isTeardownCause(cause: Cause.Cause<unknown>): boolean {
  * @param errorContext - Region/prop identifier published as the hub region (e.g. `attribute:<name>`, `child:stream-<id>`).
  * @param reportUnhandled - The owning root's `RenderContext.reportUnhandled`.
  * @param startImmediately - Run the pump on the caller's fiber until its first
- *   async boundary, so a synchronously available first element is delivered
- *   during this call and can be painted inline. Only ever set on a mount pass:
- *   from inside a forked fiber, scope close would not interrupt the child (#179).
+ *   async boundary. Set only on a mount pass, where the Loom is held.
  */
 function forkSupervised<A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -396,32 +409,28 @@ function forkSupervised<A, E, R>(
 }
 
 /**
- * The same render context with inline first paint disabled.
- *
- * Applied wherever a Loom commit closure re-provides `RenderContext`: commits run
- * on the flush fiber, so a region created there must not fork its pump with
- * `startImmediately` (first-paint.specs.md MG2, and #179).
+ * The same render context with inline first paint disabled. Inline paint is only
+ * safe while a mount pass holds the Loom (first-paint.specs.md HD1).
  */
 function deferred(context: RenderContext["Service"]): RenderContext["Service"] {
   return context.syncFirstPaint ? { ...context, syncFirstPaint: false } : context;
 }
 
 /**
- * Forks an effect that may render (a boundary fallback, an rpc-resolved subtree)
- * with inline first paint disabled.
- *
- * Anything rendered from a forked fiber must take the deferred path: a region
- * created there would fork its own pump with `startImmediately`, and scope close
- * does not interrupt an immediately-started grandchild in that topology (#179),
- * leaking the pump. Clearing the flag at the fork rather than at each render call
- * keeps the invariant in one place (first-paint.specs.md MG2/MG3).
+ * Forks a continuation that swaps region content, with inline first paint disabled.
+ * It waits for the mount pass to attach its markers before running (HD2).
  */
 function forkRendering<A, E>(
   effect: Effect.Effect<A, E, RenderContext>,
   context: RenderContext["Service"],
   scope: Scope.Scope,
 ): Effect.Effect<Fiber.Fiber<A, E>> {
-  return Effect.forkIn(Effect.provideService(effect, RenderContext, deferred(context)), scope);
+  return pipe(
+    context.loom.awaitReleased,
+    Effect.andThen(effect),
+    Effect.provideService(RenderContext, deferred(context)),
+    Effect.forkIn(scope),
+  );
 }
 
 /**
@@ -640,6 +649,7 @@ function renderBoundary(
       reportError: (cause) => Deferred.fail(errorDeferred, cause).pipe(Effect.asVoid),
     };
 
+    let recovered = false;
     const childNodes = yield* pipe(
       renderChildren(props.children as readonly Renderable[]),
       Effect.provideService(BoundaryContext, boundaryService),
@@ -648,6 +658,7 @@ function renderBoundary(
       Effect.catchCause((cause) => {
         const fallbackNode = props.match(cause);
         if (fallbackNode === null) return Effect.failCause(cause);
+        recovered = true;
         return pipe(
           Scope.close(subtreeScope, Exit.void),
           Effect.flatMap(() => renderNode(fallbackNode as Renderable)),
@@ -658,9 +669,13 @@ function renderBoundary(
       }),
     );
 
+    // The fallback is already showing. An inline failure reported earlier in this
+    // pass must not trigger a second recovery (FE5).
+    if (recovered) {
+      return [startMarker, ...childNodes, endMarker] as readonly Node[];
+    }
+
     // Recovery fiber: awaits error deferred, swaps DOM on trigger
-    // Renders the fallback only once a live failure arrives, i.e. on this forked
-    // fiber: it must take the deferred path (#179).
     yield* forkRendering(
       boundaryRecoveryEffect(
         props,
@@ -805,7 +820,7 @@ function renderSuspenseBoundary(
       }
     });
 
-    yield* Effect.forkIn(swapEffect, context.scope);
+    yield* forkRendering(swapEffect, context, context.scope);
 
     // ── 10. Return boundary: [startMarker, ...fallbackNodes, endMarker] ──────
     return [startMarker, ...fallbackNodes, endMarker];
@@ -894,8 +909,6 @@ function renderServerBoundary(
       ),
     );
 
-    // Renders the resolved subtree after the rpc returns, i.e. on this forked
-    // fiber: it must take the deferred path (#179).
     yield* forkRendering(swapEffect, context, context.scope);
 
     return [startMarker, ...fallbackNodes, endMarker] as readonly Node[];
@@ -1126,7 +1139,13 @@ function renderElement(
     const element = document.createElement(type);
 
     // AC4: Set attributes/props first
-    yield* setElementProps(element, props);
+    // Reactive props can paint inline, and some depend on children or on static
+    // props (`select.value`, a range's `max`), so they are applied last (FP8).
+    const entries = Object.entries(props);
+    yield* setElementProps(
+      element,
+      Object.fromEntries(entries.filter(([key, value]) => !isReactiveProp(key, value))),
+    );
 
     // AC4: Then append children
     const children = "children" in props ? props.children : undefined;
@@ -1162,6 +1181,11 @@ function renderElement(
         }
       }
     }
+
+    yield* setElementProps(
+      element,
+      Object.fromEntries(entries.filter(([key, value]) => isReactiveProp(key, value))),
+    );
 
     return element;
   });
@@ -1345,7 +1369,8 @@ function handleStreamChild(
     currentContentScope = yield* Scope.fork(context.scope, "sequential");
     const firstContext = { ...context, scope: currentContentScope };
     const exit = yield* Effect.exit(
-      renderNode(head.value).pipe(
+      pipe(
+        renderNode(head.value),
         Effect.provideService(RenderContext, firstContext),
         Effect.provideService(Scope.Scope, currentContentScope),
       ),
@@ -1710,16 +1735,12 @@ function renderList(
     // via the pump fiber's exit and are routed to a boundary.
     const changes = Source.changes(of) as Stream.Stream<Iterable<unknown>>;
 
-    // Persistent reconciler state across emissions. Single-writer by
-    // construction: only the flush fiber runs the commit below.
+    // Persistent reconciler state across emissions. Single-writer: the inline
+    // paint runs while the Loom is held, and only the flush fiber runs after it.
     let state: ListState = { records: HashMap.empty(), order: [] };
 
-    const cell = yield* context.loom.register<Iterable<unknown>>({
-      label: `list:stream-${streamId}`,
-      scope: regionScope,
-      boundary,
-      reportUnhandled: context.reportUnhandled,
-      commit: (iterable) =>
+    const reconcile = (iterable: Iterable<unknown>, itemContext: RenderContext["Service"]) =>
+      pipe(
         Effect.gen(function* () {
           // KR6: materialize the iterable so iteration order is fixed for this emission.
           const items = Array.from(iterable);
@@ -1730,14 +1751,21 @@ function renderList(
             state,
             regionScope,
             endMarker,
-            deferred(context),
+            itemContext,
           );
-        }).pipe(
-          // Commits run on the flush fiber: re-provide the region's context.
-          Effect.provideService(RenderContext, deferred(context)),
-          Effect.provideService(Scope.Scope, regionScope),
-          Effect.provide(ambient),
-        ),
+        }),
+        // Commits run on the flush fiber: re-provide the region's context.
+        Effect.provideService(RenderContext, itemContext),
+        Effect.provideService(Scope.Scope, regionScope),
+        Effect.provide(ambient),
+      );
+
+    const cell = yield* context.loom.register<Iterable<unknown>>({
+      label: `list:stream-${streamId}`,
+      scope: regionScope,
+      boundary,
+      reportUnhandled: context.reportUnhandled,
+      commit: (iterable) => reconcile(iterable, deferred(context)),
     });
 
     // Pump fiber lives in the region scope; source failures route to a
@@ -1761,21 +1789,7 @@ function renderList(
     // empty state now, on the mount fiber, so the items paint in the mount
     // frame. `regionEnd` is still detached, so `reconcileList` builds every item
     // record without inserting; the ranges travel back to the caller in order.
-    const exit = yield* Effect.exit(
-      reconcileList(
-        Array.from(head.value), // KR6: fix iteration order for this emission
-        by,
-        render,
-        state,
-        regionScope,
-        endMarker,
-        context,
-      ).pipe(
-        Effect.provideService(RenderContext, context),
-        Effect.provideService(Scope.Scope, regionScope),
-        Effect.provide(ambient),
-      ),
-    );
+    const exit = yield* Effect.exit(reconcile(head.value, context));
 
     if (Exit.isFailure(exit)) {
       // FE1/FE3: route as a failed commit would, and drop whatever the partial
@@ -1784,7 +1798,6 @@ function renderList(
       return [startMarker, endMarker] as const;
     }
 
-    state = exit.value;
     yield* cell.markCommitted;
 
     const content: Node[] = [];

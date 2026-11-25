@@ -214,9 +214,8 @@ function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement) {
       scope: rootScope,
       rootScope,
       loom: state.loom,
-      // A mount pass renders on the caller's own fiber, where an
-      // immediately-started pump fork is interrupted by scope close as
-      // documented. `hydrate` overrides this to false (first-paint.specs.md MG4).
+      // Safe only because `mount` holds the Loom. `hydrate` overrides this to
+      // false (first-paint.specs.md MG4).
       syncFirstPaint: true,
       streamIdCounter: { current: 0 },
       reportUnhandled: (cause, region) => publishUnhandled(state, { cause, region, root: handle }),
@@ -326,31 +325,41 @@ export const mount = <R, E>(
     const appContext = yield* contextOf(app);
     const { context, handle, rootScope } = yield* setupRoot(app, root);
 
-    // Clear the root's existing children before rendering.
-    root.innerHTML = "";
+    // Commits wait until the rendered nodes are attached: an inline paint owns its
+    // region's state, and detached markers would swallow a commit (HD1).
+    yield* context.loom.hold(
+      Effect.gen(function* () {
+        // Clear the root's existing children before rendering.
+        root.innerHTML = "";
 
-    // `setContext` (not `provide`) makes the app context the COMPLETE
-    // environment: services provided ambiently around this mount call never
-    // reach components, handlers, or stream pumps (weft-app.specs.md WA17).
-    // Render failure cleanup = close the root scope only; the app runtime and
-    // other roots are untouched (WA18).
-    const result = yield* pipe(
-      renderNode(node),
-      Effect.setContext(
-        pipe(appContext, Context.add(RenderContext, context), Context.add(Scope.Scope, rootScope)),
-      ),
-      Effect.tapError(() => Scope.close(rootScope, Exit.void)),
-    );
+        // `setContext` (not `provide`) makes the app context the COMPLETE
+        // environment: services provided ambiently around this mount call never
+        // reach components, handlers, or stream pumps (weft-app.specs.md WA17).
+        // Render failure cleanup = close the root scope only; the app runtime and
+        // other roots are untouched (WA18).
+        const result = yield* pipe(
+          renderNode(node),
+          Effect.setContext(
+            pipe(
+              appContext,
+              Context.add(RenderContext, context),
+              Context.add(Scope.Scope, rootScope),
+            ),
+          ),
+          Effect.onError(() => Scope.close(rootScope, Exit.void)),
+        );
 
-    if (result !== null) {
-      if (Array.isArray(result)) {
-        for (const rendered of result) {
-          root.appendChild(rendered);
+        if (result !== null) {
+          if (Array.isArray(result)) {
+            for (const rendered of result) {
+              root.appendChild(rendered);
+            }
+          } else {
+            root.appendChild(result as Node);
+          }
         }
-      } else {
-        root.appendChild(result as Node);
-      }
-    }
+      }),
+    );
 
     return handle;
   });

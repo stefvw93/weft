@@ -30,7 +30,8 @@ synchronously paints that value inline during the mount pass, before `mount`
 resolves, and marks its cell committed via `LoomCell.markCommitted` without a
 flush pass. Only the **first** emission can do this, and only on a mount pass.
 Every later emission still goes through the cell and the flush fiber unchanged,
-so conflation, ordering, supervision, and `awaitCommit` are untouched. The commit
+so conflation, ordering, supervision, and `awaitCommit` are untouched. Commits pause
+while any root's mount pass runs (first-paint.specs.md HD1). The commit
 generation still counts flush passes only, so an inline first paint does not
 advance it.
 

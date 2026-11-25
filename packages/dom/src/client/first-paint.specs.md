@@ -22,7 +22,7 @@ as today, and sources that are genuinely async keep today's behavior unchanged.
 The pump fiber is forked with `{ startImmediately: true }`, which runs it on the caller's
 own fiber until its first async boundary. A source whose first element is synchronously
 available therefore delivers it **during the `forkIn` call itself**. The pump's callback
-routes that first element into a capture slot instead of the Loom cell; the call site then
+routes the newest such element into a capture slot instead of the Loom cell; the call site then
 renders it inline and returns it in the node list.
 
 This is a **single subscription**. There is no probe, no re-subscription, and therefore no
@@ -71,8 +71,8 @@ Regions are created from three kinds of place, and all three are covered:
    renders `props.match(cause)` only once a live failure arrives) and
    `renderServerBoundary`'s rpc swap (it renders `props.render(resource)` only once the
    call resolves). Both go through `forkRendering`, which clears the flag at the fork so
-   the invariant lives in one place. `renderSuspenseBoundary`'s swap fiber is exempt: it
-   renders its children _before_ forking and the fiber only moves finished nodes.
+   the invariant lives in one place. `renderSuspenseBoundary`'s swap
+   fiber renders nothing, but uses it to wait for the mount pass (HD2).
 
 ## Acceptance Criteria
 
@@ -88,6 +88,9 @@ Regions are created from three kinds of place, and all three are covered:
 - [x] **CW3 — window seals after the fork.** Given the caller seals the window right after
       forking, When the source emits again, Then that emission and every later one go to
       the Loom cell via `write`, exactly as today.
+- [x] **CW7 — a synchronous burst conflates.** Given several elements delivered while the
+      window is open, Then the newest is captured and the rest are dropped, matching the
+      cell's latest-value-wins behaviour.
 - [x] **CW4 — async source captures nothing.** Given a source with no synchronously
       available first element, When its pump is forked, Then the slot is empty, the caller
       returns markers only, and the first emission is committed by the flush fiber exactly
@@ -122,6 +125,9 @@ Regions are created from three kinds of place, and all three are covered:
       source emits again, Then the emission is written to the cell and committed by the
       flush fiber exactly as today: reconcile semantics, `ListState`, content-scope
       rotation, and conflation are all unchanged.
+- [x] **FP8 — props that depend on other state apply last.** On mount, an element's
+      reactive props are applied after its static props and children, so a reactive
+      `select.value` or a range `value` sees its options and bounds.
 - [x] **FP7 — empty first snapshot.** Given a source delivering `[]` synchronously, Then
       the region paints inline as "no items" and returns `[startMarker, endMarker]` (MR3
       unchanged).
@@ -179,6 +185,18 @@ Regions are created from three kinds of place, and all three are covered:
 - [x] **FE4 — source failure during the window.** Given a source that fails synchronously
       before emitting, When its pump is forked, Then the slot is empty and the failure is
       routed by the existing `forkSupervised` supervision, unchanged.
+
+- [x] **FE5 — one fallback.** Given an inline failure and a later construction failure
+      under one boundary, Then only the construction fallback renders.
+
+### Loom hold (HD)
+
+- [x] **HD1 — commits wait for the mount pass.** `mount` runs under `Loom.hold` until its
+      nodes are attached. A mount fiber can yield mid-pass, so without the hold a commit
+      would race the inline paint for region state or write to detached markers. Holds
+      nest across roots and release on failure and interruption.
+- [x] **HD2 — continuations wait too.** Boundary recovery, suspense swaps, and rpc swaps
+      forked during a mount pass start only after the hold is released.
 
 ### Async sources are unchanged (AS)
 
@@ -283,6 +301,12 @@ Verified as a real red→green signal rather than assumed: with `syncFirstPaint`
 `false`, the guard fails in Chromium with `expected +0 to be 10`; restored, it passes.
 
 ## Amendments
+
+_(2026-11-25, review)_ Added `HD1`/`HD2`, `FP8`, `FE5`, and `CW7`. The earlier claim that
+the inline paint cannot interleave with a commit was wrong: a mount fiber yields on its op
+budget, which a list of about 100 rows reaches. A burst now conflates instead of capturing
+its first element. `flushPass` shares its routing helpers with `markCommitted` and
+`reportAndDiscard`. The `syncFirstPaint` gate rests on the hold, not on #179.
 
 _(2026-07-24, pause rule during `/mock`)_ The original approved spec used a
 `Stream.runHead` probe under `Effect.runSyncExitWith`, gated by source kind. Two

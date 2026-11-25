@@ -58,7 +58,7 @@ One exception applies to a region's very first value. A woven source can deliver
 - a `SubscriptionRef`/`Subscribable` change stream, or
 - a synchronous cold `Stream`.
 
-When it does, that value paints inline during the mount pass, not on a later Loom commit. It is already in the DOM when `mount` resolves. Every later emission, and any source that does not deliver synchronously, still commits through the Loom exactly as described above.
+When it does, that value paints inline during the mount pass, not on a later Loom commit. It is already in the DOM when `mount` resolves. Loom commits pause until the mount pass finishes. Every later emission, and any source that does not deliver synchronously, still commits through the Loom exactly as described above.
 
 None of this changes what you write. You still thread a `Stream`, `Effect`, or `Subscribable` through a prop or child; the Loom is an implementation detail of how those emissions reach the DOM. Code that must observe every intermediate value, not just the settled one, should consume the stream directly instead of relying on what lands in the DOM (see [Reactive Primitives](./reactive-primitives.md#latest-value-wins-conflation)).
 

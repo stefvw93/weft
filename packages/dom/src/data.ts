@@ -195,6 +195,10 @@ export interface Loom {
   readonly awaitCommit: Effect.Effect<number>;
   /** Current commit generation: monotonic, +1 per flush pass that committed anything. */
   readonly commitGeneration: Effect.Effect<number>;
+  /** Runs a mount pass with commits paused until its nodes are attached. */
+  readonly hold: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>;
+  /** Resolves once no mount pass is running. Immediate when none is. */
+  readonly awaitReleased: Effect.Effect<void>;
 }
 
 /**
