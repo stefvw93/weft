@@ -463,6 +463,35 @@ describe("List.each hydration: HY2 source & identity coverage", () => {
     );
   });
 
+  it("AP9: an append after hydration reuses the adopted items and stays reconcilable", async () => {
+    createTestDOM();
+    const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([p("a"), p("b")]));
+    let renders = 0;
+    const app = List.each({ of: SubscriptionRef.changes(ref), by: (x) => x.id }, (x) => {
+      renders++;
+      return h.li({ id: x.id }, x.name);
+    });
+    const root = await seedServerHtml(app);
+    const serverA = root.querySelector("#a");
+    const serverB = root.querySelector("#b");
+    assert.ok(serverA && serverB);
+
+    await Effect.runPromise(WeftApp.hydrate(WeftApp.make(), app, root));
+    await waitForStream();
+    renders = 0;
+
+    await Effect.runPromise(SubscriptionRef.set(ref, [p("a"), p("b"), p("c"), p("d")]));
+    await waitForStreamUpdate();
+    assert.deepEqual(itemIds(root), ["a", "b", "c", "d"]);
+    assert.equal(renders, 2, "only the tail rendered");
+
+    await Effect.runPromise(SubscriptionRef.set(ref, [p("d"), p("b"), p("a")]));
+    await waitForStreamUpdate();
+    assert.deepEqual(itemIds(root), ["d", "b", "a"]);
+    assert.strictEqual(root.querySelector("#a"), serverA, "adopted a kept its node");
+    assert.strictEqual(root.querySelector("#b"), serverB, "adopted b kept its node");
+  });
+
   it("SC2: focus and uncontrolled input value survive a post-hydration reorder", async () => {
     createTestDOM();
     const ref = await Effect.runPromise(SubscriptionRef.make<readonly Person[]>([p("a"), p("b")]));

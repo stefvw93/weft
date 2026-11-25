@@ -2,6 +2,7 @@ import {
   Cause,
   Deferred,
   Effect,
+  Equal,
   Exit,
   Fiber,
   HashMap,
@@ -1647,23 +1648,29 @@ function renderList(
   });
 }
 
-/**
- * Projects each item to its reconciliation key (via `by`, or the item itself
- * under Effect `Equal`/`Hash`) and guards against duplicate keys within one
- * emission (KR1), failing with a descriptive {@link RenderError} *before* any
- * DOM is touched. Shared by {@link reconcileList} and {@link hydrateList}'s
- * first-emission adoption.
- */
+/** Projects each item to its reconciliation key (via `by`, or the item itself). */
 function projectKeys(
   items: readonly unknown[],
   by: ((item: unknown, index: number) => unknown) | undefined,
-): Effect.Effect<readonly unknown[], RenderError> {
+): readonly unknown[] {
+  return by === undefined ? items : items.map((item, i) => by(item, i));
+}
+
+/**
+ * Guards against duplicate keys within one emission (KR1), failing *before* any
+ * DOM is touched. Keys before `from` must be exactly the keys of `known`, which
+ * are already unique, so only the tail is hashed.
+ */
+function guardUniqueKeys(
+  keys: readonly unknown[],
+  from = 0,
+  known: ListState["records"] = HashMap.empty(),
+): Effect.Effect<void, RenderError> {
   return Effect.gen(function* () {
-    const keys: unknown[] = [];
     const seen = MutableHashSet.empty<unknown>();
-    for (let i = 0; i < items.length; i++) {
-      const key = by === undefined ? items[i] : by(items[i], i);
-      if (MutableHashSet.has(seen, key)) {
+    for (let i = from; i < keys.length; i++) {
+      const key = keys[i];
+      if (MutableHashSet.has(seen, key) || HashMap.has(known, key)) {
         return yield* Effect.fail(
           new RenderError({
             cause: key,
@@ -1672,9 +1679,7 @@ function projectKeys(
         );
       }
       MutableHashSet.add(seen, key);
-      keys.push(key);
     }
-    return keys;
   });
 }
 
@@ -1685,7 +1690,8 @@ function projectKeys(
  * re-invoking `render` (KR3), remove dropped keys and close their scopes (KR4),
  * and reorder retained items with a longest-increasing-subsequence so only items
  * outside the LIS are moved (KR5). Empty previous state skips the drop and move
- * passes. A failed render closes every item scope this emission created.
+ * passes, and a pure append takes {@link appendListTail}. A failed render closes
+ * every item scope this emission created.
  */
 function reconcileList(
   items: readonly unknown[],
@@ -1701,8 +1707,19 @@ function reconcileList(
   RenderContext
 > {
   return Effect.gen(function* () {
-    // 1. Project keys and guard duplicates *before* rendering anything (KR1).
-    const keys = yield* projectKeys(items, by);
+    const keys = projectKeys(items, by);
+
+    // Pure append: the matching prefix is already unique and in place.
+    const isAppend =
+      prev.order.length > 0 &&
+      keys.length > prev.order.length &&
+      prev.order.every((key, i) => Equal.equals(keys[i], key));
+    if (isAppend) {
+      return yield* appendListTail(keys, items, render, prev, regionScope, regionEnd, context);
+    }
+
+    // 1. Guard duplicates *before* rendering anything (KR1).
+    yield* guardUniqueKeys(keys);
 
     // Nothing to drop or move when no item was rendered before (FE1, FE6).
     const isMount = prev.order.length === 0;
@@ -1719,7 +1736,8 @@ function reconcileList(
     const records: ItemRecord[] = [];
     const sources: number[] = [];
     const createdScopes: Scope.Closeable[] = [];
-    yield* pipe(
+    yield* closeScopesOnError(
+      createdScopes,
       Effect.gen(function* () {
         for (let j = 0; j < items.length; j++) {
           const key = keys[j];
@@ -1742,12 +1760,6 @@ function reconcileList(
           }
         }
       }),
-      // These scopes never reach ListState, so nothing else would close them (FE8).
-      Effect.onError((cause) =>
-        Effect.forEach(createdScopes, (scope) => Scope.close(scope, Exit.failCause(cause)), {
-          discard: true,
-        }),
-      ),
     );
 
     // 3. Remove dropped keys: close their scopes (interrupting subscriptions) and
@@ -1792,6 +1804,78 @@ function reconcileList(
     // 5. New identity map + DOM order.
     const nextRecords = HashMap.mutate(HashMap.empty<unknown, ItemRecord>(), (draft) => {
       for (const record of records) {
+        HashMap.set(draft, record.key, record);
+      }
+    });
+    return { records: nextRecords, order: keys };
+  });
+}
+
+/**
+ * Closes `createdScopes` when `effect` fails: they never reach {@link ListState},
+ * so nothing else would close them (FE8).
+ */
+function closeScopesOnError<A, E, R>(
+  createdScopes: readonly Scope.Closeable[],
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> {
+  return pipe(
+    effect,
+    Effect.onError((cause) =>
+      Effect.forEach(createdScopes, (scope) => Scope.close(scope, Exit.failCause(cause)), {
+        discard: true,
+      }),
+    ),
+  );
+}
+
+/**
+ * Reconciles a pure append (previous order unchanged, plus a new suffix): renders
+ * and inserts only the tail. Returns the same {@link ListState} as the general path.
+ */
+function appendListTail(
+  keys: readonly unknown[],
+  items: readonly unknown[],
+  render: (item: unknown, index: number) => Renderable,
+  prev: ListState,
+  regionScope: Scope.Scope,
+  regionEnd: Comment,
+  context: RenderContext["Service"],
+): Effect.Effect<
+  ListState,
+  StreamSubscriptionError | RenderError | UnsupportedNodeTypeError,
+  RenderContext
+> {
+  return Effect.gen(function* () {
+    yield* guardUniqueKeys(keys, prev.order.length, prev.records);
+
+    // Render the whole tail before inserting any of it, so a failure touches no DOM.
+    const tail: ItemRecord[] = [];
+    const createdScopes: Scope.Closeable[] = [];
+    yield* closeScopesOnError(
+      createdScopes,
+      Effect.gen(function* () {
+        for (let j = prev.order.length; j < items.length; j++) {
+          tail.push(
+            yield* renderItem(keys[j], items[j], j, render, regionScope, createdScopes, context),
+          );
+        }
+      }),
+    );
+
+    const parent = regionEnd.parentNode;
+    if (parent !== null) {
+      for (const record of tail) {
+        parent.insertBefore(record.startMarker, regionEnd);
+        for (const node of record.nodes) {
+          parent.insertBefore(node, regionEnd);
+        }
+        parent.insertBefore(record.endMarker, regionEnd);
+      }
+    }
+
+    const nextRecords = HashMap.mutate(prev.records, (draft) => {
+      for (const record of tail) {
         HashMap.set(draft, record.key, record);
       }
     });
@@ -2963,7 +3047,8 @@ function hydrateFirstListEmission(
   path: string,
 ): Effect.Effect<ListState, HydrateError, RenderContext> {
   return Effect.gen(function* () {
-    const keys = yield* projectKeys(items, by);
+    const keys = projectKeys(items, by);
+    yield* guardUniqueKeys(keys);
 
     // Region-level divergence: server item count != first emission count.
     if (keys.length !== adopted.length) {
