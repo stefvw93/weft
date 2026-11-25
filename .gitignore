@@ -43,10 +43,6 @@ packages/*/docs/
 # Claude Code worktrees (isolated repo copies — must stay invisible to tooling)
 .claude/worktrees/
 
-# Graphify
-graphify-out/cost.json
-graphify-out/cache/
-
 # effect 4 source reference clone (see CLAUDE.md "Effect 4 Reference")
 effect-src
 # leftover clone of the archived effect-smol repo (superseded by effect-src)

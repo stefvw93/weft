@@ -199,7 +199,7 @@ Every feature follows this 8-step cycle. Each step is a project skill (detail li
 2. `/mock`: `declare`-based full API surface in the real source file, JSDoc included. Refuses to run without `specs.md`.
 3. `/type-tests`: TSTyche tests at `src/**/__type-tests__/*.tst.ts` (`expect().type` matchers, message-fragment `@ts-expect-error` where no matcher fits) run via `vp run test:types`, or explicit `type-tests: not applicable, <reason>` recorded in `specs.md`.
 4. `/unit-test`: co-located `*.test.ts` covering every acceptance criterion, happy + error paths (full Effect error union), edge cases. **Red phase:** new tests must fail against the mocks before implementation.
-5. `/implement`: replace mocks in-place with signature parity, loop `vp check --fix` → `vp run check` → `vp run test` until green, then `graphify update .`.
+5. `/implement`: replace mocks in-place with signature parity, loop `vp check --fix` → `vp run check` → `vp run test` until green.
 6. `/e2e`: `*.browser.test.ts` via `vp run test:browser`. Mandatory for every touched `examples/*` app; conditional for package features (explicit skip recorded otherwise).
 7. `/review-step`: code-review pass (medium effort; high when `packages/core` or `packages/dom` public API is touched) plus spec-conformance check; every finding fixed or explicitly rejected with reason; loop until clean. **Hard gate: no commit until clean.**
 8. `/document`: full docs sweep (JSDoc, `specs.md` sync, `docs/`, READMEs, example readmes) via the `weft-docs-author` agent + main thread. **Hard gate: no commit until complete.** Then branch + PR, never push `main`.
@@ -288,14 +288,3 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
 <!--VITE PLUS END-->
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-Rules:
-
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
