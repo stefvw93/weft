@@ -39,7 +39,7 @@ The rpc **contract** (pure Schema) is shared with the client. The rpc **handler*
 
 ```typescript
 // data/inventory.ts
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Context, Effect, Layer, Schema } from "effect";
 
 // --- Contract (shareable with the client) ---
@@ -160,7 +160,7 @@ Boundary.rpc<R extends Rpc.Any, C extends Node<any, any>>(
 Give the rpc an `error` schema and a resolved rpc **error** on the SSR pass is `errorSchema`-encoded into an inline failure payload:
 
 ```typescript
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Schema } from "effect";
 
 export class OutOfStock extends Schema.TaggedError<OutOfStock>()("OutOfStock", {
@@ -199,7 +199,7 @@ A `/products/:id` page with a refetchable live-stock `Boundary.rpc`, sealed into
  * contract / handler split" above for why this file is safe to import from
  * both `app.ts` (contract only) and `entry-server.ts` (contract + handler).
  */
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Context, Effect, Layer, Schema } from "effect";
 
 export const Stock = Schema.Struct({ units: Schema.Number });

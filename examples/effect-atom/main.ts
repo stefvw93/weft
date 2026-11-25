@@ -1,6 +1,6 @@
 import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
-import { AtomRegistry } from "effect/unstable/reactivity";
+import { AtomRegistry } from "effect/reactivity";
 import { App } from "./app";
 
 // Lifetime rule: the atom registry must outlive initial render, because atom

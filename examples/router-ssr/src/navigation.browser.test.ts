@@ -26,7 +26,7 @@ import {
   RouterApp,
   RouterLive,
 } from "@weftui/router/client";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Effect, Schema, Stream } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

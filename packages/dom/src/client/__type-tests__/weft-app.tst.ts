@@ -6,7 +6,7 @@
 // `vp run test:types` (TSTyche), not `vp run check`.
 import { expect, test } from "tstyche";
 import { Boundary, ServerTag, h, type Node } from "@weftui/core";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { Context, Data, Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
 import * as WeftApp from "../weft-app";
 

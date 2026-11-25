@@ -2,7 +2,7 @@
 
 ## Overview
 
-This example demonstrates driving a Weft UI from Effect 4's built-in atom state management module, `effect/unstable/reactivity`, the upstreamed successor of [effect-atom](https://github.com/tim-smart/effect-atom). `AsyncResult` is the former effect-atom `Result`.
+This example demonstrates driving a Weft UI from Effect 4's built-in atom state management module, `effect/reactivity`, the upstreamed successor of [effect-atom](https://github.com/tim-smart/effect-atom). `AsyncResult` is the former effect-atom `Result`.
 
 It shows a writable atom, a derived atom, and an async atom rendered through its `AsyncResult` states.
 
@@ -18,12 +18,12 @@ Reaching for such a library usually means writing an adapter layer to bridge its
 
 ## Solution
 
-`effect/unstable/reactivity` needs no adapter here because both Weft and the module speak Effect. `Atom.toStream` turns an atom into a `Stream`, which Weft already consumes natively as a child or prop; `Atom.update` and `Atom.refresh` return Effects, which Weft event handlers already run on the mount runtime.
+`effect/reactivity` needs no adapter here because both Weft and the module speak Effect. `Atom.toStream` turns an atom into a `Stream`, which Weft already consumes natively as a child or prop; `Atom.update` and `Atom.refresh` return Effects, which Weft event handlers already run on the mount runtime.
 
 ```typescript
 import { h } from "@weftui/core";
 import { Effect, Stream } from "effect";
-import { Atom, AsyncResult } from "effect/unstable/reactivity";
+import { Atom, AsyncResult } from "effect/reactivity";
 
 const countAtom = Atom.make(0);
 const doubleAtom = Atom.map(countAtom, (n) => n * 2);
@@ -36,7 +36,7 @@ const Counter = () =>
   ]);
 ```
 
-`effect/unstable/reactivity` lives under Effect's `unstable` namespace: it ships with `effect@rc`, but its API may still change before it stabilizes.
+`effect/reactivity` ships with `effect`, but Effect marks its API unstable.
 
 ## How It Works
 
@@ -50,7 +50,7 @@ const Counter = () =>
 ```typescript
 import { WeftApp } from "@weftui/dom/client";
 import { Effect } from "effect";
-import { AtomRegistry } from "effect/unstable/reactivity";
+import { AtomRegistry } from "effect/reactivity";
 import { App } from "./app";
 
 const app = WeftApp.make(AtomRegistry.layer);

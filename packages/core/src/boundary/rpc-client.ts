@@ -4,7 +4,7 @@ import { Context, type Effect } from "effect";
  * Ambient, package-neutral seam for resolving a {@link Boundary.rpc} boundary's
  * data through the application's merged `RpcGroup`. The DOM renderer
  * (`@weftui/dom`) must resolve a boundary **without** importing
- * `effect/unstable/rpc` or `@weftui/router`, on the server (SSR), during a
+ * `effect/rpc` or `@weftui/router`, on the server (SSR), during a
  * client refetch, and on a client-first SPA mount. So the rpc caller is injected as a
  * service: `@weftui/router` provides it (a network `RpcClient` on the browser,
  * an in-process client over the handler layer on the server), and the renderer
@@ -14,7 +14,7 @@ import { Context, type Effect } from "effect";
  * The seam is **flat and untyped at the boundary**: a single `call(tag, payload)`
  * that mirrors `RpcClient`'s flat-client shape (`(tag, payload) => Effect<success>`).
  * The renderer carries the rpc's `successSchema`/`errorSchema` on the descriptor
- * and owns decoding, so this seam stays free of `effect/unstable/rpc` types.
+ * and owns decoding, so this seam stays free of `effect/rpc` types.
  */
 export interface AppRpcClient {
   /**

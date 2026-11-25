@@ -2,7 +2,7 @@
  * Dev SSR server for the router-ssr example.
  *
  * Runs Vite in middleware mode and, per request, renders the matched route to a
- * full hydratable HTML document via `entry-server.ts`'s `effect/unstable/http`-style
+ * full hydratable HTML document via `entry-server.ts`'s `effect/http`-style
  * web handler, then runs the result through `vite.transformIndexHtml` so Vite's
  * HMR client and module rewriting are injected. The browser hydrates the markup
  * with `entry-client.ts` and takes over navigation.

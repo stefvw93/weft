@@ -15,15 +15,15 @@
  *
  * `app.ts` is side-effect-free: it exports `App` (the boundary node, whose `R` carries
  * `AppRpcClientTag`) and `AppRpcClientLive` (the in-process client). The seam must be
- * provided at the **mount call site** (not inside `App`), because the renderer drains
- * the boundary's forked call in the mount's context. See
+ * provided through the **app layer** (not inside `App`), because the renderer drains
+ * the boundary's forked call in the app context. See
  * `packages/core/src/boundary/ambient-context-propagation` framing. `main.ts` and the
- * browser test both `Effect.provide(mount(App(), root), AppRpcClientLive)`.
+ * browser test both use `WeftApp.make(AppRpcClientLive)`.
  */
 
 import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient } from "@weftui/core";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { Effect, Layer, Schema, Stream } from "effect";
 
 /** The rpc contract: `_tag` "GetProduct" is the boundary's stable identity. */

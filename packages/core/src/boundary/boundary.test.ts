@@ -2,7 +2,7 @@ import * as assert from "node:assert/strict";
 import { describe, it } from "vite-plus/test";
 import { Cause, Data, Effect, Filter, Option, pipe, Result, Schema, Stream } from "effect";
 import { Subscribable } from "@weftui/core";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { FAILURE_BOUNDARY, SERVER_BOUNDARY, Boundary } from "./index";
 import type { Renderable, Node } from "~/combinator/types";
 import { getElementDescriptor, h } from "~/combinator";

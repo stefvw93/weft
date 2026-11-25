@@ -1,6 +1,6 @@
 import { Cause, type Effect, type Filter, Option, Result } from "effect";
 import type * as Subscribable from "~/subscribable";
-import type { Rpc } from "effect/unstable/rpc";
+import type { Rpc } from "effect/rpc";
 import { elementNode } from "~/combinator/descriptor";
 import type { Renderable, ChildrenE, ChildrenR, Node } from "~/combinator/types";
 
@@ -348,7 +348,7 @@ export interface RpcOptions {
  * @example
  * ```ts
  * import { Boundary, h } from "@weftui/core";
- * import { Rpc, RpcGroup } from "effect/unstable/rpc";
+ * import { Rpc, RpcGroup } from "effect/rpc";
  * import { Schema } from "effect";
  *
  * const StockRpcs = RpcGroup.make(
@@ -373,7 +373,7 @@ export function rpc<R extends Rpc.Any, C extends Node<any, any>>(
   // the ambient AppRpcClient and `successSchema`/`errorSchema` to decode the
   // inline SSR payload / refetch result. `payload` stays a thunk so each call
   // (SSR, refetch, mount) gets a fresh value. `Rpc.AnyWithProps` is the public
-  // accessor view of an `Rpc` instance. These fields are part of `effect/unstable/rpc`'s
+  // accessor view of an `Rpc` instance. These fields are part of `effect/rpc`'s
   // surface, so no `unknown` round-trip is needed.
   const instance = rpc as unknown as Rpc.AnyWithProps;
   // Tag the descriptor with SERVER_BOUNDARY so the renderer processes it

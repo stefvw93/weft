@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { Boundary, Component, h, Subscribable } from "@weftui/core";
 import type { Node } from "@weftui/core";
-import { Rpc, RpcGroup } from "effect/unstable/rpc";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import { describe, test } from "vite-plus/test";
 import { Router, notFound } from "~/index";
@@ -288,13 +288,17 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
 
   test("SW5: consumer disconnect interrupts pending resolution fibers", async () => {
     const interrupted = await Effect.runPromise(Deferred.make<boolean>());
+    const started = await Effect.runPromise(Deferred.make<boolean>());
     const hangDef = Router.router(
       Router.layout({ component: passthroughLayout }, [
         Router.route("hang", {
           component: () =>
             h.div({}, [
               Boundary.suspend({ fallback: h.p({}, "hanging") }, [
-                Effect.never.pipe(Effect.onInterrupt(() => Deferred.succeed(interrupted, true))),
+                Deferred.succeed(started, true).pipe(
+                  Effect.andThen(Effect.never),
+                  Effect.onInterrupt(() => Deferred.succeed(interrupted, true)),
+                ),
               ]),
             ]),
         }),
@@ -305,6 +309,9 @@ describe("RouterServer.toStreamingWebHandler (streaming SSR)", () => {
     const res = await streaming(new Request("http://localhost/hang"));
     const reader = res.body!.getReader();
     await reader.read(); // shell flushed
+    // The resolution fiber is forked, not started inline: wait until it runs
+    // (and its onInterrupt is registered) before the disconnect.
+    await Effect.runPromise(Deferred.await(started));
     await reader.cancel();
     assert.ok(await Effect.runPromise(Deferred.await(interrupted)));
   });

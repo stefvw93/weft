@@ -1,6 +1,7 @@
 import * as assert from "node:assert/strict";
 import { Component, h } from "@weftui/core";
 import { Result, Schema } from "effect";
+import { OpenApi } from "effect/http-api";
 import { describe, test } from "vite-plus/test";
 import type { CompiledLeaf } from "~/compile";
 import { Router } from "~/index";
@@ -171,21 +172,20 @@ describe("httpApi spine", () => {
   });
 
   test("each endpoint declares a RouterNotFound → 404 error", () => {
+    const spec = OpenApi.fromApi(def.httpApi);
     for (const endpoint of endpoints) {
-      // Effect 4: an endpoint's declared errors are a Set of schemas, each
-      // carrying its own `httpApiStatus` annotation (via `HttpApiSchema.status`).
-      const errorSchemas = [...endpoint.error];
-      const statuses = errorSchemas.map(
-        (s) =>
-          (s.ast.annotations as { readonly httpApiStatus?: number } | undefined)?.httpApiStatus,
+      // The status set by `HttpApiSchema.status` has no public reader on the
+      // schema, so read it back from the generated OpenAPI document.
+      const openApiPath = endpoint.path.replace(/:(\w+)/g, "{$1}");
+      const responses = spec.paths[openApiPath]?.get?.responses ?? {};
+      assert.ok("404" in responses, `${endpoint.path} declares a 404 error`);
+      assert.ok(
+        JSON.stringify(responses["404"]).includes("RouterNotFound"),
+        `${endpoint.path} maps RouterNotFound to 404`,
       );
-      assert.ok(statuses.includes(404), `${endpoint.path} declares a 404 error`);
 
-      const errSchema = errorSchemas.find(
-        (s) =>
-          (s.ast.annotations as { readonly httpApiStatus?: number } | undefined)?.httpApiStatus ===
-          404,
-      )!;
+      const [errSchema] = [...endpoint.error];
+      assert.ok(errSchema !== undefined, `${endpoint.path} declares an error schema`);
       const decoded = Schema.decodeUnknownResult(errSchema)({ _tag: "RouterNotFound" });
       assert.ok(Result.isSuccess(decoded), `${endpoint.path} error decodes a RouterNotFound`);
     }
