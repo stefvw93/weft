@@ -141,8 +141,8 @@ bleed was the cause of the original jump.
 - AC9: No hydration mismatch, no unstyled flash; server and client trees
   identical (theme comes from CSS + a static `<html>` attribute).
 - AC10: `vp run check`, `vp run test`, `vp run test:browser` all pass.
-- AC11: Prod parity. `vp run build` + `NODE_ENV=production node server.ts`
-  serve the hashed `app.css` (manifest `css[]`) with theme identical to dev.
+- AC11: Prod parity. `vp run build` emits `dist/static`; served from a static file server, it
+  links the hashed `app.css` (manifest `css[]`) with theme identical to dev.
 
 ## Critical files
 
@@ -172,5 +172,5 @@ bleed was the cause of the original jump.
 5. `vp run test:browser` → `website.browser.test.ts` green (counter, hydration).
 6. `grep -nE '__|--[a-z]' website/src/app.css` and `grep -rn '__' website/src/**/*.ts`
    → no BEM class strings remain.
-7. `cd website && vp run build && NODE_ENV=production node server.ts` → prod
+7. `cd website && vp run build`, then serve `dist/static` with a static file server → prod
    parity, hashed CSS linked.

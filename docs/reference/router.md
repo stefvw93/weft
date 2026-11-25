@@ -32,8 +32,8 @@ The service value carries:
 ```typescript
 Router.route<Path, Query, S>(
   segment: string,
-  config: { path?: Path; query?: Query; component: S },
-): RouteNode<Path, Query, E, R>;
+  config: { path?: Path; query?: Query; component: S; prerender?: RoutePrerender<Path, PR> },
+): RouteNode<Path, Query, E, R, PR>;
 ```
 
 Declares a leaf page. `segment` is relative to the parent and may contain `:name` placeholders. `component` is a [`ComponentSlot`](#types); its `E`/`R` channels are recovered and propagate up the tree.
@@ -63,6 +63,38 @@ const userRouteDI = Router.route("users/:id", {
 });
 ```
 
+#### `prerender`
+
+Declares which of the route's pages a build renders ahead of time. It has no effect on matching, rendering or `href`. Only leaf routes take it.
+
+```typescript
+type RoutePrerender<Path, PR = never> =
+  | boolean // no path params
+  | false // path params
+  | ReadonlyArray<FieldsType<Path>> // path params
+  | Effect<ReadonlyArray<FieldsType<Path>>, unknown, PR>; // path params
+```
+
+- A route without path params takes `true` or `false`.
+- A route with path params takes `false`, an array of its decoded params, or an Effect yielding that array. `true` is a compile error.
+- Param objects are checked against the route's `path` fields. A missing, extra or wrongly typed param is a compile error.
+- A route with a `:param` segment but no matching `path` field is typed as param-less. Declare the field before listing values.
+- The Effect's requirements `PR` travel on their own channel, apart from the route's `R`. They appear in [`LayerRequirements`](#layerrequirements), so the server Layer must provide them. The client app node does not require them.
+- An empty array is valid: the route is prerenderable and has no pages.
+- A lazy route declares `prerender` on the route, not inside the lazily loaded module.
+
+```typescript
+const aboutRoute = Router.route("about", { component: About, prerender: true });
+
+const docRoute = Router.route("docs/:category/:slug", {
+  path: { category: Schema.String, slug: Schema.String },
+  component: DocPage,
+  prerender: Effect.map(Docs, (docs) => docs.all.map(({ category, slug }) => ({ category, slug }))),
+});
+```
+
+The declaration is stored on the route, which the client bundle also imports, so it cannot be tree-shaken. Read data through a service tag and provide the service on the server. See [Prerender routes](../how-to/render-on-the-server.md#prerender-routes) for the build side.
+
 ### `Router.layout`
 
 ```typescript
@@ -76,7 +108,7 @@ Declares a layout: purely UI nesting, owning **no path or segment**. `component`
 ### `Router.router`
 
 ```typescript
-Router.router<T, NF>(root: T, options: { notFound: () => NF }): RouterDef<E, R>;
+Router.router<T, NF>(root: T, options: { notFound: () => NF }): RouterDef<E, R, PR>;
 ```
 
 Seals a route tree into a [`RouterDef`](#types), compiling it eagerly (so leaf references are stamped for `href`) and capturing the app-level not-found page. The tree's aggregate channels (plus the not-found page's) ride on the returned `RouterDef`'s phantom `E`/`R`.
@@ -301,7 +333,7 @@ A namespace for server-side rendering of a `RouterDef`.
 ```typescript
 RouterServer.render(def, options: { document; rpc; url }): Effect<{ html; status }, Error>;
 RouterServer.toWebHandler(def, options: { document; rpc }): (request: Request) => Promise<Response>;
-RouterServer.layer(def, options: LayerOptions<Rpcs>): Layer<never, never, LayerRequirements<R, Rpcs>>;
+RouterServer.layer(def, options: LayerOptions<Rpcs>): Layer<Prerender, never, LayerRequirements<R, Rpcs, PR>>;
 ```
 
 `render`, `toWebHandler` and `toStreamingWebHandler` are built on [`layer`](#routerserverlayer). Their `context` and `rpc.handlers` Layers are built once per memoized handler, not once per render, and are never released.
@@ -316,10 +348,10 @@ Dispatch runs through the `def.httpApi` spine via `HttpApiBuilder`: platform own
 #### `RouterServer.layer`
 
 ```typescript
-RouterServer.layer<R, Rpcs extends Rpc.Any = never>(
-  def: RouterDef<any, R>,
+RouterServer.layer<R, Rpcs extends Rpc.Any = never, PR = never>(
+  def: RouterDef<any, R, PR>,
   options: LayerOptions<Rpcs>,
-): Layer<never, never, LayerRequirements<R, Rpcs>>;
+): Layer<Prerender, never, LayerRequirements<R, Rpcs, PR>>;
 ```
 
 Registers the app's server routes into the ambient `HttpRouter`:
@@ -332,7 +364,57 @@ User routes merged into the same `HttpRouter` outrank the fallback, including a 
 
 App services and rpc handlers are requirements, discharged with `Layer.provide`. They are built once per server, shared by every request, and released when the server scope closes. A captured service takes precedence over a same-key service in the request context.
 
+The Layer's output is [`RouterServer.Prerender`](#routerserverprerender). Merging or serving the Layer is unaffected.
+
 Serve the Layer with `HttpRouter.serve` or `HttpRouter.toWebHandler`. Platform services are provided by the Layer itself. See [Serving a router app as a Layer](../how-to/render-on-the-server.md#serving-a-router-app-as-a-layer).
+
+#### `RouterServer.Prerender`
+
+```typescript
+class Prerender extends Context.Service<
+  Prerender,
+  {
+    readonly paths: (
+      output: PrerenderOutput,
+    ) => Effect<ReadonlyArray<string>, PrerenderUndeclaredError | PrerenderPathsError>;
+  }
+>() {}
+```
+
+Provided by [`RouterServer.layer`](#routerserverlayer). `paths(output)` yields the URL paths to prerender, each starting with `/`, in route-tree order then declaration order, with duplicates removed. Query params are never part of a path.
+
+The `weft()` plugin reads it to render each path. Applications do not call it.
+
+- With `"server"`, only routes that declare `prerender` contribute paths. A def with none yields an empty array.
+- With `"static"`, every route without path params contributes unless it sets `prerender: false`. Param routes contribute their declared params.
+- Each param object is encoded into the route's path with the same encoding as [`href`](#href).
+- A `prerender` Effect runs when `paths` is called, with the services provided to the Layer. It does not run when the Layer is built.
+- The not-found page is not a path.
+
+#### `PrerenderOutput`
+
+```typescript
+type PrerenderOutput = "server" | "static";
+```
+
+Which routes a build prerenders by default. It is the value of [`weft({ output })`](./vite.md#weftoptions).
+
+#### `PrerenderUndeclaredError`
+
+Tagged error. In `"static"` output, a route with path params has no `prerender` declaration.
+
+| Field   | Type     | Meaning                                            |
+| ------- | -------- | -------------------------------------------------- |
+| `route` | `string` | The route's full path pattern, e.g. `/docs/:slug`. |
+
+#### `PrerenderPathsError`
+
+Tagged error. A route's `prerender` Effect failed, or one of its param objects does not encode into the route's path.
+
+| Field   | Type      | Meaning                                       |
+| ------- | --------- | --------------------------------------------- |
+| `route` | `string`  | The route's full path pattern.                |
+| `cause` | `unknown` | The Effect's failure or the encoding failure. |
 
 #### `LayerOptions`
 
@@ -353,11 +435,11 @@ There is no `context` option and no handlers field.
 #### `LayerRequirements`
 
 ```typescript
-type LayerRequirements<R, Rpcs extends Rpc.Any = never> =
-  HttpRouter | AppServices<R> | RpcRequirements<Rpcs>;
+type LayerRequirements<R, Rpcs extends Rpc.Any = never, PR = never> =
+  HttpRouter | AppServices<R> | PR | RpcRequirements<Rpcs>;
 ```
 
-What a caller must provide to `layer`. With no residual app services and no `rpc`, this is exactly `HttpRouter`. A loosely typed `RouterDef<any, any>` contributes no app services.
+What a caller must provide to `layer`. `PR` is what the def's `prerender` Effects require. With no residual app services, no prerender requirements and no `rpc`, this is exactly `HttpRouter`. A loosely typed `RouterDef<any, any>` contributes no app services.
 
 #### `RpcRequirements`
 

@@ -7,7 +7,7 @@ import type { Plugin } from "vite";
 import { ClientAssets, StaticAssets } from "virtual:weft/assets";
 import { weft, WeftEntryNotFoundError, WeftServerEntryExportError } from "~/index";
 
-// Spec: `src/weft-plugin.specs.md` (V1, V2, V3, V4, V14, V17, V20).
+// Spec: `src/weft-plugin.specs.md` (V1, V2, V2a, V3, V4, V14, V17, V20).
 
 test("V1/V2: weft() takes optional entry overrides and returns a Vite plugin", () => {
   expect(weft()).type.toBe<Plugin>();
@@ -15,6 +15,13 @@ test("V1/V2: weft() takes optional entry overrides and returns a Vite plugin", (
   expect(
     weft({ server: "app/server.ts", client: "app/client.ts", main: "app/main.ts" }),
   ).type.toBe<Plugin>();
+});
+
+test('V2a: `output` is "server" or "static"', () => {
+  expect(weft({ output: "server" })).type.toBe<Plugin>();
+  expect(weft({ output: "static" })).type.toBe<Plugin>();
+  expect(weft).type.not.toBeCallableWith({ output: "hybrid" });
+  expect(weft).type.not.toBeCallableWith({ output: true });
 });
 
 test("V2: entry overrides are path strings and unknown options are rejected", () => {

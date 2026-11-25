@@ -10,7 +10,8 @@ split across `src/pages`, `src/components`, and `src/data`, then assembled in a 
 The shop is three pages under one persistent `Shell` layout, sealed with
 `Router.router(...)` into a single `RouterDef` (`App`):
 
-- **`/`** (`pages/landing.ts`): a static landing page with a featured grid.
+- **`/`** (`pages/landing.ts`): a static landing page with a featured grid. It declares
+  `prerender: true`.
 - **`/products`** (`pages/listing.ts`): a product listing with a `?sort=` **query
   param**; changing the sort re-renders the grid in the new order.
 - **`/products/:id`** (`pages/product-detail.ts`): a product detail page with an
@@ -100,6 +101,17 @@ This example imports the plugin from `packages/vite/src` by relative path, becau
 loads every `vite.config.ts` before any package is built. In your own app, write
 `import { weft } from "@weftui/vite"`. See the
 [render-on-the-server guide](../../docs/how-to/render-on-the-server.md#set-up-the-vite-plugin).
+
+### Prerendered landing page
+
+The landing route sets `prerender: true`. The plugin's default `output` is `"server"`, so only that
+route is prerendered: `vp run build` renders `/` once and writes `dist/client/index.html`.
+
+In the built server, `StaticAssets` answers a GET for `/` from that file ahead of the live routes,
+and the landing component does not run for it. Product pages and the not-found page still render
+live. The page is frozen at build time, which suits a landing page that reads no per-request data.
+In dev, `/` renders live like every other route. See
+[Prerender routes](../../docs/how-to/render-on-the-server.md#prerender-routes).
 
 ### `Boundary.rpc` live stock + refetch
 

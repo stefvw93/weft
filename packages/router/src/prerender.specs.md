@@ -34,7 +34,7 @@ Weft adds type checking: the params are checked against the route's path schema.
 - [ ] **P2** A route with path params accepts `prerender?: false`, a readonly array of its decoded path params, or an Effect yielding that array.
 - [ ] **P3** A route with path params rejects `prerender: true` at compile time. Its params must be listed.
 - [ ] **P4** Param objects are type-checked against the route's decoded `path` type. A missing, extra or wrongly typed param is a compile error.
-- [ ] **P5** The requirements of a `prerender` Effect join the def's aggregate `R`, like a component's requirements. They appear in `RouterServer.layer`'s requirements.
+- [ ] **P5** The requirements of a `prerender` Effect travel on their own channel (`TreePR`, the third parameter of `RouterDef`), apart from the route's `R`. `RouterServer.layer` requires them. The client app node does not, so the browser never provides a service that only a `prerender` Effect reads.
 - [ ] **P6** `prerender` has no effect on matching, rendering, `href`, or the client bundle's behavior.
 
 ### Enumerating
@@ -60,7 +60,8 @@ Weft adds type checking: the params are checked against the route's path schema.
 - Public surface added to `@weftui/router`: the `prerender` field on `Router.route` options, and on `RouterServer`: the `Prerender` service, `PrerenderOutput` (`"server" | "static"`), `PrerenderUndeclaredError`, `PrerenderPathsError`.
 - Both errors are tagged errors. `paths` fails with their union.
 - The compiled leaf descriptor carries the route's `prerender` declaration, so enumeration is a walk over `def.compiled.leaves`.
-- The `prerender` value must not be reachable from client-only code paths in a way that defeats tree-shaking of server-only services. This is checked at `/implement` and recorded if it cannot be guaranteed.
+- A `prerender` declaration is stored on the route node, which client code also imports. It cannot be tree-shaken, so it ships in the client bundle with everything its module imports. Read data through a service tag (as a component does) and provide the service on the server; do not import a server-only module into a route file for it.
+- `makeRoute` sets a global registry flag (`Symbol.for("@weftui/router/prerender-declared")`) when a route declares pages. A build tool reads it to skip building the Layer when nothing is declared. It is not public API.
 - type-tests: applicable. Cover P1 to P5 and P17.
 - e2e: not applicable, enumeration is server-only logic with no browser-observable behavior. The Vite plugin's tests cover the rendered output.
 
@@ -73,6 +74,7 @@ Weft adds type checking: the params are checked against the route's path schema.
 ## Expected Behavior & Edge Cases
 
 - A layout cannot declare `prerender`. Only leaf routes do.
+- Params are typed from the route's `path` fields. A route whose segment has a `:param` but no `path` entry for it is typed as param-less: it must declare the param in `path` before it can list values.
 - An empty array is a valid declaration: the route is prerenderable and currently has no pages.
 - The not-found page is not a path. The build tool renders it separately.
 - Lazy routes (`Router.lazy`) declare `prerender` on the route, not inside the lazily loaded module.

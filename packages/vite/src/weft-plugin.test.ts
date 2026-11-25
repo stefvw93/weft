@@ -16,7 +16,8 @@ import { weft, type WeftOptions } from "~/index";
 
 const FIXTURES = fileURLToPath(new URL("./__tests__/fixtures", import.meta.url));
 // Copies live inside the package so bare imports still resolve to its node_modules.
-const TMP = fileURLToPath(new URL("../.test-tmp", import.meta.url));
+// Each test file owns a subdirectory, since files run in parallel and clean up after themselves.
+const TMP = fileURLToPath(new URL("../.test-tmp/plugin", import.meta.url));
 
 let copies = 0;
 

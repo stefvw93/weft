@@ -11,7 +11,7 @@ import { documentShell } from "../layouts/shell";
 // `Docs` service is provided through the router's render-time `context` seam as the
 // build-time `DocsLive` layer. These assertions target structure and the known first
 // docs, not exact prose.
-const document = documentShell("/src/entry-client.ts");
+const document = documentShell;
 
 /** Renders a URL through the real app, returning `{ html, status }`. */
 function render(url: string): Promise<{ html: string; status: number }> {

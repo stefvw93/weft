@@ -33,7 +33,7 @@ import { type NavigateOptions, Router } from "../router-service";
  * ```
  */
 export function navigate<Path extends Fields, Query extends Fields>(
-  ref: RouteNode<Path, Query, any, any>,
+  ref: RouteNode<Path, Query, any, any, any>,
   ...args: {} extends HrefArgs<Path, Query>
     ? [args?: HrefArgs<Path, Query>, options?: NavigateOptions]
     : [args: HrefArgs<Path, Query>, options?: NavigateOptions]

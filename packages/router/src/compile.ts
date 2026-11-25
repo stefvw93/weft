@@ -2,7 +2,16 @@ import type { Node } from "@weftui/core";
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
 import { Schema } from "effect";
 import { RouterNotFound } from "./errors";
-import type { ComponentSlot, LayoutNode, RouteNode, TreeE, TreeNode, TreeR } from "./route-tree";
+import type {
+  ComponentSlot,
+  LayoutNode,
+  PrerenderDeclaration,
+  RouteNode,
+  TreeE,
+  TreeNode,
+  TreePR,
+  TreeR,
+} from "./route-tree";
 
 /**
  * A compiled layout level: its component slot plus the dedupe `patternPrefix` used
@@ -55,6 +64,8 @@ export interface CompiledLeaf {
   readonly component: ComponentSlot;
   /** Ancestor layouts (root → parent) wrapping this leaf. */
   readonly layoutChain: readonly CompiledLayout[];
+  /** The route's prerender declaration, when it has one (spec: `prerender.specs.md`). */
+  readonly prerender?: PrerenderDeclaration;
 }
 
 /** The result of compiling a route tree: a flat leaf list plus the not-found page. */
@@ -69,7 +80,7 @@ export interface Compiled {
  * the whole tree (plus the not-found page) so {@link RouterApp} / {@link outletNode}
  * can surface a precise `Node` type instead of `Node<any, any>`.
  */
-export interface RouterDef<E = any, R = any> {
+export interface RouterDef<E = any, R = any, PR = any> {
   readonly root: TreeNode;
   readonly notFound: () => Node<any, any>;
   readonly compiled: Compiled;
@@ -89,6 +100,11 @@ export interface RouterDef<E = any, R = any> {
   readonly _E?: E;
   /** Phantom marker for the tree's aggregate requirement channel. */
   readonly _R?: R;
+  /**
+   * Phantom marker for what the tree's `prerender` Effects require. Kept apart from
+   * `R` so only the server Layer has to provide it, never the client.
+   */
+  readonly _PR?: PR;
 }
 
 /** Options for {@link router}. */
@@ -102,7 +118,10 @@ export interface RouterOptions<NF extends Node<any, any> = Node<any, any>> {
  * {@link compile} (via {@link router}) and read by `href` so a leaf reference can
  * resolve its full pattern and schemas.
  */
-export const leafRegistry: WeakMap<RouteNode<any, any, any, any>, CompiledLeaf> = new WeakMap();
+export const leafRegistry: WeakMap<
+  RouteNode<any, any, any, any, any>,
+  CompiledLeaf
+> = new WeakMap();
 
 /** Splits a segment string into its non-empty path parts. */
 function splitSegment(segment: string): readonly string[] {
@@ -151,14 +170,14 @@ function longestCommonSegmentPrefix(partsList: readonly (readonly string[])[]): 
 
 /** A leaf collected during the walk, tagged with its ancestor layouts. */
 interface LeafWork {
-  readonly node: RouteNode<any, any, any, any>;
+  readonly node: RouteNode<any, any, any, any, any>;
   /** Full path parts from the root (only routes contribute parts). */
   readonly parts: readonly string[];
   /** Path-param schemas declared on this leaf (and any ancestor route). */
   readonly pathFields: Record<string, Schema.Top>;
   readonly query: Record<string, Schema.Top>;
   /** Ancestor layout nodes, root → parent. */
-  readonly ancestors: readonly LayoutNode<any, any>[];
+  readonly ancestors: readonly LayoutNode<any, any, any>[];
 }
 
 /**
@@ -178,7 +197,7 @@ export function compile(def: { root: TreeNode; notFound: () => Node<any, any> })
     node: TreeNode,
     parentParts: readonly string[],
     parentPathFields: Record<string, Schema.Top>,
-    ancestors: readonly LayoutNode<any, any>[],
+    ancestors: readonly LayoutNode<any, any, any>[],
   ): void => {
     if (node._tag === "Layout") {
       // Layouts own no path: recurse with the parent's parts unchanged. Their
@@ -201,7 +220,7 @@ export function compile(def: { root: TreeNode; notFound: () => Node<any, any> })
   walk(def.root, [], {}, []);
 
   // Pass 2a: group each layout's subtree leaf-parts, then compute its LCP prefix.
-  const layoutLeafParts = new Map<LayoutNode<any, any>, (readonly string[])[]>();
+  const layoutLeafParts = new Map<LayoutNode<any, any, any>, (readonly string[])[]>();
   for (const work of leafWorks) {
     for (const ancestor of work.ancestors) {
       const list = layoutLeafParts.get(ancestor) ?? [];
@@ -209,7 +228,7 @@ export function compile(def: { root: TreeNode; notFound: () => Node<any, any> })
       layoutLeafParts.set(ancestor, list);
     }
   }
-  const compiledLayouts = new Map<LayoutNode<any, any>, CompiledLayout>();
+  const compiledLayouts = new Map<LayoutNode<any, any, any>, CompiledLayout>();
   for (const [node, partsList] of layoutLeafParts) {
     const lcp = longestCommonSegmentPrefix(partsList);
     compiledLayouts.set(node, {
@@ -237,6 +256,7 @@ export function compile(def: { root: TreeNode; notFound: () => Node<any, any> })
       component: work.node.component,
       // Every ancestor was compiled in pass 2a, so the lookup is total.
       layoutChain: work.ancestors.map((a) => compiledLayouts.get(a)!),
+      ...(work.node.prerender === undefined ? {} : { prerender: work.node.prerender }),
     };
     leaves.push(leaf);
     leafRegistry.set(work.node, leaf);
@@ -290,7 +310,7 @@ export function buildHttpApi(leaves: readonly CompiledLeaf[]): HttpApi.Top {
 export function makeRouter<T extends TreeNode, NF extends Node<any, any> = Node>(
   root: T,
   options: RouterOptions<NF>,
-): RouterDef<TreeE<T> | Node.Error<NF>, TreeR<T> | Node.Context<NF>> {
+): RouterDef<TreeE<T> | Node.Error<NF>, TreeR<T> | Node.Context<NF>, TreePR<T>> {
   const compiled = compile({ root, notFound: options.notFound });
   return {
     root,

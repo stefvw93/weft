@@ -131,22 +131,19 @@ export function weftDocs(options: { readonly docsRoot: string }): Plugin {
   // resolved set. Cleared on a dev `.md` change so the next request re-globs (below).
   let cache: Promise<DocModel[]> | undefined;
   const allDocs = (): Promise<DocModel[]> => (cache ??= loadAllDocs(docsRoot));
-  // The SSR build shares this plugin; only the client build emits `llms.txt` (a static
-  // asset served from `dist/client`), so it isn't duplicated into `dist/server`.
-  let isSsrBuild = false;
+  /** The `/llms.txt` body, built from the current doc model. */
+  const llmsTxt = async (): Promise<string> =>
+    buildLlmsTxt(
+      (await allDocs()).map(({ tree: _tree, ...meta }) => meta),
+      SITE_BASE,
+    );
   return {
     name: "weft-docs",
-    configResolved(config) {
-      isSsrBuild = Boolean(config.build?.ssr);
-    },
     async generateBundle() {
-      if (isSsrBuild) return;
-      const metas = (await allDocs()).map(({ tree: _tree, ...meta }) => meta);
-      this.emitFile({
-        type: "asset",
-        fileName: "llms.txt",
-        source: buildLlmsTxt(metas, SITE_BASE),
-      });
+      // The server build shares this plugin; only the client build emits `llms.txt`
+      // (a static asset), so it isn't duplicated into `dist/server`.
+      if (this.environment.name !== "client") return;
+      this.emitFile({ type: "asset", fileName: "llms.txt", source: await llmsTxt() });
     },
     resolveId(id) {
       if (id === VIRTUAL_ID) return RESOLVED_ID;
@@ -170,6 +167,15 @@ export function weftDocs(options: { readonly docsRoot: string }): Plugin {
         if (mod) server.moduleGraph.invalidateModule(mod);
         server.ws.send({ type: "full-reload" });
       };
+      // In dev there is no emitted asset, so `/llms.txt` is answered from the live model.
+      server.middlewares.use("/llms.txt", (_req, res, next) => {
+        // A failed doc load is handed to Vite's error handling, not left pending.
+        llmsTxt().then((body) => {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end(body);
+        }, next);
+      });
       server.watcher.add(docsRoot);
       server.watcher.on("change", reload);
       server.watcher.on("add", reload);

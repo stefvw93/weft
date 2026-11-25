@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, extname, join, relative, resolve, sep } from "node:path";
 import { Data } from "effect";
 // The published types must name the `vite` peer dependency, not the workspace's
 // `vite-plus` toolchain wrapper, so consumers resolve `Plugin` from their own Vite.
@@ -15,8 +15,12 @@ import {
   entryStyles,
   inertAssetsModule,
   type Manifest,
+  PRERENDER_DECLARED_KEY,
+  PRERENDER_ID,
+  prerenderModule,
 } from "./assets-module";
 import { toWebRequest, type WebHandler, writeWebResponse } from "./node-bridge";
+import { prerender, PRERENDER_LIST, PRERENDER_RUNNER } from "./prerender";
 
 /**
  * Entry paths for {@link weft}, each resolved from the Vite root. Every field has
@@ -33,6 +37,12 @@ export interface WeftOptions {
    * emits the routes Layer only.
    */
   readonly main?: string;
+  /**
+   * What a build prerenders. `"server"` (default): routes that declare `prerender`,
+   * served by `StaticAssets` beside the live routes. `"static"`: a full static
+   * export in `dist/static`. Dev always renders live.
+   */
+  readonly output?: "server" | "static";
 }
 
 /** A required entry file does not exist. Thrown at startup. */
@@ -58,6 +68,7 @@ const CLIENT_ENTRY = "src/entry-client.ts";
 const MAIN_ENTRY = "src/main.ts";
 const CLIENT_OUT = "dist/client";
 const SERVER_OUT = "dist/server";
+const STATIC_OUT = "dist/static";
 
 /** Rollup convention: a leading NUL marks an id as virtual so other plugins skip it. */
 const virtual = (id: string): string => `\0${id}`;
@@ -101,6 +112,9 @@ export function weft(options: WeftOptions = {}): Plugin {
   let base = "/";
   let assetsDir = "assets";
   let isBuild = false;
+  let log: (message: string) => void = () => {};
+  /** File name of the emitted prerender runner, read from the server bundle. */
+  let runnerFileName = `${PRERENDER_RUNNER}.js`;
 
   const serverEntry = (): string => resolve(root, options.server ?? SERVER_ENTRY);
   const clientEntry = (): string => resolve(root, options.client ?? CLIENT_ENTRY);
@@ -178,6 +192,7 @@ export function weft(options: WeftOptions = {}): Plugin {
     config(userConfig, { command }) {
       isBuild = command === "build";
       root = resolve(userConfig.root ?? process.cwd());
+      const appEntry = existsSync(mainEntry()) ? mainEntry() : serverEntry();
       return {
         // The app answers every page request itself, including its own 404.
         appType: "custom",
@@ -192,7 +207,16 @@ export function weft(options: WeftOptions = {}): Plugin {
           ssr: {
             build: {
               outDir: SERVER_OUT,
-              rolldownOptions: { input: existsSync(mainEntry()) ? mainEntry() : serverEntry() },
+              // `public/` files belong to the client build only.
+              copyPublicDir: false,
+              rolldownOptions: {
+                input: {
+                  // Keyed by the entry's own name, so the output file name is unchanged.
+                  [basename(appEntry, extname(appEntry))]: appEntry,
+                  // A build-time helper that shares the app's chunks; removed after prerendering.
+                  [PRERENDER_RUNNER]: PRERENDER_ID,
+                },
+              },
             },
           },
         },
@@ -201,6 +225,15 @@ export function weft(options: WeftOptions = {}): Plugin {
           async buildApp(builder) {
             await builder.build(builder.environments["client"]!);
             await builder.build(builder.environments["ssr"]!);
+            await prerender({
+              output: options.output ?? "server",
+              clientDir: join(root, CLIENT_OUT),
+              staticDir: join(root, STATIC_OUT),
+              runnerFile: join(root, SERVER_OUT, runnerFileName),
+              declaredKey: PRERENDER_DECLARED_KEY,
+              root,
+              log,
+            });
           },
         },
       };
@@ -210,6 +243,7 @@ export function weft(options: WeftOptions = {}): Plugin {
       root = config.root;
       base = config.base;
       assetsDir = config.build.assetsDir;
+      log = (message) => config.logger.info(`[weft] ${message}`);
       if (!existsSync(serverEntry())) {
         throw new WeftEntryNotFoundError({ entry: "server", path: serverEntry() });
       }
@@ -219,11 +253,14 @@ export function weft(options: WeftOptions = {}): Plugin {
     },
 
     resolveId(id) {
-      return id === ASSETS_ID || id === DEV_HANDLER_ID ? virtual(id) : undefined;
+      return id === ASSETS_ID || id === DEV_HANDLER_ID || id === PRERENDER_ID
+        ? virtual(id)
+        : undefined;
     },
 
     load(id) {
       if (id === virtual(DEV_HANDLER_ID)) return devHandlerModule(posix(serverEntry()));
+      if (id === virtual(PRERENDER_ID)) return prerenderModule(posix(serverEntry()));
       if (id !== virtual(ASSETS_ID)) return undefined;
       if (!isBuild) return devAssetsModule(base, clientKey());
       // Only the server build renders the document shell.
@@ -247,6 +284,7 @@ export function weft(options: WeftOptions = {}): Plugin {
         assetsDir,
         entry,
         styles: entryStyles(manifest, clientKey()),
+        prerenderList: PRERENDER_LIST,
       });
     },
 
@@ -258,6 +296,16 @@ export function weft(options: WeftOptions = {}): Plugin {
       const clientDir = posix(relative(chunkDir, join(root, CLIENT_OUT))) || ".";
       // `map: null` keeps the chunk's existing source map (only this one line shifts).
       return { code: code.replaceAll(CLIENT_DIR_PLACEHOLDER, `${clientDir}/`), map: null };
+    },
+
+    writeBundle(_options, bundle) {
+      // The runner's file name follows the build's own entry naming, so it is read
+      // from the bundle, not assumed.
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type === "chunk" && chunk.isEntry && chunk.name === PRERENDER_RUNNER) {
+          runnerFileName = chunk.fileName;
+        }
+      }
     },
 
     configureServer(server) {

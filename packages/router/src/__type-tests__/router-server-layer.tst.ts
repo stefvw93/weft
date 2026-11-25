@@ -7,7 +7,8 @@ import type { RouterDef } from "~/compile";
 import { Router } from "~/index";
 import { RouterServer } from "~/server/router-server";
 
-// Spec: `src/server/router-server-layer.specs.md` (L2, L13, L16, L17, loose def).
+// Spec: `src/server/router-server-layer.specs.md` (L1, L2, L13, L16, L17, loose def).
+// The Layer's one output is `RouterServer.Prerender` (`src/prerender.specs.md` P17).
 
 class Theme extends Context.Service<Theme, string>()("@test/Theme") {}
 const ThemeLive = Layer.succeed(Theme, "dark");
@@ -52,18 +53,20 @@ const StockLive = StockRpcs.toLayer({ GetStock: () => Effect.succeed({ units: 1 
 
 test("L16: no app services and no rpc requires exactly HttpRouter", () => {
   expect(RouterServer.layer(staticDef, { document: documentShell })).type.toBe<
-    Layer.Layer<never, never, HttpRouter.HttpRouter>
+    Layer.Layer<RouterServer.Prerender, never, HttpRouter.HttpRouter>
   >();
   expect<RouterServer.LayerRequirements<never>>().type.toBe<HttpRouter.HttpRouter>();
 });
 
 test("L13: residual app services appear in the requirements", () => {
   const pages = RouterServer.layer(themedDef, { document: documentShell });
-  expect(pages).type.toBe<Layer.Layer<never, never, HttpRouter.HttpRouter | Theme>>();
+  expect(pages).type.toBe<
+    Layer.Layer<RouterServer.Prerender, never, HttpRouter.HttpRouter | Theme>
+  >();
 
   // Providing the service discharges it, leaving only the ambient router.
   expect(Layer.provide(pages, ThemeLive)).type.toBe<
-    Layer.Layer<never, never, HttpRouter.HttpRouter>
+    Layer.Layer<RouterServer.Prerender, never, HttpRouter.HttpRouter>
   >();
 });
 
@@ -76,24 +79,28 @@ test("L13: router-threaded services never leak into the requirements", () => {
 test("L17: an rpc group adds its handlers to the requirements", () => {
   const pages = RouterServer.layer(staticDef, { document: documentShell, rpc: StockRpcs });
   expect(pages).type.toBe<
-    Layer.Layer<never, never, HttpRouter.HttpRouter | Rpc.Handler<"GetStock">>
+    Layer.Layer<RouterServer.Prerender, never, HttpRouter.HttpRouter | Rpc.Handler<"GetStock">>
   >();
 
   // Providing the handler Layer satisfies them.
   expect(Layer.provide(pages, StockLive)).type.toBe<
-    Layer.Layer<never, never, HttpRouter.HttpRouter>
+    Layer.Layer<RouterServer.Prerender, never, HttpRouter.HttpRouter>
   >();
 });
 
 test("L13 + L17: app services and rpc handlers combine", () => {
   expect(RouterServer.layer(themedDef, { document: documentShell, rpc: StockRpcs })).type.toBe<
-    Layer.Layer<never, never, HttpRouter.HttpRouter | Theme | Rpc.Handler<"GetStock">>
+    Layer.Layer<
+      RouterServer.Prerender,
+      never,
+      HttpRouter.HttpRouter | Theme | Rpc.Handler<"GetStock">
+    >
   >();
 });
 
 test("a loosely typed def is accepted and contributes no app services", () => {
   expect(RouterServer.layer(looseDef, { document: documentShell })).type.toBe<
-    Layer.Layer<never, never, HttpRouter.HttpRouter>
+    Layer.Layer<RouterServer.Prerender, never, HttpRouter.HttpRouter>
   >();
 });
 

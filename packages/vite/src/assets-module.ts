@@ -4,6 +4,18 @@ export const ASSETS_ID = "virtual:weft/assets";
 /** Internal id of the module that turns the server entry into a web handler (dev only). */
 export const DEV_HANDLER_ID = "virtual:weft/dev-handler";
 
+/** Internal id of the build-time module that opens the built app for prerendering. */
+export const PRERENDER_ID = "virtual:weft/prerender";
+
+/**
+ * Registry key of the flag `@weftui/router` sets when a route declares pages to
+ * prerender. Read by key, like the service below, so this package never imports the router.
+ */
+export const PRERENDER_DECLARED_KEY = "@weftui/router/prerender-declared";
+
+/** Context key of `RouterServer.Prerender`, matched by key so this package never imports the router. */
+const PRERENDER_SERVICE_KEY = "@weftui/router/RouterServer/Prerender";
+
 /**
  * Placeholder for the path from an emitted server chunk to the client build
  * directory. Rewritten per chunk at render time, since only then is the chunk's
@@ -86,6 +98,8 @@ export function buildAssetsModule(options: {
   readonly entry: ManifestEntry;
   /** Stylesheet files to link, from {@link entryStyles}. */
   readonly styles: readonly string[];
+  /** Name of the file in `.vite` listing prerendered paths (written after this module is built). */
+  readonly prerenderList: string;
 }): string {
   const { base, assetsDir, entry } = options;
   const styles = options.styles.map((file) => `${base}${file}`);
@@ -99,7 +113,14 @@ export function buildAssetsModule(options: {
   return [
     `import { h } from "@weftui/core";`,
     `import { Effect, FileSystem, Layer, Path } from "effect";`,
-    `import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";`,
+    `import {`,
+    `  HttpPlatform,`,
+    `  HttpRouter,`,
+    `  HttpServerRequest,`,
+    `  HttpServerRespondable,`,
+    `  HttpServerResponse,`,
+    `  HttpStaticServer,`,
+    `} from "effect/http";`,
     clientAssetsSource([`${base}${entry.file}`], styles),
     `const clientUrl = new URL(${JSON.stringify(CLIENT_DIR_PLACEHOLDER)}, import.meta.url);`,
     // A file URL's pathname has a leading slash before a Windows drive letter.
@@ -130,7 +151,34 @@ export function buildAssetsModule(options: {
     `    yield* mount.add("GET", "/" + relative, serve);`,
     `  }`,
     `}));`,
-    `export const StaticAssets = Layer.mergeAll(Hashed, Public);`,
+    // Prerendered pages are answered ahead of routing: the same path is also a
+    // live page route, and a second route for it would collide.
+    `const Prerendered = Layer.effectDiscard(Effect.gen(function* () {`,
+    `  const router = yield* HttpRouter.HttpRouter;`,
+    `  const fileSystem = yield* FileSystem.FileSystem;`,
+    `  const path = yield* Path.Path;`,
+    `  const platform = yield* HttpPlatform.HttpPlatform;`,
+    `  const list = path.join(clientDir, ".vite", ${JSON.stringify(options.prerenderList)});`,
+    `  if (!(yield* fileSystem.exists(list))) return;`,
+    `  const pages = new Set(JSON.parse(yield* fileSystem.readFileString(list)));`,
+    `  if (pages.size === 0) return;`,
+    `  const prefix = base.replace(/\\/$/, "");`,
+    `  yield* router.addGlobalMiddleware((next) =>`,
+    `    Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) => {`,
+    `      if (request.method !== "GET" && request.method !== "HEAD") return next;`,
+    `      let pathname = new URL(request.url, "http://localhost").pathname;`,
+    `      if (prefix !== "" && pathname.startsWith(prefix)) pathname = pathname.slice(prefix.length) || "/";`,
+    `      if (pathname.length > 1 && pathname.endsWith("/")) pathname = pathname.slice(0, -1);`,
+    `      if (!pages.has(pathname)) return next;`,
+    `      const segments = pathname.split("/").filter((part) => part !== "").map(decodeURIComponent);`,
+    `      return Effect.orDie(Effect.map(`,
+    `        platform.fileResponse(path.join(clientDir, ...segments, "index.html")),`,
+    `        HttpServerResponse.setHeader("content-type", "text/html; charset=utf-8"),`,
+    `      ));`,
+    `    }),`,
+    `  );`,
+    `}));`,
+    `export const StaticAssets = Layer.mergeAll(Hashed, Public, Prerendered);`,
   ].join("\n");
 }
 
@@ -146,5 +194,42 @@ export function devHandlerModule(serverEntry: string): string {
     `import { HttpRouter } from "effect/http";`,
     `export const isLayer = Layer.isLayer(routes);`,
     `export const create = () => HttpRouter.toWebHandler(routes);`,
+  ].join("\n");
+}
+
+/**
+ * Build-time module, emitted as its own server chunk so it shares the built
+ * app's `effect` instance. `open()` turns the routes Layer into a handler and
+ * captures `RouterServer.Prerender` from it when the Layer is first built. It
+ * returns `null` when the default export is not a Layer. `hasDeclarations()`
+ * answers without building anything.
+ */
+export function prerenderModule(serverEntry: string): string {
+  return [
+    `import routes from ${JSON.stringify(serverEntry)};`,
+    `import { Context, Effect, Layer, Option } from "effect";`,
+    `import { HttpRouter } from "effect/http";`,
+    `class Prerender extends Context.Service()(${JSON.stringify(PRERENDER_SERVICE_KEY)}) {}`,
+    // True once evaluating the app's routes has declared something to prerender.
+    `export const hasDeclarations = () =>`,
+    `  globalThis[Symbol.for(${JSON.stringify(PRERENDER_DECLARED_KEY)})] === true;`,
+    `export const open = () => {`,
+    `  if (!Layer.isLayer(routes)) return null;`,
+    `  let found = Option.none();`,
+    `  const Capture = Layer.effectDiscard(`,
+    `    Effect.map(Effect.serviceOption(Prerender), (service) => {`,
+    `      found = service;`,
+    `    }),`,
+    `  );`,
+    `  const { handler, dispose } = HttpRouter.toWebHandler(Layer.provideMerge(Capture, routes), {`,
+    `    disableLogger: true,`,
+    `  });`,
+    `  return {`,
+    `    handler,`,
+    `    dispose,`,
+    `    paths: (output) =>`,
+    `      Option.isNone(found) ? Promise.resolve(null) : Effect.runPromise(found.value.paths(output)),`,
+    `  };`,
+    `};`,
   ].join("\n");
 }

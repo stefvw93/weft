@@ -49,10 +49,43 @@ One `vite build` builds the client first, then the server:
 
 | Output        | Contents                                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------ |
-| `dist/client` | Hashed client assets and the Vite manifest.                                                |
+| `dist/client` | Hashed client assets and the Vite manifest, plus prerendered pages in `"server"` output.   |
 | `dist/server` | The `main` bundle (`main.js`) when `main` exists, otherwise the routes Layer entry bundle. |
+| `dist/static` | `"static"` output only: a complete static site. See [Prerendering](#prerendering).         |
 
 Neither build output deletes the other. With `main` present, `node dist/server/main.js` serves pages and static assets with no Vite in the process.
+
+### Prerendering
+
+After the server build, the plugin loads the built routes Layer once and reads [`RouterServer.Prerender`](./router.md#routerserverprerender). It renders each path through the app's own request handling and logs each path it writes.
+
+Each page is the full response body of a GET for its path, including streamed Suspense patches. It references the hashed client entry and stylesheets.
+
+`output: "server"` (default):
+
+- Only routes that declare [`prerender`](./router.md#prerender) are rendered.
+- Each page is written into `dist/client` as `{path}/index.html` (`/` is `index.html`).
+- `StaticAssets` answers a GET for such a path from its file as `text/html`, ahead of the live routes. The route's component does not run. A trailing slash and a query string do not change the match.
+- Every other path, including the not-found page, renders live.
+- When no route declares `prerender`, the build writes no HTML and never builds the app's Layer.
+
+`output: "static"`:
+
+- Every route without path params is rendered unless it sets `prerender: false`.
+- A route with path params must declare its params or set `prerender: false`.
+- The build also emits `dist/static`: the files of `dist/client` without the manifest directory, one `{path}/index.html` per path, and `404.html`, the app's not-found page rendered from a path no route claims.
+- `dist/static` is emptied at the start of each build. Any static file host serves it, and the pages hydrate.
+- The app's Layer is always built.
+- `dist/client` and `dist/server` are still emitted.
+
+The build fails, writing nothing, when:
+
+- a page responds with status 400 or higher (the error names the path and status)
+- a `prerender` Effect fails, or a param does not encode into its path ([`PrerenderPathsError`](./router.md#prerenderpathserror))
+- a route with path params has no declaration in `"static"` output ([`PrerenderUndeclaredError`](./router.md#prerenderundeclarederror))
+- a path segment decodes to `.`, `..` or contains a path separator
+- in `"static"` output, the not-found page does not return 404
+- in `"static"` output, the server entry's Layer does not provide `RouterServer.Prerender`. In `"server"` output such a Layer prerenders nothing.
 
 ## `WeftOptions`
 
@@ -61,16 +94,20 @@ interface WeftOptions {
   readonly server?: string;
   readonly client?: string;
   readonly main?: string;
+  readonly output?: "server" | "static";
 }
 ```
 
-Each path resolves from the Vite root and overrides its default independently.
+`server`, `client` and `main` are paths. Each resolves from the Vite root and overrides its default independently.
 
-| Option   | Default               | Meaning                                                                                        |
-| -------- | --------------------- | ---------------------------------------------------------------------------------------------- |
-| `server` | `src/entry-server.ts` | Module whose default export is the app's routes Layer.                                         |
-| `client` | `src/entry-client.ts` | Module that hydrates the app in the browser.                                                   |
-| `main`   | `src/main.ts`         | Production launcher. Optional: when the file is absent, the server build emits the Layer only. |
+| Option   | Default               | Meaning                                                                                             |
+| -------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| `server` | `src/entry-server.ts` | Module whose default export is the app's routes Layer.                                              |
+| `client` | `src/entry-client.ts` | Module that hydrates the app in the browser.                                                        |
+| `main`   | `src/main.ts`         | Production launcher. Optional: when the file is absent, the server build emits the Layer only.      |
+| `output` | `"server"`            | What a build prerenders. `"server"`: only routes that declare `prerender`. `"static"`: a full site. |
+
+`output` affects builds only. Dev always renders live.
 
 ## Errors
 
@@ -133,7 +170,11 @@ A Layer that mounts the built client files on the ambient `HttpRouter`. Its type
 
 ## Limits
 
-- Prerendering is not supported.
+- A prerendered page is frozen at build time. Do not prerender a route that reads per-request data.
+- A prerendered path matches regardless of query string. Do not prerender a route whose markup depends on its query.
+- With `"static"`, there is no server. A `Boundary.rpc` resolves at build time and replays on hydrate, but a later refetch has nothing to call.
+- The build evaluates the server entry module, so module-level side effects in server code run at build time.
+- A route's `prerender` declaration ships in the client bundle. Read data through a service tag, not a server-only import.
 - The router is required: the server entry is a `RouterServer.layer` Layer.
 - CSS imported only by server code is not linked in dev. Import styles from the client entry's module graph.
 - In dev, a response the previous Layer is still streaming when a server module reloads is cut short.
@@ -143,4 +184,6 @@ A Layer that mounts the built client files on the ambient `HttpRouter`. Its type
 
 - [Render on the server](../how-to/render-on-the-server.md): setup, launching and the Layer model
 - [`RouterServer.layer`](./router.md#routerserver): the Layer the server entry exports
+- [Prerender routes](../how-to/render-on-the-server.md#prerender-routes): declaring and building prerendered pages
+- [`website/`](../../website): a complete `output: "static"` site
 - [examples/router-ssr](../../examples/router-ssr): a complete app on the plugin

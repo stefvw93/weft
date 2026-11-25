@@ -77,6 +77,7 @@ Decisions behind this spec:
 - [ ] **V30** After the server build, the build loads the built routes Layer once, reads `RouterServer.Prerender`, and renders each path through the app's own request handling. No second rendering code path exists.
 - [ ] **V31** Each prerendered page is the full response body of a GET for that path, including any streamed Suspense patches. It references the hashed client entry and stylesheets.
 - [ ] **V32** A path that responds with status 400 or higher fails the build, naming the path and the status. No partial output is left looking like success.
+- [ ] **V32a** A path with a segment that decodes to `.`, `..` or contains a path separator fails the build, naming the path. No page is ever written outside its output directory.
 - [ ] **V33** A failure while enumerating paths (`PrerenderUndeclaredError`, `PrerenderPathsError`) fails the build with that error's message.
 - [ ] **V34** The build logs each path it writes.
 - [ ] **V35** A server entry whose Layer does not provide `RouterServer.Prerender` (no router Layer in it) prerenders nothing in `"server"` mode and fails the build in `"static"` mode.
@@ -86,7 +87,8 @@ Decisions behind this spec:
 - [ ] **V36** Each prerendered path is written into `dist/client` as `{path}/index.html` (`/` is `index.html`).
 - [ ] **V37** `StaticAssets` answers a GET for a prerendered path from its file, with `text/html`. The route's component does not run for that request. A trailing slash and a query string do not change the match.
 - [ ] **V38** Every path that is not prerendered still renders live from the routes Layer, including the not-found page.
-- [ ] **V39** With no prerenderable routes, the build output is the same as before this feature.
+- [ ] **V39** With no prerenderable routes, the build writes no HTML and the app behaves as before this feature. The server bundle may be split differently, since the build-time prerender helper shares its chunks.
+- [ ] **V39a** In `"server"` output, when no route declares `prerender`, the build never builds the app's Layer, so it acquires none of the app's services. `"static"` output always builds it, since it renders every page.
 
 ### Prerender: `output: "static"`
 
@@ -116,6 +118,8 @@ Decisions behind this spec:
 
 ## Technical Requirements
 
+- Prerendering runs from a helper chunk emitted by the server build, so it uses the built app's own `effect` instance. The helper is deleted after the build. It reads `RouterServer.Prerender` by its context key, so `@weftui/vite` never imports the router.
+- In `"server"` output the prerendered paths are listed in `dist/client/.vite/weft-prerender.json`. `StaticAssets` reads it at startup and answers those paths ahead of routing.
 - The dev middleware runs the server entry in Vite's SSR environment, so the app and the handler share one `effect` instance. The handler is `HttpRouter.toWebHandler` over the default-exported Layer.
 - The Node-to-Web request bridge passes method, headers and a streamed body, and pipes the response body without buffering.
 - The plugin itself has no Effect in its error channel: it is Vite plugin code. Failures surface as thrown errors with descriptive messages.
@@ -124,7 +128,7 @@ Decisions behind this spec:
 - Startup and export failures are thrown as tagged errors: `WeftEntryNotFoundError` (V3) and `WeftServerEntryExportError` (V4).
 - The public surface is `weft`, `WeftOptions`, the two errors, and the `virtual:weft/assets` module (typed by `@weftui/vite/virtual`).
 - type-tests: applicable. Cover the options object, the two errors, and that `virtual:weft/assets` resolves with the specified types (V1 to V4, V14, V17, V20).
-- e2e: mandatory, since `examples/router-ssr` is touched. Its existing browser tests are the gate (V28). They import the document shell, so the root browser test config stubs `virtual:weft/assets` with its inert variant.
+- e2e: mandatory, since `examples/router-ssr` and the website are touched. Their existing browser tests are the gate (V28, V51). Those tests import the document shells, so the root browser test config aliases `virtual:weft/assets` to a stub file on disk. It must be a real file: Vite's dependency scan cannot read a plugin-provided module, and a failed scan reloads tests mid-run on a cold cache.
 
 ## Dependencies & Integrations
 
@@ -144,4 +148,6 @@ Decisions behind this spec:
 - In `"static"` mode there is no server at runtime. A `Boundary.rpc` is resolved at build time and replayed on hydrate, but a later refetch has nothing to call.
 - A prerendered page is frozen at build time. A page that reads per-request data must not declare `prerender`.
 - In `"server"` mode the prerendered file wins over the live route for its exact path.
+- A prerendered path is matched without its query string. A route whose markup depends on its query must not declare `prerender`: every query would get the same HTML and hydration would mismatch.
+- The build evaluates the server entry module in the build process. Module-level side effects in server code run at build time.
 - Out of scope: revalidation, sitemap or redirect files, host-specific config, `ssr-hydration` and `suspense` (they have no router), non-Node production runtimes, and a generated launcher.

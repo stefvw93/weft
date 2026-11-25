@@ -4,8 +4,8 @@
 
 The Weft website is the public **intro + documentation** site for the Weft UI
 library. It is itself **built with Weft** (dogfooding: `@weftui/core`,
-`@weftui/dom`, `@weftui/router`, Effect, Tailwind v4, custom Node `server.ts`,
-split client/server Vite builds). It serves three audiences in one site:
+`@weftui/dom`, `@weftui/router`, Effect, Tailwind v4, the `weft()` Vite plugin with
+`output: "static"`, split client/server Vite builds). It serves three audiences in one site:
 
 1. **Newcomers**: a landing page that states the value proposition and proves it
    with a live demo.
@@ -73,7 +73,7 @@ description: ... # meta description / og
 - AC6: An unknown doc slug renders the 404 fallback.
 - AC7: `vp run check` and `vp run test` pass; a `*.browser.test.ts` covers a
   DocPage render and a live-demo interaction.
-- AC8: `vp run -F website build` + `start` serve all routes in production.
+- AC8: `vp run -F website build` emits `dist/static`, a prerendered site that serves all routes from a plain static file server.
 
 ## Out of scope (v1)
 

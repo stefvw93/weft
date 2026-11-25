@@ -30,4 +30,7 @@ export const homeRoute = Router.route("", {
       ),
     ]),
   ),
+  // The landing page reads nothing per request, so the build renders it once.
+  // The built server answers `/` from that file; every other route stays live.
+  prerender: true,
 });
