@@ -15,6 +15,8 @@
  */
 
 import { Router } from "@weftui/router";
+import { Effect, Schema } from "effect";
+import { Docs } from "../lib/docs-service";
 
 /** `/docs` → render the first doc in nav order (alias to the first tutorial step). */
 export const docsIndexRoute = Router.route("docs", {
@@ -23,5 +25,8 @@ export const docsIndexRoute = Router.route("docs", {
 
 /** `/docs/:category/:slug` → the matching DocPage, or 404. */
 export const docsRoute = Router.route("docs/:category/:slug", {
+  path: { category: Schema.String, slug: Schema.String },
   component: Router.lazy(() => import("./doc-page-impl").then((m) => m.DocsPage)),
+  // One static page per doc in the baked model: a new markdown file needs no change here.
+  prerender: Effect.map(Docs, (docs) => docs.all.map(({ category, slug }) => ({ category, slug }))),
 });

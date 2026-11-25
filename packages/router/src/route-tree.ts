@@ -25,6 +25,48 @@ export interface RouteHandlerProps<Path extends Fields = {}, Query extends Field
 }
 
 /**
+ * A route's prerender declaration, typed by its own path fields (spec:
+ * `prerender.specs.md`). A route without path params takes a flag. A route with
+ * path params lists the decoded params to render, directly or as an Effect, or
+ * opts out with `false`; `true` is rejected because its pages cannot be enumerated.
+ * `PR` is the requirement channel of the Effect form. It travels on its own phantom
+ * channel ({@link TreePR}), separate from the route's `R`: only the server Layer
+ * needs it, so the client never has to provide a service a `prerender` Effect reads.
+ */
+export type RoutePrerender<Path extends Fields, PR = never> = 0 extends 1 & Path
+  ? // `Path` is `any`: a route with no `path`, written inline in a layout's children,
+    // gets it from the contextual `TreeNode` type. It has no params.
+    boolean
+  : [keyof Path] extends [never]
+    ? boolean
+    :
+        | false
+        | ReadonlyArray<FieldsType<Path>>
+        | Effect.Effect<ReadonlyArray<FieldsType<Path>>, unknown, PR>;
+
+/**
+ * `T`, hidden from return-type inference. `makeRoute` returns its prerender channel
+ * as `Uninferred<PR>`: a route written inline in a layout's children has a
+ * contextual `TreeNode` type, and a bare `PR` there would be inferred as `any`.
+ * Unlike `NoInfer`, this resolves to plain `T` in the result.
+ */
+type Uninferred<T> = [T] extends [infer U] ? U : never;
+
+/**
+ * Global flag set when any route declares pages to prerender. A build tool reads
+ * it (by this registry key, without importing the router) to skip building the
+ * app's Layer when there is nothing to render. Not public API.
+ */
+const PRERENDER_DECLARED = Symbol.for("@weftui/router/prerender-declared");
+
+/** A {@link RoutePrerender} declaration as stored on a route, with its param type erased. */
+export type PrerenderDeclaration =
+  | boolean
+  | ReadonlyArray<Record<string, unknown>>
+  // oxlint-disable-next-line typescript/no-explicit-any
+  | Effect.Effect<ReadonlyArray<Record<string, unknown>>, unknown, any>;
+
+/**
  * The shape of a route/layout `component` slot: a callable producing a {@link Node},
  * invoked by the router at render time. It accepts both a plain zero-arg thunk
  * (`() => h.div(…)`) and a {@link Component} produced by `Component.make` /
@@ -66,16 +108,21 @@ export interface RouteNode<
   Query extends Fields = {},
   E = never,
   R = never,
+  PR = never,
 > {
   readonly _tag: "Route";
   readonly segment: string;
   readonly path: Path;
   readonly query: Query;
   readonly component: ComponentSlot;
+  /** The route's prerender declaration, when it has one (see {@link RoutePrerender}). */
+  readonly prerender?: PrerenderDeclaration;
   /** Phantom marker for this leaf's error channel (see {@link TreeE}). */
   readonly _E?: E;
   /** Phantom marker for this leaf's requirement channel (see {@link TreeR}). */
   readonly _R?: R;
+  /** Phantom marker for the requirements of this leaf's `prerender` Effect (see {@link TreePR}). */
+  readonly _PR?: PR;
 }
 
 /**
@@ -88,7 +135,7 @@ export interface RouteNode<
  * excluded) together with its whole subtree, so a sealed tree's channels are
  * recoverable from the root.
  */
-export interface LayoutNode<E = never, R = never> {
+export interface LayoutNode<E = never, R = never, PR = never> {
   readonly _tag: "Layout";
   readonly component: ComponentSlot;
   readonly children: readonly TreeNode[];
@@ -101,24 +148,48 @@ export interface LayoutNode<E = never, R = never> {
   readonly _E?: E;
   /** Phantom marker for this layout subtree's aggregate requirement channel (see {@link TreeR}). */
   readonly _R?: R;
+  /** Phantom marker for the subtree's aggregate prerender requirements (see {@link TreePR}). */
+  readonly _PR?: PR;
 }
 
 /** Any node in the route tree. */
-export type TreeNode = RouteNode<any, any, any, any> | LayoutNode<any, any>;
+export type TreeNode = RouteNode<any, any, any, any, any> | LayoutNode<any, any, any>;
 
 /** Extracts the error channel from a single {@link TreeNode}. */
 export type TreeE<T> =
-  T extends RouteNode<any, any, infer E, any> ? E : T extends LayoutNode<infer E, any> ? E : never;
+  T extends RouteNode<any, any, infer E, any, any>
+    ? E
+    : T extends LayoutNode<infer E, any, any>
+      ? E
+      : never;
 
 /** Extracts the requirement channel from a single {@link TreeNode}. */
 export type TreeR<T> =
-  T extends RouteNode<any, any, any, infer R> ? R : T extends LayoutNode<any, infer R> ? R : never;
+  T extends RouteNode<any, any, any, infer R, any>
+    ? R
+    : T extends LayoutNode<any, infer R, any>
+      ? R
+      : never;
+
+/**
+ * Extracts the prerender requirement channel from a single {@link TreeNode}: what
+ * its `prerender` Effects need. Only the server Layer has to provide these.
+ */
+export type TreePR<T> =
+  T extends RouteNode<any, any, any, any, infer PR>
+    ? PR
+    : T extends LayoutNode<any, any, infer PR>
+      ? PR
+      : never;
 
 /** Aggregate error channel over a children tuple (distributes over `C[number]`). */
 export type SubtreeE<C extends readonly TreeNode[]> = TreeE<C[number]>;
 
 /** Aggregate requirement channel over a children tuple (distributes over `C[number]`). */
 export type SubtreeR<C extends readonly TreeNode[]> = TreeR<C[number]>;
+
+/** Aggregate prerender requirement channel over a children tuple. */
+export type SubtreePR<C extends readonly TreeNode[]> = TreePR<C[number]>;
 
 /**
  * Declares a leaf page. The `component` *is* the route handler: a thunk the
@@ -149,40 +220,51 @@ export function makeRoute<
   Query extends Fields = {},
   E = never,
   R = never,
+  PR = never,
 >(
   segment: string,
   config: {
     readonly path?: Path;
     readonly query?: Query;
     readonly component: (props: RouteHandlerProps<Path, Query>) => Node<E, R>;
+    /** Which of this route's pages to render ahead of time (see {@link RoutePrerender}). */
+    readonly prerender?: RoutePrerender<Path, PR>;
   },
-): RouteNode<Path, Query, E, R>;
+): RouteNode<Path, Query, E, R, Uninferred<PR>>;
 export function makeRoute<
   Path extends Fields = {},
   Query extends Fields = {},
   S extends ComponentSlot = ComponentSlot,
+  PR = never,
 >(
   segment: string,
   config: {
     readonly path?: Path;
     readonly query?: Query;
     readonly component: S;
+    /** Which of this route's pages to render ahead of time (see {@link RoutePrerender}). */
+    readonly prerender?: RoutePrerender<Path, PR>;
   },
-): RouteNode<Path, Query, Node.Error<SlotNode<S>>, Node.Context<SlotNode<S>>>;
+): RouteNode<Path, Query, Node.Error<SlotNode<S>>, Node.Context<SlotNode<S>>, Uninferred<PR>>;
 export function makeRoute(
   segment: string,
   config: {
     readonly path?: Fields;
     readonly query?: Fields;
     readonly component: ComponentSlot;
+    readonly prerender?: PrerenderDeclaration;
   },
-): RouteNode<any, any, any, any> {
+): RouteNode<any, any, any, any, any> {
+  if (config.prerender !== undefined && config.prerender !== false) {
+    (globalThis as { [PRERENDER_DECLARED]?: boolean })[PRERENDER_DECLARED] = true;
+  }
   return {
     _tag: "Route",
     segment,
     path: config.path ?? {},
     query: config.query ?? {},
     component: config.component,
+    ...(config.prerender === undefined ? {} : { prerender: config.prerender }),
   };
 }
 
@@ -211,7 +293,8 @@ export function makeLayout<C extends readonly TreeNode[], S extends ComponentSlo
   children: C,
 ): LayoutNode<
   Node.Error<SlotNode<S>> | SubtreeE<C>,
-  Exclude<Node.Context<SlotNode<S>>, Router.Outlet> | SubtreeR<C>
+  Exclude<Node.Context<SlotNode<S>>, Router.Outlet> | SubtreeR<C>,
+  SubtreePR<C>
 > {
   return {
     _tag: "Layout",

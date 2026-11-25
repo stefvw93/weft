@@ -19,23 +19,23 @@ The docs follow the [Diátaxis](https://diataxis.fr) model. Pick your entry poin
 
 ## The four quadrants
 
-|                                                   |                                                                                                                                                                                    |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Tutorial](tutorial/01-your-first-app.md)**     | Learning-oriented. One guided path, start to finish.                                                                                                                               |
-| **[How-to guides](how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing. Plus recipes for forms, async data, keyed lists, reactive styles, refs, and lazy routing. |
-| **[Explanation](explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                                          |
-| **[Reference](reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](reference/core.md), [`@weftui/dom`](reference/dom.md), [`@weftui/router`](reference/router.md).                                   |
+|                                                   |                                                                                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Tutorial](tutorial/01-your-first-app.md)**     | Learning-oriented. One guided path, start to finish.                                                                                                                                  |
+| **[How-to guides](how-to/author-components.md)**  | Task-oriented. Author components, render on the server, load data with rpc, add routing. Plus recipes for forms, async data, keyed lists, reactive styles, refs, and lazy routing.    |
+| **[Explanation](explanation/rendering-model.md)** | Understanding-oriented. The rendering model, the combinator API, reactive primitives, boundaries, and services & context.                                                             |
+| **[Reference](reference/core.md)**                | Information-oriented. Full API: [`@weftui/core`](reference/core.md), [`@weftui/dom`](reference/dom.md), [`@weftui/router`](reference/router.md), [`@weftui/vite`](reference/vite.md). |
 
 New to the model itself? Read [The Rendering Model](explanation/rendering-model.md): why there is no virtual DOM, and what "streams are the weft" means.
 
 ## Packages
 
-Three published packages make up Weft's public API, plus one build-time plugin:
+Three runtime packages make up Weft's public API, plus the `@weftui/vite` plugin:
 
 - **`@weftui/core`**: element builders (`h`), components, sources/streams, and boundaries. Start here.
 - **`@weftui/dom`**: the renderer, with `./client` (`WeftApp.mount`/`WeftApp.hydrate`) and `./server` (`renderToString*`) entry points.
 - **`@weftui/router`**: universal nested routing, `Router.lazy`, and the rpc seam.
-- **`@weftui/vite`**: a build-time Vite plugin (tooling, not a runtime API).
+- **`@weftui/vite`**: the Vite plugin. `weft()` gives a router app a server-rendered dev loop and a production build.
 
 `@weftui/base` is an internal, currently-empty stub with no public primitives. Ignore it.
 

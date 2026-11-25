@@ -23,6 +23,16 @@ const config: ViteUserConfig = {
   // this flat config does not inherit per-package plugins, so the docs loader
   // plugin is registered here too (inert for tests that never import the module).
   plugins: [weftDocs({ docsRoot: fileURLToPath(new URL("./docs", import.meta.url)) })],
+  // The router-ssr and website document shells import `virtual:weft/assets`. The
+  // real `weft()` plugin needs one app root, so the module is aliased to a stub
+  // file here (see its header for why it must exist on disk).
+  resolve: {
+    alias: {
+      "virtual:weft/assets": fileURLToPath(
+        new URL("./packages/vite/src/__tests__/assets-stub.ts", import.meta.url),
+      ),
+    },
+  },
   // The website shell renders the release tag via this build-time define.
   define: {
     __WEFT_VERSION__: JSON.stringify("browser-test"),

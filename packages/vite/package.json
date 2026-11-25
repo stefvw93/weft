@@ -1,35 +1,54 @@
 {
   "name": "@weftui/vite",
   "version": "0.0.0",
-  "description": "Vite plugins for Weft (shell; prune plugin retired with Boundary.server)",
+  "description": "Vite plugin for Weft: server-rendered dev loop and production build",
   "keywords": [
     "ssr",
     "vite-plugin",
     "weft"
   ],
+  "homepage": "https://weftui.dev",
+  "bugs": {
+    "url": "https://github.com/stefvw93/weft/issues"
+  },
   "license": "MIT",
   "author": "Stef van Wijchen",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stefvw93/weft",
+    "directory": "packages/vite"
+  },
   "files": [
-    "dist"
+    "dist",
+    "virtual.d.ts"
   ],
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./virtual": {
+      "types": "./virtual.d.ts"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
+    "@effect/platform-node": "catalog:",
     "@types/node": "catalog:",
     "@weftui/core": "workspace:*",
+    "@weftui/dom": "workspace:*",
+    "@weftui/router": "workspace:*",
     "effect": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
+    "@weftui/core": "workspace:^",
+    "effect": "^4.1.5",
     "vite": "*"
   }
 }

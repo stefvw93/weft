@@ -30,7 +30,7 @@ Decisions behind this spec:
 
 ### Shape
 
-- [ ] **L1** `RouterServer.layer(def, options)` returns a `Layer` with no output and no error (`Layer<never, never, Requirements>`). Building it registers routes into the ambient `HttpRouter`. It serves through both `HttpRouter.serve` and `HttpRouter.toWebHandler`.
+- [ ] **L1** `RouterServer.layer(def, options)` returns a `Layer` with no error. Its only output is the `RouterServer.Prerender` service (see `../prerender.specs.md` P17). Building it registers routes into the ambient `HttpRouter`. It serves through both `HttpRouter.serve` and `HttpRouter.toWebHandler`.
 - [ ] **L2** `options` is `{ document, rpc?, streaming? }`. `document` is the same `ComponentSlot` as today. `rpc` is the app's `RpcGroup` contract only. `streaming` is a boolean, default `true`. There is no `context` option and no `handlers` field.
 
 ### Page dispatch

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@effect/platform-node": "catalog:",
     "@weftui/core": "workspace:*",
     "@weftui/dom": "workspace:*",
     "@weftui/router": "workspace:*",
@@ -11,7 +12,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:",
+    "@weftui/vite": "workspace:*",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   }

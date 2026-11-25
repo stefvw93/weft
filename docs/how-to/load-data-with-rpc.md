@@ -190,7 +190,7 @@ A transport **defect** (no `Cause.findErrorOption`), or an rpc with no `error` s
 
 ## Full example
 
-A `/products/:id` page with a refetchable live-stock `Boundary.rpc`, sealed into a single-route router app. This is the whole file set for the router + rpc parts (drop it alongside a dev server that bridges `entry-server.ts`'s `handler` into Vite or any Web-platform server; see [`examples/router-ssr/server.ts`](../../examples/router-ssr/server.ts) and its co-located [`vite.config.ts`](../../examples/router-ssr/vite.config.ts) for a working one).
+A `/products/:id` page with a refetchable live-stock `Boundary.rpc`, sealed into a single-route router app. This is the whole file set for the router + rpc parts (serve it with the [`weft()` Vite plugin](./render-on-the-server.md#set-up-the-vite-plugin), or bridge `entry-server.ts`'s `handler` into any Web-platform server; see [`examples/router-ssr`](../../examples/router-ssr) for a working app).
 
 ```typescript
 // src/data/inventory.ts

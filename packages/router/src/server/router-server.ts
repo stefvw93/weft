@@ -8,8 +8,9 @@ import {
 import { HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { type Rpc, type RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/rpc";
-import { Cause, Context, Effect, Exit, Layer, Option, Schema, Scope, Stream } from "effect";
+import { Cause, Context, Data, Effect, Exit, Layer, Option, Schema, Scope, Stream } from "effect";
 import type { RouterDef } from "../compile";
+import { encodeLeafPath } from "../href";
 import { isRouterNotFound, RouterNotFound } from "../errors";
 import type { RouteMatch } from "../matcher";
 import { outletNode } from "../outlet";
@@ -548,6 +549,92 @@ export namespace RouterServer {
     return webHandlerWith(def, options as RenderOptions, streamingHandlerCache, true);
   }
 
+  /**
+   * Which routes a build prerenders by default (spec: `prerender.specs.md`).
+   * `"server"`: only routes that declare `prerender`. `"static"`: every route
+   * without path params unless it opts out, and param routes must declare theirs.
+   */
+  export type PrerenderOutput = "server" | "static";
+
+  /** In `"static"` output, a route with path params has no `prerender` declaration. */
+  export class PrerenderUndeclaredError extends Data.TaggedError("PrerenderUndeclaredError")<{
+    /** The route's full path pattern, e.g. `/docs/:category/:slug`. */
+    readonly route: string;
+  }> {
+    override readonly message: string = `The route ${this.route} has path params but no \`prerender\` declaration, so a static build cannot enumerate its pages. Declare its params in \`path\` and list them with \`prerender\`, or set \`prerender: false\` to leave it out.`;
+  }
+
+  /** A route's `prerender` Effect failed, or one of its param objects does not encode into its path. */
+  export class PrerenderPathsError extends Data.TaggedError("PrerenderPathsError")<{
+    /** The route's full path pattern. */
+    readonly route: string;
+    readonly cause: unknown;
+  }> {
+    override readonly message: string = `Could not enumerate the prerender paths of ${this.route}: ${
+      this.cause instanceof Error ? this.cause.message : String(this.cause)
+    }`;
+  }
+
+  /**
+   * The app's prerender paths, provided by {@link layer}. A build tool reads it from
+   * the built Layer; the router itself never renders or writes files.
+   */
+  export class Prerender extends Context.Service<
+    Prerender,
+    {
+      /**
+       * The URL paths to prerender for `output`, in route-tree order with duplicates
+       * removed. Route `prerender` Effects run here, with the Layer's services.
+       */
+      readonly paths: (
+        output: PrerenderOutput,
+      ) => Effect.Effect<ReadonlyArray<string>, PrerenderUndeclaredError | PrerenderPathsError>;
+    }
+  >()("@weftui/router/RouterServer/Prerender") {}
+
+  /**
+   * Enumerates a def's prerender paths for `output` (P8 to P16): a walk over the
+   * compiled leaves in route-tree order. Route `prerender` Effects run here, so
+   * their requirements are left to the caller to provide.
+   */
+  function prerenderPaths(
+    def: RouterDef,
+    output: PrerenderOutput,
+    // oxlint-disable-next-line typescript/no-explicit-any
+  ): Effect.Effect<ReadonlyArray<string>, PrerenderUndeclaredError | PrerenderPathsError, any> {
+    return Effect.gen(function* () {
+      // A `Set` keeps first-seen order and drops duplicates (P12).
+      const paths = new Set<string>();
+      for (const leaf of def.compiled.leaves) {
+        const route = leaf.fullPathPattern;
+        const declared = leaf.prerender;
+        if (leaf.paramNames.length === 0) {
+          const isIncluded = output === "static" ? declared !== false : declared === true;
+          if (isIncluded) paths.add(route);
+          continue;
+        }
+        if (declared === false) continue;
+        // `true` cannot name a param route's pages; the types reject it (P3).
+        if (declared === undefined || declared === true) {
+          if (output === "static") return yield* new PrerenderUndeclaredError({ route });
+          continue;
+        }
+        const params = Effect.isEffect(declared)
+          ? yield* Effect.mapError(declared, (cause) => new PrerenderPathsError({ route, cause }))
+          : declared;
+        for (const param of params) {
+          paths.add(
+            yield* Effect.try({
+              try: () => encodeLeafPath(leaf, param),
+              catch: (cause) => new PrerenderPathsError({ route, cause }),
+            }),
+          );
+        }
+      }
+      return [...paths];
+    });
+  }
+
   /** Options for {@link layer}. Services and rpc handlers are not options: they arrive through the Layer's requirements. */
   export interface LayerOptions<Rpcs extends Rpc.Any = never> {
     /** The document shell slot; reads the app to splice via `yield* Router.Outlet`. */
@@ -579,9 +666,10 @@ export namespace RouterServer {
    * group. A loosely typed `RouterDef<any, any>` contributes no app services, since
    * they cannot be tracked.
    */
-  export type LayerRequirements<R, Rpcs extends Rpc.Any = never> =
+  export type LayerRequirements<R, Rpcs extends Rpc.Any = never, PR = never> =
     | HttpRouter.HttpRouter
     | (IsAny<AppServices<R>> extends true ? never : AppServices<R>)
+    | (IsAny<PR> extends true ? never : PR)
     | RpcRequirements<Rpcs>;
 
   /**
@@ -592,11 +680,13 @@ export namespace RouterServer {
    *
    * App services and rpc handlers are requirements: discharge them with
    * `Layer.provide`. They are built once per server and shared by every render.
+   *
+   * Its one output is {@link Prerender}: the paths a build should render ahead of time.
    */
-  export function layer<R, Rpcs extends Rpc.Any = never>(
-    def: RouterDef<any, R>,
+  export function layer<R, Rpcs extends Rpc.Any = never, PR = never>(
+    def: RouterDef<any, R, PR>,
     options: LayerOptions<Rpcs>,
-  ): Layer.Layer<never, never, LayerRequirements<R, Rpcs>> {
+  ): Layer.Layer<Prerender, never, LayerRequirements<R, Rpcs, PR>> {
     const leafRenderer = (options.streaming ?? true) ? renderLeafStreaming : renderLeaf;
     // Everything a render needs is resolved once, when the Layer is built: the app
     // services are captured from the build context and the in-process rpc client is
@@ -608,11 +698,24 @@ export namespace RouterServer {
         const services = Context.omit(Scope.Scope)(yield* Effect.context<never>());
         const rpcClient = yield* makeAppRpcClient(options.rpc);
         const env: RenderEnv = { document: options.document, rpcClient, services };
-        return routesLayer(def, env, leafRenderer, options.rpc);
+        // Enumeration runs on demand, with the same captured services the renders use.
+        const prerender = Prerender.of({
+          // The captured services are untyped at this depth; `layer`'s public
+          // requirements are what guarantee they cover the `prerender` Effects.
+          paths: (output) =>
+            Effect.provideContext(prerenderPaths(def, output), services) as Effect.Effect<
+              ReadonlyArray<string>,
+              PrerenderUndeclaredError | PrerenderPathsError
+            >,
+        });
+        return Layer.merge(
+          routesLayer(def, env, leafRenderer, options.rpc),
+          Layer.succeed(Prerender, prerender),
+        );
       }),
     ).pipe(Layer.provide(HttpServer.layerServices));
     // The runtime plumbing is loosely typed (runtime-assembled `HttpApi` and rpc
     // group); the public signature carries the precise requirements.
-    return routes as Layer.Layer<never, never, LayerRequirements<R, Rpcs>>;
+    return routes as Layer.Layer<Prerender, never, LayerRequirements<R, Rpcs, PR>>;
   }
 }

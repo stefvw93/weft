@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { leafRegistry } from "./compile";
+import { type CompiledLeaf, leafRegistry } from "./compile";
 import type { Fields, FieldsType, RouteNode } from "./route-tree";
 
 /**
@@ -13,6 +13,18 @@ export type HrefArgs<Path extends Fields, Query extends Fields> = ({} extends Fi
   ({} extends FieldsType<Query>
     ? { readonly query?: FieldsType<Query> }
     : { readonly query: FieldsType<Query> });
+
+/**
+ * Encodes decoded path params into a leaf's full path pattern. Shared by
+ * {@link href} and prerender path enumeration so both produce identical URLs.
+ * Throws when `path` does not encode through the leaf's path schema.
+ */
+export function encodeLeafPath(leaf: CompiledLeaf, path: Record<string, unknown>): string {
+  const encoded = Schema.encodeUnknownSync(leaf.pathSchema)(path) as Record<string, unknown>;
+  return leaf.fullPathPattern.replace(/:([A-Za-z0-9_]+)/g, (_match, name: string) =>
+    encodeURIComponent(String(encoded[name])),
+  );
+}
 
 /**
  * Builds a type-safe URL for a leaf route reference (the value returned by
@@ -33,7 +45,7 @@ export type HrefArgs<Path extends Fields, Query extends Fields> = ({} extends Fi
  * ```
  */
 export function href<Path extends Fields, Query extends Fields>(
-  ref: RouteNode<Path, Query, any, any>,
+  ref: RouteNode<Path, Query, any, any, any>,
   ...args: {} extends HrefArgs<Path, Query>
     ? [args?: HrefArgs<Path, Query>]
     : [args: HrefArgs<Path, Query>]
@@ -49,10 +61,7 @@ export function href<Path extends Fields, Query extends Fields>(
     query?: Record<string, unknown>;
   };
 
-  const encodedPath = Schema.encodeUnknownSync(leaf.pathSchema)(path) as Record<string, unknown>;
-  let url = leaf.fullPathPattern.replace(/:([A-Za-z0-9_]+)/g, (_match, name: string) =>
-    encodeURIComponent(String(encodedPath[name])),
-  );
+  let url = encodeLeafPath(leaf, path);
 
   const encodedQuery = Schema.encodeUnknownSync(leaf.querySchema)(query) as Record<string, unknown>;
   const params = new URLSearchParams();

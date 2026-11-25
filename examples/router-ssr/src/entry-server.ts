@@ -1,27 +1,26 @@
 /**
- * Server entry: renders the matched route to a hydratable HTML document.
+ * Server entry: the app's routes as one Effect `HttpRouter` Layer.
+ *
+ * The default export is what the `weft()` Vite plugin serves in dev and what
+ * `main.ts` launches in production. `RouterServer.layer` registers the page
+ * routes, the not-found fallback and `POST /_eui/rpc` into the ambient
+ * `HttpRouter`; the `StockLive` handler Layer is provided once and shared by
+ * every request.
  *
  * `documentShell` is the typed document shell `Node`. It builds `<html>/<head>/
- * <body>` with the `#root` mount point and the client entry `<script>`, splicing
- * the app via `yield* Router.Outlet` (injected per request by `RouterServer`).
- * `RouterServer` matches the request URL, renders `RouterApp(App)` inside the
- * shell to hydratable HTML, and reports the status (404 for not-found).
+ * <body>` with the `#root` mount point, splicing the app via `yield* Router.Outlet`
+ * (injected per request by `RouterServer`). `ClientAssets()` renders the script and
+ * stylesheet tags for the current mode, so the shell never names a file itself.
  * `<!DOCTYPE html>` is prepended by `RouterServer`.
- *
- * Both `render` (returning `{ html, status }`) and the `effect/http`-style
- * `handler` (`Request → Response`, via `RouterServer.toWebHandler`) are exported;
- * the dev server uses `handler` and post-processes the HTML for Vite HMR.
  */
 
 import { Component, h } from "@weftui/core";
 import { Router } from "@weftui/router";
 import { RouterServer } from "@weftui/router/server";
-import { Effect } from "effect";
+import { Layer } from "effect";
+import { ClientAssets } from "virtual:weft/assets";
 import { App } from "./app";
 import { StockLive, StockRpcs } from "./data/inventory";
-
-/** The app's `Boundary.rpc` foundation: the shared contract + its server handlers. */
-const rpc = { group: StockRpcs, handlers: StockLive } as const;
 
 /**
  * The document shell `component` thunk. Splices the app via `yield* Router.Outlet`
@@ -35,17 +34,13 @@ export const documentShell = Component.gen(function* () {
       h.meta({ charset: "utf-8" }),
       h.meta({ name: "viewport", content: "width=device-width, initial-scale=1" }),
       h.title("Weft shop: router SSR"),
+      ClientAssets(),
     ]),
-    h.body([
-      h.div({ id: "root" }, [app]),
-      h.script({ type: "module", src: "/src/entry-client.ts" }),
-    ]),
+    h.body([h.div({ id: "root" }, [app])]),
   ]);
 });
 
-/** Renders `url` to `{ html, status }`. */
-export const render = (url: string): Promise<{ html: string; status: number }> =>
-  Effect.runPromise(RouterServer.render(App, { document: documentShell, rpc, url }));
-
-/** A Web `fetch`-style handler rendering the matched route to `text/html`. */
-export const handler = RouterServer.toWebHandler(App, { document: documentShell, rpc });
+/** The app's server routes, with the rpc handlers provided. */
+export default RouterServer.layer(App, { document: documentShell, rpc: StockRpcs }).pipe(
+  Layer.provide(StockLive),
+);

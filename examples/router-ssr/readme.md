@@ -10,7 +10,8 @@ split across `src/pages`, `src/components`, and `src/data`, then assembled in a 
 The shop is three pages under one persistent `Shell` layout, sealed with
 `Router.router(...)` into a single `RouterDef` (`App`):
 
-- **`/`** (`pages/landing.ts`): a static landing page with a featured grid.
+- **`/`** (`pages/landing.ts`): a static landing page with a featured grid. It declares
+  `prerender: true`.
 - **`/products`** (`pages/listing.ts`): a product listing with a `?sort=` **query
   param**; changing the sort re-renders the grid in the new order.
 - **`/products/:id`** (`pages/product-detail.ts`): a product detail page with an
@@ -22,15 +23,18 @@ props** (`({ path, query }) => …`, where the router passes the decoded match s
 while the `Shell` layout keeps **dependency injection** (`yield* Router.Outlet`). The
 same `App` drives both sides:
 
-- **Server** (`entry-server.ts`): `RouterServer` matches the request URL, renders
-  the matched page to hydratable HTML inside a typed document shell, and responds
-  with `text/html` (HTTP 404 for unmatched routes or a page that calls `notFound()`).
+- **Server** (`entry-server.ts`): default-exports the app's routes as one Effect `HttpRouter` Layer
+  (`RouterServer.layer`). It matches the request URL, renders the matched page to hydratable HTML
+  inside a typed document shell, and responds with `text/html` (HTTP 404 for unmatched routes or a
+  page that calls `notFound()`).
 - **Client** (`entry-client.ts`): `WeftApp.make(RouterLive(App, { rpc: { group: StockRpcs }
 }))` provides the scoped `Router` (it owns the popstate listener + link interceptor)
   **and** the network rpc client backing `Boundary.rpc`. The app runtime owns its
   lifetime, built lazily on first hydrate and released only at `WeftApp.dispose`.
   `Effect.runPromise(WeftApp.hydrate(app, RouterApp(App), root))` adopts the server DOM in
   place, then takes over navigation via the History API.
+
+The `weft()` Vite plugin in `vite.config.ts` runs both sides. There is no hand-written dev server.
 
 ## Problem
 
@@ -75,6 +79,39 @@ price-desc | name`). The leaf reads the decoded `query` from its handler-arg pro
   `href(productsRoute, { query: { sort } })` build URLs checked against each route's
   schema. The same-origin interceptor turns clicks into SPA navigations, the card
   `View` links included, which exercise the detail page's client-first boundary mount.
+
+### The `weft()` plugin
+
+`vite.config.ts` registers `weft()` and defines the `dev`, `build` and `start` tasks. The plugin
+finds the conventional entries:
+
+- **`src/entry-server.ts`** default-exports the routes Layer, with the `StockLive` handlers provided
+  once. In dev, Vite serves it: responses stream, and editing a server module swaps in a fresh Layer
+  on the next request.
+- **`src/entry-client.ts`** hydrates the server markup.
+- **`src/main.ts`** is the production launcher. It merges the routes with `StaticAssets` (the built
+  files in `dist/client`) and serves both with `HttpRouter.serve` and `NodeHttpServer.layer` from
+  `@effect/platform-node`. Vite never runs it in dev.
+- **`src/env.d.ts`** references `@weftui/vite/virtual` for the `virtual:weft/assets` types.
+
+The document shell renders `ClientAssets()` in its `<head>`. In dev that is Vite's client plus the
+client entry source. In a build it is the hashed entry script and its stylesheets.
+
+This example imports the plugin from `packages/vite/src` by relative path, because the task runner
+loads every `vite.config.ts` before any package is built. In your own app, write
+`import { weft } from "@weftui/vite"`. See the
+[render-on-the-server guide](../../docs/how-to/render-on-the-server.md#set-up-the-vite-plugin).
+
+### Prerendered landing page
+
+The landing route sets `prerender: true`. The plugin's default `output` is `"server"`, so only that
+route is prerendered: `vp run build` renders `/` once and writes `dist/client/index.html`.
+
+In the built server, `StaticAssets` answers a GET for `/` from that file ahead of the live routes,
+and the landing component does not run for it. Product pages and the not-found page still render
+live. The page is frozen at build time, which suits a landing page that reads no per-request data.
+In dev, `/` renders live like every other route. See
+[Prerender routes](../../docs/how-to/render-on-the-server.md#prerender-routes).
 
 ### `Boundary.rpc` live stock + refetch
 
@@ -121,7 +158,9 @@ co-located `navigation.browser.test.ts` drives all of these in a real browser.
 ## Running
 
 ```bash
-vp run dev          # from the repo root or this folder, http://localhost:3200
+vp run dev          # server-rendered dev server with HMR, http://localhost:3200
+vp run build        # dist/client (hashed assets) and dist/server
+vp run start        # builds, then runs node dist/server/main.js
 vp run test:browser # app + navigation + listing + refetch browser tests
 ```
 

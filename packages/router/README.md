@@ -66,6 +66,8 @@ const Health = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"));
 export const { handler, dispose } = HttpRouter.toWebHandler(Layer.mergeAll(Pages, Health));
 ```
 
+A route can declare `prerender` to be rendered at build time. See [Prerender routes](https://weftui.dev/docs/how-to/render-on-the-server#prerender-routes).
+
 See [Serving a router app as a Layer](https://weftui.dev/docs/how-to/render-on-the-server) for rpc handlers, app services and the Node launch path.
 
 ## Documentation

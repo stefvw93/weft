@@ -8,8 +8,11 @@ export type {
   TreeNode,
   TreeE,
   TreeR,
+  TreePR,
   SubtreeE,
   SubtreeR,
+  SubtreePR,
+  RoutePrerender,
 } from "./route-tree";
 export { buildHttpApi, compile, leafRegistry } from "./compile";
 export type { RouterDef, RouterOptions, Compiled, CompiledLeaf, CompiledLayout } from "./compile";
