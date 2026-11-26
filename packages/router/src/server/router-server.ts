@@ -7,8 +7,8 @@ import {
 } from "@weftui/dom/server";
 import { HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
-import { type RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/rpc";
-import { Cause, Effect, Exit, Layer, Option, Schema, Scope, Stream } from "effect";
+import { type Rpc, type RpcGroup, RpcSerialization, RpcServer, RpcTest } from "effect/rpc";
+import { Cause, Context, Effect, Exit, Layer, Option, Schema, Scope, Stream } from "effect";
 import type { RouterDef } from "../compile";
 import { isRouterNotFound, RouterNotFound } from "../errors";
 import type { RouteMatch } from "../matcher";
@@ -24,6 +24,10 @@ import { type NavState, Router } from "../router-service";
  * `text/html`. Status comes from the platform pipeline: a no-match (platform's
  * `RouteNotFound`) and a page-raised `RouterNotFound` both render the configured
  * `notFound` page at HTTP 404, so there is no render-time status side-channel.
+ *
+ * {@link RouterServer.layer} is the primary entry: the routes as a composable
+ * `HttpRouter` Layer. `render`, `toWebHandler` and `toStreamingWebHandler` are
+ * adapters over it.
  */
 export namespace RouterServer {
   /** Path the in-process rpc web handler claims; mirrors `RouterLive`'s client URL. */
@@ -60,6 +64,9 @@ export namespace RouterServer {
    * the `Router` / `Router.Outlet` / `AppRpcClientTag` the router already threads) and
    * disallowed otherwise, so a missing provide is a compile error and `rpc`-only /
    * no-service apps stay unchanged (surfaced via {@link ContextOption} at each entry).
+   *
+   * Lifetime: `context` and `rpc.handlers` are built once per memoized handler and
+   * shared by every request. They are not rebuilt per render and are never released.
    */
   export interface Options {
     /** The document shell slot; reads the app to splice via `yield* Router.Outlet`. */
@@ -107,6 +114,17 @@ export namespace RouterServer {
     readonly context?: Layer.Layer<any, never, never>;
   };
 
+  /**
+   * What every render needs, resolved once when {@link layer} is built: the document
+   * shell, the in-process rpc seam, and the app services captured from the Layer's
+   * build context (so they are shared by all requests, not rebuilt per render).
+   */
+  interface RenderEnv {
+    readonly document: ComponentSlot;
+    readonly rpcClient: AppRpcClientTag["Service"];
+    readonly services: Context.Context<never>;
+  }
+
   /** The result of {@link render}. */
   export interface Rendered {
     readonly html: string;
@@ -142,19 +160,25 @@ export namespace RouterServer {
   }
 
   /**
-   * In-process {@link AppRpcClientTag} Layer over the app's handler Layer
-   * ({@link RpcTest.makeClient}, flat, no protocol/serialization). SSR
-   * `Boundary.rpc` resolution calls `call(tag, payload())` against this: the rpc
-   * runs in-process, never over the network.
+   * The in-process {@link AppRpcClientTag} seam ({@link RpcTest.makeClient}, flat,
+   * no protocol/serialization). SSR `Boundary.rpc` resolution calls
+   * `call(tag, payload())` against it: the rpc runs in-process, never over the network.
    *
-   * The render path requires the tag unconditionally, so with no `rpc` configured
-   * a stub is provided whose `call` fails descriptively. A `Boundary.rpc` in an
-   * rpc-less app then surfaces the misconfiguration instead of dying opaquely.
+   * The handlers (and any rpc middleware) are read from the ambient context when
+   * this Effect runs. The group is runtime-assembled, so that requirement is loose
+   * here and precise on {@link layer}'s public signature.
+   *
+   * The render path requires the tag unconditionally, so with no group a stub is
+   * returned whose `call` fails descriptively. A `Boundary.rpc` in an rpc-less app
+   * then surfaces the misconfiguration instead of dying opaquely.
    */
-  function appRpcClientLayer(rpc: RpcOptions | undefined): Layer.Layer<AppRpcClientTag> {
-    if (rpc === undefined) {
-      return Layer.succeed(
-        AppRpcClientTag,
+  function makeAppRpcClient(
+    // oxlint-disable-next-line typescript/no-explicit-any
+    group: RpcGroup.RpcGroup<any> | undefined,
+    // oxlint-disable-next-line typescript/no-explicit-any
+  ): Effect.Effect<AppRpcClientTag["Service"], never, any> {
+    if (group === undefined) {
+      return Effect.succeed(
         AppRpcClientTag.of({
           call: (tag) =>
             Effect.fail(
@@ -165,36 +189,32 @@ export namespace RouterServer {
         }),
       );
     }
-    return Layer.effect(
-      AppRpcClientTag,
-      Effect.map(
-        // The group is `RpcGroup<any>` (runtime-assembled by the app); the flat
-        // client is reached through the same loosening the seam documents.
-        // oxlint-disable-next-line typescript/no-explicit-any
-        RpcTest.makeClient(rpc.group, { flatten: true }) as Effect.Effect<any, never, any>,
-        // oxlint-disable-next-line typescript/no-explicit-any
-        (flat: any) => AppRpcClientTag.of({ call: (tag, payload) => flat(tag, payload) }),
-      ),
-    ).pipe(Layer.provide(rpc.handlers)) as Layer.Layer<AppRpcClientTag>;
+    return Effect.map(
+      // oxlint-disable-next-line typescript/no-explicit-any
+      RpcTest.makeClient(group, { flatten: true }) as Effect.Effect<any, never, any>,
+      // oxlint-disable-next-line typescript/no-explicit-any
+      (flat: any) => AppRpcClientTag.of({ call: (tag, payload) => flat(tag, payload) }),
+    );
   }
 
   /**
    * Renders the document shell (with `app` spliced via `Router.Outlet`) to a
    * hydratable HTML string. The whole tree (shell + every route/layout leaf) drains
-   * in this one `renderToStringHydratable` context, so the app-wide `options.context`
-   * Layer provided here reaches the leaves too (the render-time provide seam). No
-   * context ⇒ `Layer.empty`, a no-op.
+   * in this one `renderToStringHydratable` context, so the app services captured in
+   * `env.services` reach the leaves too (the render-time provide seam).
    */
   function renderDocument(
-    options: RenderOptions,
+    env: RenderEnv,
     app: Node<never, never>,
     router: Router["Service"],
   ): Effect.Effect<string, Error> {
-    const document = Effect.provideService(options.document({}), Router.Outlet, app);
+    const document = Effect.provideService(env.document({}), Router.Outlet, app);
     return renderToStringHydratable(document).pipe(
       Effect.provideService(Router, router),
-      Effect.provide(appRpcClientLayer(options.rpc)),
-      Effect.provide(options.context ?? Layer.empty),
+      Effect.provideService(AppRpcClientTag, env.rpcClient),
+      // Captured services take precedence over the request context, exactly as
+      // Effect's own `HttpApiBuilder` already does for every handler it builds.
+      Effect.provideContext(env.services),
     );
   }
 
@@ -206,15 +226,13 @@ export namespace RouterServer {
    */
   function renderNotFoundDirect(
     def: RouterDef,
-    options: RenderOptions,
+    env: RenderEnv,
     url: string,
     status: number,
   ): Effect.Effect<HttpServerResponse.HttpServerResponse, Error> {
     const router = serverRouter({ _tag: "NotFound", url });
     const app = def.compiled.notFound() as Node<never, never>;
-    return renderDocument(options, app, router).pipe(
-      Effect.map((html) => htmlResponse(html, status)),
-    );
+    return renderDocument(env, app, router).pipe(Effect.map((html) => htmlResponse(html, status)));
   }
 
   /**
@@ -225,12 +243,12 @@ export namespace RouterServer {
    */
   function renderNoMatch(
     def: RouterDef,
-    options: RenderOptions,
+    env: RenderEnv,
     url: string,
   ): Effect.Effect<HttpServerResponse.HttpServerResponse, Error> {
     const router = serverRouter({ _tag: "NotFound", url });
     const app = outletNode(def) as Node<never, never>;
-    return renderDocument(options, app, router).pipe(Effect.map((html) => htmlResponse(html, 404)));
+    return renderDocument(env, app, router).pipe(Effect.map((html) => htmlResponse(html, 404)));
   }
 
   /**
@@ -241,14 +259,14 @@ export namespace RouterServer {
    */
   function renderLeaf(
     def: RouterDef,
-    options: RenderOptions,
+    env: RenderEnv,
     matched: Extract<RouteMatch, { _tag: "Matched" }>,
   ): Effect.Effect<HttpServerResponse.HttpServerResponse, Error> {
     const router = serverRouter(matched);
     const app = outletNode(def) as Node<never, never>;
-    return renderDocument(options, app, router).pipe(
+    return renderDocument(env, app, router).pipe(
       Effect.map((html) => htmlResponse(html, 200)),
-      Effect.catchIf(isRouterNotFound, () => renderNotFoundDirect(def, options, matched.url, 404)),
+      Effect.catchIf(isRouterNotFound, () => renderNotFoundDirect(def, env, matched.url, 404)),
     );
   }
 
@@ -288,7 +306,7 @@ export namespace RouterServer {
    */
   function renderLeafStreaming(
     def: RouterDef,
-    options: RenderOptions,
+    env: RenderEnv,
     matched: Extract<RouteMatch, { _tag: "Matched" }>,
   ): Effect.Effect<HttpServerResponse.HttpServerResponse, Error> {
     const router = serverRouter(matched);
@@ -297,14 +315,14 @@ export namespace RouterServer {
       // The scope spans the response: resolution fibers fork into it, and it
       // closes when the body stream ends or the consumer disconnects (SW5).
       const scope = yield* Scope.make();
-      const documentNode = Effect.provideService(options.document({}), Router.Outlet, app);
+      const documentNode = Effect.provideService(env.document({}), Router.Outlet, app);
       const { shell, patches } = yield* renderToHydratableShell(documentNode).pipe(
         Effect.provideService(Router, router),
         Effect.provideService(SuspenseFailureHandlerTag, notFoundSuspenseHandler(def)),
-        Effect.provide(appRpcClientLayer(options.rpc)),
+        Effect.provideService(AppRpcClientTag, env.rpcClient),
         // Same render-time provide seam as the buffered path (renderDocument): the
         // shell walk and every leaf drain in this context, so app-wide services reach them.
-        Effect.provide(options.context ?? Layer.empty),
+        Effect.provideContext(env.services),
         Scope.provide(scope),
         Effect.onError((cause) => Scope.close(scope, Exit.failCause(cause))),
       );
@@ -318,7 +336,7 @@ export namespace RouterServer {
         contentType: "text/html; charset=utf-8",
       });
     }).pipe(
-      Effect.catchIf(isRouterNotFound, () => renderNotFoundDirect(def, options, matched.url, 404)),
+      Effect.catchIf(isRouterNotFound, () => renderNotFoundDirect(def, env, matched.url, 404)),
     );
   }
 
@@ -334,9 +352,16 @@ export namespace RouterServer {
     WeakMap<ComponentSlot, (request: Request) => Promise<Response>>
   >();
 
+  /** Renders one matched leaf to a response; the buffered and streaming modes each supply one. */
+  type LeafRenderer = (
+    def: RouterDef,
+    env: RenderEnv,
+    matched: Extract<RouteMatch, { _tag: "Matched" }>,
+  ) => Effect.Effect<HttpServerResponse.HttpServerResponse, Error>;
+
   /**
-   * Builds (and memoizes) the platform `(Request) => Promise<Response>` handler for
-   * `def`. Dispatch runs through a **server-local** `HttpApi`: `def.httpApi`
+   * The single routing implementation behind {@link layer} (and so every entry
+   * point). Dispatch runs through a **server-local** `HttpApi`: `def.httpApi`
    * (pristine: the client and the spec read it) extended with a second `"fallback"`
    * group holding one catch-all `"*"` endpoint. Platform owns matching: a request
    * routes to the specific leaf endpoint, or, when nothing matches, to the
@@ -344,21 +369,14 @@ export namespace RouterServer {
    * unmatched path resolves a default empty 404 before any response hook can rewrite
    * it, so the catch-all is the route that keeps no-match rendering ours.)
    */
-  function webHandlerWith(
+  function routesLayer(
     def: RouterDef,
-    options: RenderOptions,
-    cache: WeakMap<RouterDef, WeakMap<ComponentSlot, (request: Request) => Promise<Response>>>,
-    leafRenderer: (
-      def: RouterDef,
-      options: RenderOptions,
-      matched: Extract<RouteMatch, { _tag: "Matched" }>,
-    ) => Effect.Effect<HttpServerResponse.HttpServerResponse, Error>,
-  ): (request: Request) => Promise<Response> {
-    const perDef = cache.get(def) ?? new WeakMap();
-    cache.set(def, perDef);
-    const cached = perDef.get(options.document);
-    if (cached !== undefined) return cached;
-
+    env: RenderEnv,
+    leafRenderer: LeafRenderer,
+    // oxlint-disable-next-line typescript/no-explicit-any
+    rpcGroup: RpcGroup.RpcGroup<any> | undefined,
+    // oxlint-disable-next-line typescript/no-explicit-any
+  ): Layer.Layer<never, never, any> {
     const leaves = def.compiled.leaves;
     // `def.httpApi` is typed `HttpApi.Top`; the concrete group/endpoint shapes are
     // only known at runtime (assembled in a loop), so `group`/`api` are invoked
@@ -385,7 +403,7 @@ export namespace RouterServer {
           (h: any, leaf) =>
             // oxlint-disable-next-line typescript/no-explicit-any
             h.handle(leaf.id, (request: any) =>
-              leafRenderer(def, options, {
+              leafRenderer(def, env, {
                 _tag: "Matched",
                 leaf,
                 path: request.params as Record<string, unknown>,
@@ -403,7 +421,7 @@ export namespace RouterServer {
       (handlers: any) =>
         // oxlint-disable-next-line typescript/no-explicit-any
         handlers.handle("catchAll", (request: any) =>
-          renderNoMatch(def, options, (request.request as HttpServerRequest.HttpServerRequest).url),
+          renderNoMatch(def, env, (request.request as HttpServerRequest.HttpServerRequest).url),
         ),
     );
     // Register the HttpApi page routes into the ambient `HttpRouter`, provided
@@ -412,25 +430,50 @@ export namespace RouterServer {
       Layer.provide(Layer.mergeAll(pagesLayer, fallbackLayer)),
     );
 
-    // `Boundary.rpc` data is served in-band: the app's merged `RpcGroup` (+ JSON
+    // `Boundary.rpc` data is served in-band: the app's merged `RpcGroup` (+ ndjson
     // serialization) registers an rpc route at `POST /_eui/rpc` on the same
     // `HttpRouter` as the page routes; the router dispatches by path, so the rpc
-    // route wins over the catch-all page dispatch. With no `rpc` configured the
-    // route is not registered and `/_eui/rpc` falls through to page dispatch (404).
-    const rpc = options.rpc;
+    // route wins over the catch-all page dispatch. Its handlers come from the
+    // ambient context. With no group the route is not registered and `/_eui/rpc`
+    // falls through to page dispatch (404).
     const rpcRoutes =
-      rpc !== undefined
-        ? RpcServer.layerHttp({ group: rpc.group, path: RPC_PATH, protocol: "http" }).pipe(
-            // oxlint-disable-next-line typescript/no-explicit-any
-            Layer.provide(Layer.mergeAll(rpc.handlers, RpcSerialization.layerNdjson) as any),
+      rpcGroup !== undefined
+        ? RpcServer.layerHttp({ group: rpcGroup, path: RPC_PATH, protocol: "http" }).pipe(
+            Layer.provide(RpcSerialization.layerNdjson),
           )
         : Layer.empty;
 
-    // A single buffered web handler over the merged router (page + rpc routes)
-    // plus the platform services those layers require.
+    // oxlint-disable-next-line typescript/no-explicit-any
+    return Layer.mergeAll(apiRoutes, rpcRoutes) as Layer.Layer<never, never, any>;
+  }
+
+  /**
+   * Builds (and memoizes) the platform `(Request) => Promise<Response>` handler for
+   * `def`: {@link layer} with the caller's `rpc.handlers` and `context` Layers
+   * provided, served through `HttpRouter.toWebHandler`.
+   */
+  function webHandlerWith(
+    def: RouterDef,
+    options: RenderOptions,
+    cache: WeakMap<RouterDef, WeakMap<ComponentSlot, (request: Request) => Promise<Response>>>,
+    streaming: boolean,
+  ): (request: Request) => Promise<Response> {
+    const perDef = cache.get(def) ?? new WeakMap();
+    cache.set(def, perDef);
+    const cached = perDef.get(options.document);
+    if (cached !== undefined) return cached;
+
+    const routes = layer(def, {
+      document: options.document,
+      streaming,
+      ...(options.rpc !== undefined ? { rpc: options.rpc.group } : {}),
+    }).pipe(
+      Layer.provide(options.rpc?.handlers ?? Layer.empty),
+      Layer.provide(options.context ?? Layer.empty),
+    );
+    // The def is loosely typed here, so the discharged requirements are asserted.
     const { handler } = HttpRouter.toWebHandler(
-      // oxlint-disable-next-line typescript/no-explicit-any
-      Layer.mergeAll(apiRoutes, rpcRoutes, HttpServer.layerServices) as any,
+      routes as Layer.Layer<never, never, HttpRouter.HttpRouter>,
     );
 
     perDef.set(options.document, handler);
@@ -442,7 +485,7 @@ export namespace RouterServer {
     def: RouterDef,
     options: RenderOptions,
   ): (request: Request) => Promise<Response> {
-    return webHandlerWith(def, options, handlerCache, renderLeaf);
+    return webHandlerWith(def, options, handlerCache, false);
   }
 
   /** Coerces a possibly-relative URL/path into an absolute URL for a synthetic `Request`. */
@@ -502,11 +545,74 @@ export namespace RouterServer {
     def: RouterDef<any, R>,
     options: Options & ContextOption<R>,
   ): (request: Request) => Promise<Response> {
-    return webHandlerWith(
-      def,
-      options as RenderOptions,
-      streamingHandlerCache,
-      renderLeafStreaming,
-    );
+    return webHandlerWith(def, options as RenderOptions, streamingHandlerCache, true);
+  }
+
+  /** Options for {@link layer}. Services and rpc handlers are not options: they arrive through the Layer's requirements. */
+  export interface LayerOptions<Rpcs extends Rpc.Any = never> {
+    /** The document shell slot; reads the app to splice via `yield* Router.Outlet`. */
+    readonly document: ComponentSlot;
+    /**
+     * The app's merged `RpcGroup` contract. When set, `POST /_eui/rpc` is served and
+     * the group's handlers become a requirement of the Layer. Omit when the app has
+     * no `Boundary.rpc`.
+     */
+    readonly rpc?: RpcGroup.RpcGroup<Rpcs>;
+    /** Stream the shell first and Suspense patches after it. Defaults to `true`; `false` buffers the whole body. */
+    readonly streaming?: boolean;
+  }
+
+  /**
+   * What `effect/rpc` needs to serve and resolve `Rpcs` on the server: the handlers,
+   * any rpc middleware, and the schema services of payloads and results. `never`
+   * when {@link LayerOptions.rpc} is omitted.
+   */
+  export type RpcRequirements<Rpcs extends Rpc.Any> =
+    | Rpc.ToHandler<Rpcs>
+    | Rpc.Middleware<Rpcs>
+    | Rpc.MiddlewareClient<Rpcs>
+    | Rpc.ServicesServer<Rpcs>;
+
+  /**
+   * Everything a caller must provide to {@link layer}: the ambient `HttpRouter`, the
+   * def's residual {@link AppServices}, and the {@link RpcRequirements} of its rpc
+   * group. A loosely typed `RouterDef<any, any>` contributes no app services, since
+   * they cannot be tracked.
+   */
+  export type LayerRequirements<R, Rpcs extends Rpc.Any = never> =
+    | HttpRouter.HttpRouter
+    | (IsAny<AppServices<R>> extends true ? never : AppServices<R>)
+    | RpcRequirements<Rpcs>;
+
+  /**
+   * The app's server routes as a composable `HttpRouter` Layer (spec:
+   * `router-server-layer.specs.md`): one GET route per page leaf, a GET `*`
+   * not-found fallback, and `POST /_eui/rpc` when `rpc` is set. Merge it with your
+   * own route Layers and launch with `HttpRouter.serve`.
+   *
+   * App services and rpc handlers are requirements: discharge them with
+   * `Layer.provide`. They are built once per server and shared by every render.
+   */
+  export function layer<R, Rpcs extends Rpc.Any = never>(
+    def: RouterDef<any, R>,
+    options: LayerOptions<Rpcs>,
+  ): Layer.Layer<never, never, LayerRequirements<R, Rpcs>> {
+    const leafRenderer = (options.streaming ?? true) ? renderLeafStreaming : renderLeaf;
+    // Everything a render needs is resolved once, when the Layer is built: the app
+    // services are captured from the build context and the in-process rpc client is
+    // made over the provided handlers. Requests then share them (L14, L20).
+    const routes = Layer.unwrap(
+      Effect.gen(function* () {
+        // The build scope must not ride along: each render provides its own
+        // (the streaming path closes it when the response ends or disconnects).
+        const services = Context.omit(Scope.Scope)(yield* Effect.context<never>());
+        const rpcClient = yield* makeAppRpcClient(options.rpc);
+        const env: RenderEnv = { document: options.document, rpcClient, services };
+        return routesLayer(def, env, leafRenderer, options.rpc);
+      }),
+    ).pipe(Layer.provide(HttpServer.layerServices));
+    // The runtime plumbing is loosely typed (runtime-assembled `HttpApi` and rpc
+    // group); the public signature carries the precise requirements.
+    return routes as Layer.Layer<never, never, LayerRequirements<R, Rpcs>>;
   }
 }

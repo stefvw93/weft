@@ -301,7 +301,10 @@ A namespace for server-side rendering of a `RouterDef`.
 ```typescript
 RouterServer.render(def, options: { document; rpc; url }): Effect<{ html; status }, Error>;
 RouterServer.toWebHandler(def, options: { document; rpc }): (request: Request) => Promise<Response>;
+RouterServer.layer(def, options: LayerOptions<Rpcs>): Layer<never, never, LayerRequirements<R, Rpcs>>;
 ```
+
+`render`, `toWebHandler` and `toStreamingWebHandler` are built on [`layer`](#routerserverlayer). Their `context` and `rpc.handlers` Layers are built once per memoized handler, not once per render, and are never released.
 
 Dispatch runs through the `def.httpApi` spine via `HttpApiBuilder`: platform owns request→leaf matching and path/query decode. Each leaf handler then builds a fixed-match server `Router` and renders the universal outlet to hydratable HTML.
 
@@ -309,6 +312,64 @@ Dispatch runs through the `def.httpApi` spine via `HttpApiBuilder`: platform own
 - **`render`** drives that handler for a single `url`, returning `{ html, status }` with `<!DOCTYPE html>` prepended. `status` is sourced from the platform pipeline: `200`, or `404` for a no-match / a page-raised `RouterNotFound`.
 - **`document`** is a [`ComponentSlot`](#types) that splices the app via `yield* Router.Outlet`; the router provides both `Router.Outlet` (the app, per request) and `Router`.
 - **`rpc`** is the app's [`Boundary.rpc`](../reference/core.md#boundaryrpc) data foundation: `{ group: RpcGroup<any>; handlers: Layer<any, never, never> }`. That is the merged `RpcGroup` (shared with the client) plus its server-only handler Layer (`group.toLayer(...)` ⊕ its dependencies). `toWebHandler` serves the handlers at `POST /_eui/rpc`, so a client refetch / client-first mount re-runs them on the server. An in-process client over the same handlers (backing the [`AppRpcClientTag`](../reference/core.md#apprpcclienttag) seam) resolves SSR boundaries in-process, never over the network.
+
+#### `RouterServer.layer`
+
+```typescript
+RouterServer.layer<R, Rpcs extends Rpc.Any = never>(
+  def: RouterDef<any, R>,
+  options: LayerOptions<Rpcs>,
+): Layer<never, never, LayerRequirements<R, Rpcs>>;
+```
+
+Registers the app's server routes into the ambient `HttpRouter`:
+
+- One GET route per page leaf. A match replies `text/html; charset=utf-8` at 200 with `<!DOCTYPE html>` prepended.
+- A GET `*` fallback that replies the `notFound` page at 404. It claims only GET.
+- `POST /_eui/rpc` when `options.rpc` is set.
+
+User routes merged into the same `HttpRouter` outrank the fallback, including a prefix catch-all such as `/api/*`. Two `layer` instances in one `HttpRouter` are unsupported.
+
+App services and rpc handlers are requirements, discharged with `Layer.provide`. They are built once per server, shared by every request, and released when the server scope closes. A captured service takes precedence over a same-key service in the request context.
+
+Serve the Layer with `HttpRouter.serve` or `HttpRouter.toWebHandler`. Platform services are provided by the Layer itself. See [Serving a router app as a Layer](../how-to/render-on-the-server.md#serving-a-router-app-as-a-layer).
+
+#### `LayerOptions`
+
+```typescript
+interface LayerOptions<Rpcs extends Rpc.Any = never> {
+  readonly document: ComponentSlot;
+  readonly rpc?: RpcGroup<Rpcs>;
+  readonly streaming?: boolean;
+}
+```
+
+- **`document`** is the shell slot. It splices the app via `yield* Router.Outlet`.
+- **`rpc`** is the app's merged `RpcGroup` contract only. Setting it serves `POST /_eui/rpc` and adds the group's handlers to the Layer's requirements. SSR `Boundary.rpc` resolves in-process against those handlers. Without `rpc`, a `Boundary.rpc` fails with a descriptive error.
+- **`streaming`** defaults to `true`: the shell flushes first and Suspense patches follow. `false` buffers the whole body.
+
+There is no `context` option and no handlers field.
+
+#### `LayerRequirements`
+
+```typescript
+type LayerRequirements<R, Rpcs extends Rpc.Any = never> =
+  HttpRouter | AppServices<R> | RpcRequirements<Rpcs>;
+```
+
+What a caller must provide to `layer`. With no residual app services and no `rpc`, this is exactly `HttpRouter`. A loosely typed `RouterDef<any, any>` contributes no app services.
+
+#### `RpcRequirements`
+
+```typescript
+type RpcRequirements<Rpcs extends Rpc.Any> =
+  | Rpc.ToHandler<Rpcs>
+  | Rpc.Middleware<Rpcs>
+  | Rpc.MiddlewareClient<Rpcs>
+  | Rpc.ServicesServer<Rpcs>;
+```
+
+What `effect/rpc` needs to serve and resolve `Rpcs`: the handlers, rpc middleware, and the schema services of payloads and results. `never` when `rpc` is omitted.
 
 > The `HttpApi` is not generated on the server. It is built once when the tree is sealed (`buildHttpApi` during `Router.router`) and lives on `def.httpApi`. That is the single source of truth both the server dispatch and the client matcher / derived `HttpApiClient` read from.
 
