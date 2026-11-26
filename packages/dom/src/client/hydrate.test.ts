@@ -1,5 +1,5 @@
 import * as assert from "node:assert/strict";
-import { Cause, Effect, Exit, Stream } from "effect";
+import { Cause, Effect, Exit, Stream, SubscriptionRef } from "effect";
 import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";
 import { h } from "@weftui/core";
@@ -336,5 +336,49 @@ describe("AC-H12: graceful divergence", () => {
     } finally {
       console.error = originalError;
     }
+  });
+});
+
+// ============================================================================
+// SVG namespace
+// ============================================================================
+
+describe("SVG namespace", () => {
+  it("adopts server svg and renders later reactive children in the SVG namespace", async () => {
+    createTestDOM();
+    const shape = await Effect.runPromise(SubscriptionRef.make<Renderable>(h.rect({ width: 1 })));
+    const app = h.svg({ viewBox: "0 0 10 10" }, [SubscriptionRef.changes(shape)]);
+    const root = await seedServerHtml(app);
+
+    const exit = await Effect.runPromiseExit(WeftApp.hydrate(WeftApp.make(), app, root));
+    assert.ok(Exit.isSuccess(exit));
+    assert.equal(root.querySelector("svg")?.getAttribute("viewBox"), "0 0 10 10");
+
+    await Effect.runPromise(SubscriptionRef.set(shape, h.circle({ r: 2 })));
+    await waitFor(50);
+
+    const circle = root.querySelector("circle");
+    assert.equal(circle?.namespaceURI, "http://www.w3.org/2000/svg");
+    assert.equal(circle?.getAttribute("r"), "2");
+  });
+
+  it("creates content inserted after hydrating into an svg root in the SVG namespace", async () => {
+    createTestDOM();
+    const shape = await Effect.runPromise(SubscriptionRef.make<Renderable>(h.rect({ width: 1 })));
+    const app = h.g({}, [SubscriptionRef.changes(shape)]);
+    const html = await Effect.runPromise(renderToStringHydratable(app));
+    const svgRoot = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    document.body.appendChild(svgRoot);
+    svgRoot.innerHTML = html;
+
+    const exit = await Effect.runPromiseExit(
+      WeftApp.hydrate(WeftApp.make(), app, svgRoot as unknown as HTMLElement),
+    );
+    assert.ok(Exit.isSuccess(exit));
+
+    await Effect.runPromise(SubscriptionRef.set(shape, h.circle({ r: 2 })));
+    await waitFor(50);
+
+    assert.equal(svgRoot.querySelector("circle")?.namespaceURI, "http://www.w3.org/2000/svg");
   });
 });

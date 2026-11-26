@@ -1,5 +1,6 @@
 import {
   Cause,
+  Context,
   Deferred,
   Effect,
   Equal,
@@ -58,6 +59,39 @@ import {
 import { nextBoundaryId, nextStreamId, nextSuspenseId } from "~/utilities";
 import { BOUNDARY_FAILURE_ATTR, collectServerBoundaries } from "~/boundary-replay";
 import { makeInlineHeadPump } from "./first-paint";
+
+// ============================================================================
+// Element Namespace
+// ============================================================================
+
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+/**
+ * Namespace new elements are created in. `<svg>` always starts the SVG
+ * namespace; its descendants inherit it, except below the HTML integration
+ * points `<foreignObject>`, `<desc>` and `<title>`, which switch back to HTML
+ * (mirroring the HTML parser). Carried through the render
+ * fiber's context so it reaches components, fragments, lists, and reactive
+ * children (forked fibers inherit it).
+ */
+export const ElementNamespace = Context.Reference<"html" | "svg">("@weftui/dom/ElementNamespace", {
+  defaultValue: () => "html",
+});
+
+/** SVG elements whose children the HTML parser places back in the HTML namespace. */
+const SVG_HTML_INTEGRATION_POINTS: ReadonlySet<string> = new Set([
+  "foreignObject",
+  "desc",
+  "title",
+]);
+
+/** The namespace the children of `element` are created in. */
+export function childNamespace(element: Element): "html" | "svg" {
+  return element.namespaceURI === SVG_NAMESPACE &&
+    !SVG_HTML_INTEGRATION_POINTS.has(element.localName)
+    ? "svg"
+    : "html";
+}
 
 // ============================================================================
 // DOM Prop Handling
@@ -139,6 +173,12 @@ function isReactiveProp(key: string, value: unknown): boolean {
 function isProperty(element: HTMLElement, name: string): boolean {
   // AC7: data-* and aria-* always treated as attributes
   if (name.startsWith("data-") || name.startsWith("aria-")) {
+    return false;
+  }
+
+  // SVG elements expose read-only reflections (`className`, `viewBox`, `cx`…):
+  // always set attributes, whose names are case-sensitive in SVG.
+  if (element.namespaceURI === SVG_NAMESPACE) {
     return false;
   }
 
@@ -1135,8 +1175,13 @@ function renderElement(
   RenderContext
 > {
   return Effect.gen(function* () {
-    // AC4: Create element using document.createElement
-    const element = document.createElement(type);
+    // AC4: Create element using document.createElement (createElementNS for SVG)
+    const namespace = type === "svg" ? "svg" : yield* ElementNamespace;
+    // SVG elements share the attribute/child API this renderer uses on HTMLElement.
+    const element =
+      namespace === "svg"
+        ? (document.createElementNS(SVG_NAMESPACE, type) as unknown as HTMLElement)
+        : document.createElement(type);
 
     // AC4: Set attributes/props first
     // Reactive props can paint inline, and some depend on children or on static
@@ -1152,6 +1197,7 @@ function renderElement(
 
     if (children !== undefined) {
       const childArray = Array.isArray(children) ? children : [children];
+      const inChildNamespace = Effect.provideService(ElementNamespace, childNamespace(element));
 
       for (const child of childArray) {
         // Check if child is a *reactive* stream/effect. Static-markup Nodes are
@@ -1163,12 +1209,12 @@ function renderElement(
           (isStream(child) || Effect.isEffect(child))
         ) {
           const stream = toStream<Renderable>(child);
-          const markers = yield* handleStreamChild(stream);
+          const markers = yield* inChildNamespace(handleStreamChild(stream));
           for (const marker of markers) {
             element.appendChild(marker);
           }
         } else {
-          const result = yield* renderNode(child);
+          const result = yield* inChildNamespace(renderNode(child));
           if (result !== null) {
             if (Array.isArray(result)) {
               for (const node of result) {
@@ -1530,7 +1576,10 @@ function patchElementInPlace(
       while (element.firstChild !== null) {
         element.firstChild.remove();
       }
-      yield* appendRenderedChildren(element, newChildren as readonly Renderable[]);
+      yield* pipe(
+        appendRenderedChildren(element, newChildren as readonly Renderable[]),
+        Effect.provideService(ElementNamespace, childNamespace(element)),
+      );
     }
   });
 }
@@ -2969,7 +3018,10 @@ function hydrateElement(
     // static attributes are set idempotently.
     yield* setElementProps(element, props);
 
-    yield* hydrateChildren(props, element.firstChild, `${path} > ${type}`);
+    yield* pipe(
+      hydrateChildren(props, element.firstChild, `${path} > ${type}`),
+      Effect.provideService(ElementNamespace, childNamespace(element)),
+    );
 
     return element.nextSibling;
   });

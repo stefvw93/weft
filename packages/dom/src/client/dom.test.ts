@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "vite-plus/test";
 import { Cause, Effect, Exit, Option, Schedule, Stream, SubscriptionRef } from "effect";
-import { Component, h, Source, Subscribable } from "@weftui/core";
+import { Boundary, Component, h, List, Source, Subscribable } from "@weftui/core";
 import type { Renderable } from "@weftui/core/types";
 import { UnsupportedNodeTypeError } from "~/data";
 import { JSDOM } from "jsdom";
@@ -2194,5 +2194,220 @@ describe("scope lifetime: advanced cases", () => {
     assert.ok(cancelled, "pump should be cancelled through two levels of reactive scope");
 
     await Effect.runPromise(handle.unmount());
+  });
+});
+
+// ============================================================================
+// SVG namespace
+// ============================================================================
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+describe("SVG namespace", () => {
+  it("creates svg and its descendants in the SVG namespace", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.svg({ viewBox: "0 0 10 10", class: "icon" }, [
+        h.g({}, [h.path({ d: "M0 0L10 10" }), h.circle({ cx: 5, cy: 5, r: 2 })]),
+      ]),
+      root,
+    );
+
+    const svg = root.querySelector("svg");
+    assert.ok(svg !== null);
+    assert.equal(svg.namespaceURI, SVG_NS);
+    assert.equal(svg.getAttribute("viewBox"), "0 0 10 10");
+    assert.equal(svg.getAttribute("class"), "icon");
+    for (const tag of ["g", "path", "circle"]) {
+      assert.equal(root.querySelector(tag)?.namespaceURI, SVG_NS, `<${tag}> namespace`);
+    }
+    assert.equal(root.querySelector("path")?.getAttribute("d"), "M0 0L10 10");
+    assert.equal(root.querySelector("circle")?.getAttribute("r"), "2");
+  });
+
+  it("switches back to HTML inside foreignObject", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.div({}, [h.svg({}, [h.foreignObject({}, [h.div({ id: "inner" }, "hi")])]), h.p({}, "x")]),
+      root,
+    );
+
+    assert.equal(root.querySelector("foreignObject")?.namespaceURI, SVG_NS);
+    assert.equal(root.querySelector("#inner")?.namespaceURI, HTML_NS);
+    assert.equal(root.querySelector("p")?.namespaceURI, HTML_NS);
+  });
+
+  it("keeps the SVG namespace for reactive children of an svg", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(h.svg({}, [Stream.make(h.rect({ width: 4 }))]), root);
+    await waitForStream();
+
+    assert.equal(root.querySelector("rect")?.namespaceURI, SVG_NS);
+  });
+
+  it("keeps the SVG namespace when a reused svg rebuilds its children", async () => {
+    const region = await Effect.runPromise(
+      SubscriptionRef.make<Renderable>(h.svg({}, [h.rect({})])),
+    );
+
+    createTestDOM();
+    const root = createRoot();
+    await runMount(SubscriptionRef.changes(region), root);
+    await waitForStream();
+    const svg = root.querySelector("svg");
+
+    await Effect.runPromise(SubscriptionRef.set(region, h.svg({}, [h.circle({}), h.circle({})])));
+    await waitForStreamUpdate();
+
+    assert.equal(root.querySelector("svg"), svg, "svg element should be reused");
+    const circles = root.querySelectorAll("circle");
+    assert.equal(circles.length, 2);
+    for (const circle of circles) {
+      assert.equal(circle.namespaceURI, SVG_NS);
+    }
+  });
+
+  it("switches back to HTML inside desc and title", async () => {
+    createTestDOM();
+    const root = createRoot();
+
+    await runMount(
+      h.svg({}, [
+        h.desc({}, [h.b({ id: "in-desc" }, "d")]),
+        h.title({}, [h.i({ id: "in-title" }, "t")]),
+      ]),
+      root,
+    );
+
+    assert.equal(root.querySelector("desc")?.namespaceURI, SVG_NS);
+    assert.equal(root.querySelector("title")?.namespaceURI, SVG_NS);
+    assert.equal(root.querySelector("#in-desc")?.namespaceURI, HTML_NS);
+    assert.equal(root.querySelector("#in-title")?.namespaceURI, HTML_NS);
+  });
+
+  it("renders List.each items in the SVG namespace", async () => {
+    const items = await Effect.runPromise(
+      SubscriptionRef.make<ReadonlyArray<{ readonly id: number }>>([{ id: 1 }]),
+    );
+
+    createTestDOM();
+    const root = createRoot();
+    await runMount(
+      h.svg({}, [
+        List.each({ of: SubscriptionRef.changes(items), by: (x) => x.id }, (x) =>
+          h.circle({ "data-id": x.id, r: 1 }),
+        ),
+      ]),
+      root,
+    );
+    await waitForStream();
+
+    await Effect.runPromise(SubscriptionRef.set(items, [{ id: 1 }, { id: 2 }]));
+    await waitForStreamUpdate();
+
+    const circles = root.querySelectorAll("circle");
+    assert.equal(circles.length, 2);
+    for (const circle of circles) {
+      assert.equal(circle.namespaceURI, SVG_NS);
+    }
+  });
+
+  it("renders a construction-time boundary fallback in the SVG namespace", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const throws: Renderable = {
+      type: () => {
+        throw new Error("boom");
+      },
+      props: {},
+    };
+
+    await runMount(
+      h.svg({}, [
+        Boundary.catchCause({ fallback: () => h.text({ class: "fb" }, "err") }, [throws]),
+      ]),
+      root,
+    );
+
+    assert.equal(root.querySelector(".fb")?.namespaceURI, SVG_NS);
+  });
+
+  it("renders an async boundary fallback in the SVG namespace", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const failing = Stream.concat(
+      Stream.make(h.rect({ class: "content" })),
+      Stream.fail(new Error("stream boom")),
+    );
+
+    await runMount(
+      h.svg({}, [
+        Boundary.catchCause({ fallback: () => h.text({ class: "fb" }, "err") }, [failing]),
+      ]),
+      root,
+    );
+    await waitFor(80);
+
+    assert.equal(root.querySelector(".content"), null);
+    assert.equal(root.querySelector(".fb")?.namespaceURI, SVG_NS);
+  });
+
+  it("renders a generator component inside svg in the SVG namespace", async () => {
+    createTestDOM();
+    const root = createRoot();
+    const Dot = Component.gen(function* (props: { readonly r: number }) {
+      yield* Effect.sleep("1 millis");
+      return yield* h.circle({ r: props.r });
+    });
+
+    await runMount(h.svg({}, [Dot({ r: 3 })]), root);
+    await waitForStream();
+
+    const circle = root.querySelector("circle");
+    assert.equal(circle?.namespaceURI, SVG_NS);
+    assert.equal(circle?.getAttribute("r"), "3");
+  });
+
+  it("removes a reactive attribute that becomes undefined or null", async () => {
+    const cx = await Effect.runPromise(SubscriptionRef.make<number | null | undefined>(5));
+    // `null` is outside the typed attribute source but reaches the renderer from untyped values.
+    const cxSource = SubscriptionRef.changes(cx) as Stream.Stream<number | undefined>;
+
+    createTestDOM();
+    const root = createRoot();
+    await runMount(h.svg({}, [h.circle({ cx: cxSource, r: 1 })]), root);
+    await waitForStream();
+    const circle = root.querySelector("circle");
+    assert.equal(circle?.getAttribute("cx"), "5");
+
+    await Effect.runPromise(SubscriptionRef.set(cx, undefined));
+    await waitForStreamUpdate();
+    assert.equal(circle?.hasAttribute("cx"), false);
+
+    await Effect.runPromise(SubscriptionRef.set(cx, 7));
+    await waitForStreamUpdate();
+    assert.equal(circle?.getAttribute("cx"), "7");
+
+    await Effect.runPromise(SubscriptionRef.set(cx, null));
+    await waitForStreamUpdate();
+    assert.equal(circle?.hasAttribute("cx"), false);
+  });
+
+  it("creates children of an existing svg root in the SVG namespace", async () => {
+    createTestDOM();
+    const svgRoot = document.createElementNS(SVG_NS, "svg");
+    document.body.appendChild(svgRoot);
+
+    await runMount(h.g({}, [h.circle({ r: 1 })]), svgRoot as unknown as HTMLElement);
+
+    assert.equal(svgRoot.querySelector("g")?.namespaceURI, SVG_NS);
+    assert.equal(svgRoot.querySelector("circle")?.namespaceURI, SVG_NS);
   });
 });
