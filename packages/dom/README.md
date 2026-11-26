@@ -9,10 +9,10 @@ Two entry points: `@weftui/dom/client` for the browser, `@weftui/dom/server` for
 ## Installation
 
 ```bash
-npm install @weftui/core @weftui/dom effect@rc
+npm install @weftui/core @weftui/dom effect
 ```
 
-Weft tracks Effect 4's prerelease line (beta, then rc). This release is built and tested against `effect@4.0.0-rc.112`; the peer range accepts newer 4.0 prereleases, which may contain upstream breaking changes.
+Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.5`, and the peer range is `^4.1.5`.
 
 `effect` is a peer dependency; `@weftui/core` is required to author the tree.
 

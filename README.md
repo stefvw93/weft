@@ -36,10 +36,12 @@ Weft is a monorepo with three packages:
 ## Installation
 
 ```bash
-npm install @weftui/core @weftui/dom @weftui/router effect@rc
+npm install @weftui/core @weftui/dom @weftui/router effect
 ```
 
-Weft tracks Effect 4's prerelease line (beta, then rc). This release is built and tested against `effect@4.0.0-rc.112`; the peer range accepts newer 4.0 prereleases, which may contain upstream breaking changes.
+Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.5`, and the peer range is `^4.1.5`.
+
+`@weftui/router` and `Boundary.rpc` build on `effect/rpc`, `effect/http` and `effect/http-api`. Effect marks those modules unstable, so a newer Effect release can break them.
 
 **New to Effect?** Check out the [Effect documentation](https://effect.website/docs/getting-started/introduction) to learn the fundamentals. These docs assume you know them.
 

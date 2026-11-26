@@ -9,10 +9,12 @@ This package is renderer-agnostic. Pair it with [`@weftui/dom`](https://weftui.d
 ## Installation
 
 ```bash
-npm install @weftui/core effect@rc
+npm install @weftui/core effect
 ```
 
-Weft tracks Effect 4's prerelease line (beta, then rc). This release is built and tested against `effect@4.0.0-rc.112`; the peer range accepts newer 4.0 prereleases, which may contain upstream breaking changes.
+Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.5`, and the peer range is `^4.1.5`.
+
+`Boundary.rpc` builds on `effect/rpc`, which Effect marks unstable, so a newer Effect release can break it.
 
 `effect` is a peer dependency. To render, add [`@weftui/dom`](https://www.npmjs.com/package/@weftui/dom).
 

@@ -1,6 +1,6 @@
 ---
 name: "implement"
-description: "Step 5 of the Weft TDD workflow. Use after /unit-test's red phase: replaces the declare mocks with real code in-place, enforces signature parity with the mock surface, and loops vp check --fix → vp run check → vp run test until green. Finishes with graphify update."
+description: "Step 5 of the Weft TDD workflow. Use after /unit-test's red phase: replaces the declare mocks with real code in-place, enforces signature parity with the mock surface, and loops vp check --fix → vp run check → vp run test until green."
 ---
 
 # /implement: Implementation + green loop (TDD step 5)
@@ -11,7 +11,7 @@ Replace the `declare` mocks with real code, keeping the surface identical, until
 
 - **Previous step:** `/unit-test` (tests exist and a red run is recorded).
 - **Next step:** `/e2e`.
-- **Gate (exit):** `vp run check` and `vp run test` both green, signature parity confirmed, `graphify update .` run.
+- **Gate (exit):** `vp run check` and `vp run test` both green, signature parity confirmed.
 
 ## Procedure
 
@@ -32,9 +32,7 @@ Replace the `declare` mocks with real code, keeping the surface identical, until
 
    Never use bare `vp check` / `vp test` as validation. They skip `pack` and report false cross-package errors (the pack rule).
 
-5. **Update the knowledge graph:** run `graphify update .` (AST-only, no API cost).
-
-6. **Hand off.** Next step is `/e2e`.
+5. **Hand off.** Next step is `/e2e`.
 
 ## Rules
 

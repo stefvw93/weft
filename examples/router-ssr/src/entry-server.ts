@@ -8,7 +8,7 @@
  * shell to hydratable HTML, and reports the status (404 for not-found).
  * `<!DOCTYPE html>` is prepended by `RouterServer`.
  *
- * Both `render` (returning `{ html, status }`) and the `effect/unstable/http`-style
+ * Both `render` (returning `{ html, status }`) and the `effect/http`-style
  * `handler` (`Request → Response`, via `RouterServer.toWebHandler`) are exported;
  * the dev server uses `handler` and post-processes the HTML for Vite HMR.
  */

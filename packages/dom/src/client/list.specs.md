@@ -184,6 +184,16 @@ Animation / FLIP move hooks; a dedicated positional `List.index` variant (subsum
 
 ## Amendments
 
+_(amended by first-paint.specs.md, issue #182)_ When `of` delivers its first
+snapshot synchronously (a static array, a `SubscriptionRef`/`Subscribable` change
+stream, a synchronous `Effect`, or a synchronous cold `Stream`), that snapshot is
+reconciled inline during the mount pass and its item ranges are returned in the
+mount node list. The region's items are therefore in the DOM when `mount`
+resolves, instead of one macrotask later. MR1's marker ordering is unchanged, and
+`render` still runs exactly once per key. A source that cannot deliver
+synchronously keeps today's behaviour: markers only at mount, first snapshot
+committed by the flush fiber.
+
 _(amended by loom.specs.md LM24)_ The `of` source is consumed via
 `Source.changes(of)` directly: the `toSubscribable` hop (SubscriptionRef +
 first-value latch + pump fiber per list) is gone. Reconciliation runs as the
@@ -191,3 +201,17 @@ region cell's commit on the app's flush fiber, so snapshot bursts conflate to
 the newest snapshot (latest-value-wins) instead of reconciling every queued
 one. Sequential-snapshot ordering holds by construction: a single pump writes
 the cell and a single flush fiber commits it.
+
+_(amended by list-append-fast-path.specs.md, issue #171 / #168 residual)_
+`reconcileList` takes a behavior-preserving **monotonic-append fast path** when
+the emission is the previous order, unchanged and in order, followed by new keys
+(guarded to a non-empty previous order). It skips the `prevIndex` build,
+drop-set walk, and LIS. The prefix is reused in place. Only the tail is hashed,
+rendered, and inserted before the region end marker. The post-reconcile
+`ListState` is identical to the general path, so every MR/KR/SC/ID guarantee is
+unchanged. Details and ACs (AP1-AP9) live in that spec.
+
+_(amended by list-mount-fast-path.specs.md, issue #178)_ When previous state is
+empty, `reconcileList` skips the drop and LIS passes. The resulting `ListState`
+is unchanged. A failed render closes every item scope that emission created
+(FE8), on mount and on update.

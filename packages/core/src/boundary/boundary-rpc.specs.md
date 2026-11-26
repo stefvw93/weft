@@ -3,7 +3,7 @@
 ## Overview
 
 `Boundary.rpc` is a universal server/client render boundary backed by one `Rpc`
-from the application's merged `RpcGroup` (`effect/unstable/rpc`). It is a **thin consumer**:
+from the application's merged `RpcGroup` (`effect/rpc`). It is a **thin consumer**:
 its data source is the ambient {@link AppRpcClientTag} seam, not a co-located
 `load`. The rpc **tag** is the boundary's stable identity and the rpc **payload
 schema** its typed input — so there is no hand-rolled `id`, no `provide`, no
@@ -51,7 +51,7 @@ prior model and spec'd in `packages/core/src/server`.
   with no `error` schema) is not replayed; it propagates (server fallback, client
   mismatch).
 - **Out of scope (this pass):** streamed success (`Rpc.make(..., { stream: true })`)
-  and mutations. The `effect/unstable/rpc` foundation supports both; deferred to follow-on
+  and mutations. The `effect/rpc` foundation supports both; deferred to follow-on
   specs.
 
 ---
@@ -118,7 +118,7 @@ prior model and spec'd in `packages/core/src/server`.
 
 9. {@link AppRpcClientTag} is a `Context.Service` holding a **flat, untyped** caller
    `{ call: (tag: string, payload: unknown) => Effect<unknown, unknown> }`. It lets
-   `@weftui/dom` resolve a boundary without importing `effect/unstable/rpc` or
+   `@weftui/dom` resolve a boundary without importing `effect/rpc` or
    `@weftui/router`. `@weftui/router` provides it: a network `RpcClient`
    (POST `/_eui/rpc`) on the browser, an in-process client over the handler Layer
    on the server. `call` returns the **already-decoded** success; the renderer owns
@@ -209,6 +209,6 @@ Boundary.rpc<R extends Rpc.Any, C extends Node<any, any>>(
 ## Deferred / roadmap
 
 - **Streamed success** (`Rpc.make(..., { stream: true })`) — stream-the-shell-then-fill,
-  natively supported by `effect/unstable/rpc`. Needs its own spec.
+  natively supported by `effect/rpc`. Needs its own spec.
 - **Mutations** (non-GET-style rpcs that change server state) — out of scope this
   pass; the contract/handler split already accommodates them.

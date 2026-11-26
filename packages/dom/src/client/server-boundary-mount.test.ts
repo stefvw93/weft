@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient } from "@weftui/core";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { Cause, Deferred, Effect, Exit, Layer, Schema } from "effect";
 import { JSDOM } from "jsdom";
 import { describe, it } from "vite-plus/test";

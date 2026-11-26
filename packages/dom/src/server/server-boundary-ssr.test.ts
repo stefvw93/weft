@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { AppRpcClientTag, Boundary, h, Subscribable } from "@weftui/core";
 import type { AppRpcClient, Node } from "@weftui/core";
-import { Rpc } from "effect/unstable/rpc";
+import { Rpc } from "effect/rpc";
 import { Effect, Exit, Filter, Layer, Result, Schema, Stream } from "effect";
 import { describe, it } from "vite-plus/test";
 import { renderToStream } from "./render-to-stream";

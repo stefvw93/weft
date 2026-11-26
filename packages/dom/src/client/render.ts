@@ -3,10 +3,11 @@ import {
   Context,
   Deferred,
   Effect,
+  Equal,
   Exit,
   Fiber,
   HashMap,
-  HashSet,
+  MutableHashSet,
   Option,
   Ref,
   Schema,
@@ -57,6 +58,7 @@ import {
 } from "~/shared";
 import { nextBoundaryId, nextStreamId, nextSuspenseId } from "~/utilities";
 import { BOUNDARY_FAILURE_ATTR, collectServerBoundaries } from "~/boundary-replay";
+import { makeInlineHeadPump } from "./first-paint";
 
 // ============================================================================
 // Element Namespace
@@ -139,6 +141,21 @@ export function setElementProps(
       }
     }
   });
+}
+
+/** True when applying the prop subscribes to a source. */
+function isReactiveProp(key: string, value: unknown): boolean {
+  if (key === "children" || key === "ref") {
+    return false;
+  }
+  const isReactive = (item: unknown) => isStream(item) || Effect.isEffect(item);
+  return (
+    isReactive(value) ||
+    (key === "style" &&
+      typeof value === "object" &&
+      value !== null &&
+      Object.values(value).some(isReactive))
+  );
 }
 
 /**
@@ -389,12 +406,15 @@ function isTeardownCause(cause: Cause.Cause<unknown>): boolean {
  * @param scope - The scope owning the forked fiber's lifetime.
  * @param errorContext - Region/prop identifier published as the hub region (e.g. `attribute:<name>`, `child:stream-<id>`).
  * @param reportUnhandled - The owning root's `RenderContext.reportUnhandled`.
+ * @param startImmediately - Run the pump on the caller's fiber until its first
+ *   async boundary. Set only on a mount pass, where the Loom is held.
  */
 function forkSupervised<A, E, R>(
   effect: Effect.Effect<A, E, R>,
   scope: Scope.Scope,
   errorContext: string,
   reportUnhandled: (cause: Cause.Cause<unknown>, region: string) => Effect.Effect<void>,
+  startImmediately = false,
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> {
   return Effect.gen(function* () {
     const boundaryCtx = yield* Effect.serviceOption(BoundaryContext);
@@ -413,8 +433,35 @@ function forkSupervised<A, E, R>(
           : Effect.void,
       ),
     );
-    return yield* Effect.forkIn(supervised, scope);
+    return yield* startImmediately
+      ? Effect.forkIn(supervised, scope, { startImmediately: true })
+      : Effect.forkIn(supervised, scope);
   });
+}
+
+/**
+ * The same render context with inline first paint disabled. Inline paint is only
+ * safe while a mount pass holds the Loom (first-paint.specs.md HD1).
+ */
+function deferred(context: RenderContext["Service"]): RenderContext["Service"] {
+  return context.syncFirstPaint ? { ...context, syncFirstPaint: false } : context;
+}
+
+/**
+ * Forks a continuation that swaps region content, with inline first paint disabled.
+ * It waits for the mount pass to attach its markers before running (HD2).
+ */
+function forkRendering<A, E>(
+  effect: Effect.Effect<A, E, RenderContext>,
+  context: RenderContext["Service"],
+  scope: Scope.Scope,
+): Effect.Effect<Fiber.Fiber<A, E>> {
+  return pipe(
+    context.loom.awaitReleased,
+    Effect.andThen(effect),
+    Effect.provideService(RenderContext, deferred(context)),
+    Effect.forkIn(scope),
+  );
 }
 
 /**
@@ -439,13 +486,27 @@ function subscribeToStream<A>(
       reportUnhandled: context.reportUnhandled,
       commit: (value) => Effect.sync(() => void onValue(value)),
     });
+
+    // FP3: a synchronously available first value is applied during the mount
+    // pass, so the prop is set before `mount` resolves rather than a macrotask
+    // later. Later values commit through the flush fiber exactly as before.
+    const region = makeInlineHeadPump(stream, cell.write, context.syncFirstPaint);
     const fiber = yield* forkSupervised(
-      Stream.runForEach(stream, cell.write),
+      region.pump,
       context.scope,
       errorContext,
       context.reportUnhandled,
+      context.syncFirstPaint,
     );
     cell.attachPumpFiber(fiber);
+
+    const head = region.seal();
+    if (Option.isSome(head)) {
+      // FE1: apply it the way a commit would, and route a throwing write
+      // through the cell so mount does not fail where a flush pass would not.
+      const exit = yield* Effect.exit(Effect.sync(() => void onValue(head.value)));
+      yield* Exit.isFailure(exit) ? cell.reportAndDiscard(exit.cause) : cell.markCommitted;
+    }
   });
 }
 
@@ -619,6 +680,7 @@ function renderBoundary(
       reportError: (cause) => Deferred.fail(errorDeferred, cause).pipe(Effect.asVoid),
     };
 
+    let recovered = false;
     const childNodes = yield* pipe(
       renderChildren(props.children as readonly Renderable[]),
       Effect.provideService(BoundaryContext, boundaryService),
@@ -627,6 +689,7 @@ function renderBoundary(
       Effect.catchCause((cause) => {
         const fallbackNode = props.match(cause);
         if (fallbackNode === null) return Effect.failCause(cause);
+        recovered = true;
         return pipe(
           Scope.close(subtreeScope, Exit.void),
           Effect.flatMap(() => renderNode(fallbackNode as Renderable)),
@@ -637,8 +700,14 @@ function renderBoundary(
       }),
     );
 
+    // The fallback is already showing. An inline failure reported earlier in this
+    // pass must not trigger a second recovery (FE5).
+    if (recovered) {
+      return [startMarker, ...childNodes, endMarker] as readonly Node[];
+    }
+
     // Recovery fiber: awaits error deferred, swaps DOM on trigger
-    yield* Effect.forkIn(
+    yield* forkRendering(
       boundaryRecoveryEffect(
         props,
         errorDeferred,
@@ -647,6 +716,7 @@ function renderBoundary(
         startMarker,
         endMarker,
       ),
+      context,
       context.scope,
     );
 
@@ -781,7 +851,7 @@ function renderSuspenseBoundary(
       }
     });
 
-    yield* Effect.forkIn(swapEffect, context.scope);
+    yield* forkRendering(swapEffect, context, context.scope);
 
     // ── 10. Return boundary: [startMarker, ...fallbackNodes, endMarker] ──────
     return [startMarker, ...fallbackNodes, endMarker];
@@ -870,7 +940,7 @@ function renderServerBoundary(
       ),
     );
 
-    yield* Effect.forkIn(swapEffect, context.scope);
+    yield* forkRendering(swapEffect, context, context.scope);
 
     return [startMarker, ...fallbackNodes, endMarker] as readonly Node[];
   });
@@ -1105,7 +1175,13 @@ function renderElement(
         : document.createElement(type);
 
     // AC4: Set attributes/props first
-    yield* setElementProps(element, props);
+    // Reactive props can paint inline, and some depend on children or on static
+    // props (`select.value`, a range's `max`), so they are applied last (FP8).
+    const entries = Object.entries(props);
+    yield* setElementProps(
+      element,
+      Object.fromEntries(entries.filter(([key, value]) => !isReactiveProp(key, value))),
+    );
 
     // AC4: Then append children
     const children = "children" in props ? props.children : undefined;
@@ -1142,6 +1218,11 @@ function renderElement(
         }
       }
     }
+
+    yield* setElementProps(
+      element,
+      Object.fromEntries(entries.filter(([key, value]) => isReactiveProp(key, value))),
+    );
 
     return element;
   });
@@ -1270,7 +1351,7 @@ function handleStreamChild(
           // Render under the content scope: RenderContext.scope and Scope.Scope
           // both point at currentContentScope per the governing rule.
           yield* updateStreamChild(startMarker, endMarker, value).pipe(
-            Effect.provideService(RenderContext, contentContext),
+            Effect.provideService(RenderContext, deferred(contentContext)),
             Effect.provideService(Scope.Scope, currentContentScope),
           );
         }).pipe(Effect.provide(ambient)),
@@ -1278,12 +1359,24 @@ function handleStreamChild(
 
     // Pump: overwrite the cell per emission; commits run on the flush fiber.
     // Ack-or-exit: a stream that ends without ever writing settles here.
-    let pump = Stream.runForEach(stream, cell.write);
+    const region = makeInlineHeadPump(stream, cell.write, context.syncFirstPaint);
+    let pump = region.pump;
     if (options?.onFirstCommit !== undefined) {
       const onSilentExit = options.onFirstCommit;
       pump = pipe(
         pump,
-        Effect.ensuring(Effect.suspend(() => (cell.everWritten() ? Effect.void : onSilentExit))),
+        Effect.ensuring(
+          Effect.suspend(() =>
+            // "Produced a value" has two sources of truth once a head can be
+            // captured: the cell (later emissions) and the capture slot (the
+            // head, not written to the cell). A source that emits once and
+            // completes inside the fork window runs this finalizer before the
+            // caller seals, so consulting `everWritten` alone would misread it
+            // as a silent exit. Sealing here is safe: the stream has ended, so
+            // no further element can arrive, and `seal` is idempotent.
+            cell.everWritten() || Option.isSome(region.seal()) ? Effect.void : onSilentExit,
+          ),
+        ),
       );
     }
 
@@ -1295,12 +1388,43 @@ function handleStreamChild(
       context.scope,
       `child:stream-${streamId}`,
       context.reportUnhandled,
+      context.syncFirstPaint,
     );
     cell.attachPumpFiber(fiber);
 
-    // AC19: Return markers to be inserted.
-    // Content will be committed asynchronously by the flush fiber.
-    return [startMarker, endMarker] as const;
+    const head = region.seal();
+    if (Option.isNone(head)) {
+      // AC19: Return markers to be inserted.
+      // Content will be committed asynchronously by the flush fiber.
+      return [startMarker, endMarker] as const;
+    }
+
+    // FP2: the first value was delivered during the fork, so render it here and
+    // return it between the markers to paint it in the mount frame. The markers
+    // are still detached, so `updateStreamChild`'s insert is a no-op; the nodes
+    // travel back to the caller instead.
+    currentContentScope = yield* Scope.fork(context.scope, "sequential");
+    const firstContext = { ...context, scope: currentContentScope };
+    const exit = yield* Effect.exit(
+      pipe(
+        renderNode(head.value),
+        Effect.provideService(RenderContext, firstContext),
+        Effect.provideService(Scope.Scope, currentContentScope),
+      ),
+    );
+
+    if (Exit.isFailure(exit)) {
+      // FE1/FE3: route exactly as a failed commit would and leave the region
+      // empty, so mount still succeeds with its markers in place.
+      yield* cell.reportAndDiscard(exit.cause);
+      return [startMarker, endMarker] as const;
+    }
+
+    yield* cell.markCommitted;
+    const rendered = exit.value;
+    const content =
+      rendered === null ? [] : Array.isArray(rendered) ? rendered : [rendered as Node];
+    return [startMarker, ...content, endMarker] as const;
   });
 }
 
@@ -1651,59 +1775,105 @@ function renderList(
     // via the pump fiber's exit and are routed to a boundary.
     const changes = Source.changes(of) as Stream.Stream<Iterable<unknown>>;
 
-    // Persistent reconciler state across emissions. Single-writer by
-    // construction: only the flush fiber runs the commit below.
+    // Persistent reconciler state across emissions. Single-writer: the inline
+    // paint runs while the Loom is held, and only the flush fiber runs after it.
     let state: ListState = { records: HashMap.empty(), order: [] };
+
+    const reconcile = (iterable: Iterable<unknown>, itemContext: RenderContext["Service"]) =>
+      pipe(
+        Effect.gen(function* () {
+          // KR6: materialize the iterable so iteration order is fixed for this emission.
+          const items = Array.from(iterable);
+          state = yield* reconcileList(
+            items,
+            by,
+            render,
+            state,
+            regionScope,
+            endMarker,
+            itemContext,
+          );
+        }),
+        // Commits run on the flush fiber: re-provide the region's context.
+        Effect.provideService(RenderContext, itemContext),
+        Effect.provideService(Scope.Scope, regionScope),
+        Effect.provide(ambient),
+      );
 
     const cell = yield* context.loom.register<Iterable<unknown>>({
       label: `list:stream-${streamId}`,
       scope: regionScope,
       boundary,
       reportUnhandled: context.reportUnhandled,
-      commit: (iterable) =>
-        Effect.gen(function* () {
-          // KR6: materialize the iterable so iteration order is fixed for this emission.
-          const items = Array.from(iterable);
-          state = yield* reconcileList(items, by, render, state, regionScope, endMarker, context);
-        }).pipe(
-          // Commits run on the flush fiber: re-provide the region's context.
-          Effect.provideService(RenderContext, context),
-          Effect.provideService(Scope.Scope, regionScope),
-          Effect.provide(ambient),
-        ),
+      commit: (iterable) => reconcile(iterable, deferred(context)),
     });
 
     // Pump fiber lives in the region scope; source failures route to a
     // boundary, or are reported to the app hub when none encloses (AC8).
+    const region = makeInlineHeadPump(changes, cell.write, context.syncFirstPaint);
     const fiber = yield* forkSupervised(
-      Stream.runForEach(changes, cell.write),
+      region.pump,
       regionScope,
       `list:stream-${streamId}`,
       context.reportUnhandled,
+      context.syncFirstPaint,
     );
     cell.attachPumpFiber(fiber);
 
-    return [startMarker, endMarker] as const;
+    const head = region.seal();
+    if (Option.isNone(head)) {
+      return [startMarker, endMarker] as const;
+    }
+
+    // FP1: the first snapshot arrived during the fork. Reconcile it against the
+    // empty state now, on the mount fiber, so the items paint in the mount
+    // frame. `regionEnd` is still detached, so `reconcileList` builds every item
+    // record without inserting; the ranges travel back to the caller in order.
+    const exit = yield* Effect.exit(reconcile(head.value, context));
+
+    if (Exit.isFailure(exit)) {
+      // FE1/FE3: route as a failed commit would, and drop whatever the partial
+      // reconcile built so the region is left empty between its markers.
+      yield* cell.reportAndDiscard(exit.cause);
+      return [startMarker, endMarker] as const;
+    }
+
+    yield* cell.markCommitted;
+
+    const content: Node[] = [];
+    for (const key of state.order) {
+      const record = HashMap.get(state.records, key);
+      if (Option.isSome(record)) {
+        content.push(record.value.startMarker, ...record.value.nodes, record.value.endMarker);
+      }
+    }
+    return [startMarker, ...content, endMarker] as const;
   });
 }
 
-/**
- * Projects each item to its reconciliation key (via `by`, or the item itself
- * under Effect `Equal`/`Hash`) and guards against duplicate keys within one
- * emission (KR1), failing with a descriptive {@link RenderError} *before* any
- * DOM is touched. Shared by {@link reconcileList} and {@link hydrateList}'s
- * first-emission adoption.
- */
+/** Projects each item to its reconciliation key (via `by`, or the item itself). */
 function projectKeys(
   items: readonly unknown[],
   by: ((item: unknown, index: number) => unknown) | undefined,
-): Effect.Effect<readonly unknown[], RenderError> {
+): readonly unknown[] {
+  return by === undefined ? items : items.map((item, i) => by(item, i));
+}
+
+/**
+ * Guards against duplicate keys within one emission (KR1), failing *before* any
+ * DOM is touched. Keys before `from` must be exactly the keys of `known`, which
+ * are already unique, so only the tail is hashed.
+ */
+function guardUniqueKeys(
+  keys: readonly unknown[],
+  from = 0,
+  known: ListState["records"] = HashMap.empty(),
+): Effect.Effect<void, RenderError> {
   return Effect.gen(function* () {
-    const keys: unknown[] = [];
-    let seen = HashSet.empty<unknown>();
-    for (let i = 0; i < items.length; i++) {
-      const key = by === undefined ? items[i] : by(items[i], i);
-      if (HashSet.has(seen, key)) {
+    const seen = MutableHashSet.empty<unknown>();
+    for (let i = from; i < keys.length; i++) {
+      const key = keys[i];
+      if (MutableHashSet.has(seen, key) || HashMap.has(known, key)) {
         return yield* Effect.fail(
           new RenderError({
             cause: key,
@@ -1711,10 +1881,8 @@ function projectKeys(
           }),
         );
       }
-      seen = HashSet.add(seen, key);
-      keys.push(key);
+      MutableHashSet.add(seen, key);
     }
-    return keys;
   });
 }
 
@@ -1724,7 +1892,9 @@ function projectKeys(
  * duplicate-key guard (KR1), insert new keys (KR2), reuse persisted keys without
  * re-invoking `render` (KR3), remove dropped keys and close their scopes (KR4),
  * and reorder retained items with a longest-increasing-subsequence so only items
- * outside the LIS are moved (KR5).
+ * outside the LIS are moved (KR5). Empty previous state skips the drop and move
+ * passes, and a pure append takes {@link appendListTail}. A failed render closes
+ * every item scope this emission created.
  */
 function reconcileList(
   items: readonly unknown[],
@@ -1740,8 +1910,22 @@ function reconcileList(
   RenderContext
 > {
   return Effect.gen(function* () {
-    // 1. Project keys and guard duplicates *before* rendering anything (KR1).
-    const keys = yield* projectKeys(items, by);
+    const keys = projectKeys(items, by);
+
+    // Pure append: the matching prefix is already unique and in place.
+    const isAppend =
+      prev.order.length > 0 &&
+      keys.length > prev.order.length &&
+      prev.order.every((key, i) => Equal.equals(keys[i], key));
+    if (isAppend) {
+      return yield* appendListTail(keys, items, render, prev, regionScope, regionEnd, context);
+    }
+
+    // 1. Guard duplicates *before* rendering anything (KR1).
+    yield* guardUniqueKeys(keys);
+
+    // Nothing to drop or move when no item was rendered before (FE1, FE6).
+    const isMount = prev.order.length === 0;
 
     // Previous key → DOM-order index, for LIS move computation (Effect-keyed so
     // structural keys compare via Equal).
@@ -1754,31 +1938,44 @@ function reconcileList(
     //    `sources[j]` is the item's previous DOM index, or -1 when newly created.
     const records: ItemRecord[] = [];
     const sources: number[] = [];
-    for (let j = 0; j < items.length; j++) {
-      const key = keys[j];
-      const existing = HashMap.get(prev.records, key);
-      if (Option.isSome(existing)) {
-        records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
-        sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
-      } else {
-        const record = yield* renderItem(key, items[j], j, render, regionScope, context);
-        records.push(record);
-        sources.push(-1);
-      }
-    }
+    const createdScopes: Scope.Closeable[] = [];
+    yield* closeScopesOnError(
+      createdScopes,
+      Effect.gen(function* () {
+        for (let j = 0; j < items.length; j++) {
+          const key = keys[j];
+          const existing = isMount ? Option.none() : HashMap.get(prev.records, key);
+          if (Option.isSome(existing)) {
+            records.push(existing.value); // KR3: reuse (no re-render, scope untouched).
+            sources.push(Option.getOrElse(HashMap.get(prevIndex, key), () => -1));
+          } else {
+            const record = yield* renderItem(
+              key,
+              items[j],
+              j,
+              render,
+              regionScope,
+              createdScopes,
+              context,
+            );
+            records.push(record);
+            sources.push(-1);
+          }
+        }
+      }),
+    );
 
     // 3. Remove dropped keys: close their scopes (interrupting subscriptions) and
     //    delete their DOM range, markers included (KR4).
-    let nextKeySet = HashSet.empty<unknown>();
-    for (const key of keys) {
-      nextKeySet = HashSet.add(nextKeySet, key);
-    }
-    for (const key of prev.order) {
-      if (!HashSet.has(nextKeySet, key)) {
-        const dropped = HashMap.get(prev.records, key);
-        if (Option.isSome(dropped)) {
-          yield* Scope.close(dropped.value.scope, Exit.void);
-          removeItemRange(dropped.value.startMarker, dropped.value.endMarker);
+    if (!isMount) {
+      const nextKeySet = MutableHashSet.fromIterable(keys);
+      for (const key of prev.order) {
+        if (!MutableHashSet.has(nextKeySet, key)) {
+          const dropped = HashMap.get(prev.records, key);
+          if (Option.isSome(dropped)) {
+            yield* Scope.close(dropped.value.scope, Exit.void);
+            removeItemRange(dropped.value.startMarker, dropped.value.endMarker);
+          }
         }
       }
     }
@@ -1787,7 +1984,7 @@ function reconcileList(
     //    form the LIS are already in relative order and are not touched; every
     //    other item (new, or retained-but-out-of-order) is (re)inserted before the
     //    next item's start marker, right-to-left so anchors are already in place.
-    const keep = longestIncreasingSubsequence(sources);
+    const keep = isMount ? new Set<number>() : longestIncreasingSubsequence(sources);
     const parent = regionEnd.parentNode;
     if (parent !== null) {
       for (let j = records.length - 1; j >= 0; j--) {
@@ -1808,10 +2005,83 @@ function reconcileList(
     }
 
     // 5. New identity map + DOM order.
-    let nextRecords = HashMap.empty<unknown, ItemRecord>();
-    for (const record of records) {
-      nextRecords = HashMap.set(nextRecords, record.key, record);
+    const nextRecords = HashMap.mutate(HashMap.empty<unknown, ItemRecord>(), (draft) => {
+      for (const record of records) {
+        HashMap.set(draft, record.key, record);
+      }
+    });
+    return { records: nextRecords, order: keys };
+  });
+}
+
+/**
+ * Closes `createdScopes` when `effect` fails: they never reach {@link ListState},
+ * so nothing else would close them (FE8).
+ */
+function closeScopesOnError<A, E, R>(
+  createdScopes: readonly Scope.Closeable[],
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> {
+  return pipe(
+    effect,
+    Effect.onError((cause) =>
+      Effect.forEach(createdScopes, (scope) => Scope.close(scope, Exit.failCause(cause)), {
+        discard: true,
+      }),
+    ),
+  );
+}
+
+/**
+ * Reconciles a pure append (previous order unchanged, plus a new suffix): renders
+ * and inserts only the tail. Returns the same {@link ListState} as the general path.
+ */
+function appendListTail(
+  keys: readonly unknown[],
+  items: readonly unknown[],
+  render: (item: unknown, index: number) => Renderable,
+  prev: ListState,
+  regionScope: Scope.Scope,
+  regionEnd: Comment,
+  context: RenderContext["Service"],
+): Effect.Effect<
+  ListState,
+  StreamSubscriptionError | RenderError | UnsupportedNodeTypeError,
+  RenderContext
+> {
+  return Effect.gen(function* () {
+    yield* guardUniqueKeys(keys, prev.order.length, prev.records);
+
+    // Render the whole tail before inserting any of it, so a failure touches no DOM.
+    const tail: ItemRecord[] = [];
+    const createdScopes: Scope.Closeable[] = [];
+    yield* closeScopesOnError(
+      createdScopes,
+      Effect.gen(function* () {
+        for (let j = prev.order.length; j < items.length; j++) {
+          tail.push(
+            yield* renderItem(keys[j], items[j], j, render, regionScope, createdScopes, context),
+          );
+        }
+      }),
+    );
+
+    const parent = regionEnd.parentNode;
+    if (parent !== null) {
+      for (const record of tail) {
+        parent.insertBefore(record.startMarker, regionEnd);
+        for (const node of record.nodes) {
+          parent.insertBefore(node, regionEnd);
+        }
+        parent.insertBefore(record.endMarker, regionEnd);
+      }
     }
+
+    const nextRecords = HashMap.mutate(prev.records, (draft) => {
+      for (const record of tail) {
+        HashMap.set(draft, record.key, record);
+      }
+    });
     return { records: nextRecords, order: keys };
   });
 }
@@ -1820,7 +2090,8 @@ function reconcileList(
  * Renders a single new list item under a fresh per-item scope forked from the
  * region scope (MR2/KR2). The scope persists across emissions until the item is
  * removed; brackets the rendered nodes with per-item markers so the item moves
- * and is removed as a unit.
+ * and is removed as a unit. The scope is recorded in `createdScopes` before
+ * rendering so the caller can close it if any render fails.
  */
 function renderItem(
   key: unknown,
@@ -1828,6 +2099,7 @@ function renderItem(
   index: number,
   render: (item: unknown, index: number) => Renderable,
   regionScope: Scope.Scope,
+  createdScopes: Scope.Closeable[],
   context: RenderContext["Service"],
 ): Effect.Effect<
   ItemRecord,
@@ -1836,6 +2108,7 @@ function renderItem(
 > {
   return Effect.gen(function* () {
     const itemScope = yield* Scope.fork(regionScope, "sequential");
+    createdScopes.push(itemScope);
     const itemContext = { ...context, scope: itemScope };
 
     const itemId = yield* nextStreamId();
@@ -2980,7 +3253,8 @@ function hydrateFirstListEmission(
   path: string,
 ): Effect.Effect<ListState, HydrateError, RenderContext> {
   return Effect.gen(function* () {
-    const keys = yield* projectKeys(items, by);
+    const keys = projectKeys(items, by);
+    yield* guardUniqueKeys(keys);
 
     // Region-level divergence: server item count != first emission count.
     if (keys.length !== adopted.length) {
