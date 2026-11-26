@@ -50,9 +50,21 @@ Enable declarative, reactive UI rendering in the browser by mounting JSX trees t
 - **Given** Renderable with `{ type: string, props: object }`
 - **When** rendering
 - **Then**:
-  - Create element using `document.createElement(type)` (HTML only, SVG/MathML later)
+  - Create element using `document.createElement(type)`, or `document.createElementNS` in the SVG namespace (see AC4b)
   - Browser validates element type (no manual validation)
   - Render order: create → set attrs/props → set up streams → append children → append to parent
+
+### AC4b: SVG Namespace
+
+- **Given** an element descriptor with `type: "svg"`, or any descendant of one
+- **When** rendering, patching in place, or hydrating
+- **Then**:
+  - `<svg>` is always created with `createElementNS("http://www.w3.org/2000/svg", "svg")`
+  - Its descendants inherit the SVG namespace, whatever renders them: plain children, components (sync, generator, async), fragments, `List.each` items, reactive children, `Suspense` and `Boundary` fallbacks
+  - Children of the HTML integration points `foreignObject`, `desc` and `title` switch back to the HTML namespace (as the HTML parser does)
+  - Children rebuilt by an in-place patch of an SVG element keep the SVG namespace
+  - Mounting or hydrating into an existing `<svg>` root creates its children in the SVG namespace
+  - The server renderer emits plain markup; the browser parser assigns the namespace
 
 ### AC5: Function Components
 
@@ -80,6 +92,7 @@ Enable declarative, reactive UI rendering in the browser by mounting JSX trees t
 - **Then**:
   - Check prototype chain (`prop in element` + walk prototypes) to distinguish properties from attributes
   - `data-*` and `aria-*` always treated as attributes
+  - Props of SVG-namespace elements are always attributes: their reflections (`viewBox`, `cx`, `className`…) are read-only, and attribute names are case-sensitive
   - Properties: use `element[prop] = value`
   - Attributes: use `element.setAttribute(prop, value)`
   - Skip `children` prop
@@ -330,8 +343,8 @@ dirty has committed. The per-commit reconciliation below is unchanged.
 
 ### Future Extensions
 
-- SVG namespace support (`createElementNS`)
 - MathML namespace support
+- Namespaced SVG attributes (`xlink:href`, `xml:space`) via `setAttributeNS`
 - Custom elements support
 - Event handlers
 - HMR support
@@ -349,7 +362,9 @@ dirty has committed. The per-commit reconciliation below is unchanged.
 
 ## Constraints
 
-- HTML elements only (no SVG/MathML yet)
+- HTML and SVG elements only (no MathML yet)
+- SVG attributes are set with `setAttribute`, including `xlink:href` and `xml:space` (no `setAttributeNS`)
+- On SVG elements use `class`, not `className` (the reflection is read-only)
 - No event handlers yet
 - No custom elements support yet
 - No prop name mapping (`class` not `className` - stay close to HTML spec)

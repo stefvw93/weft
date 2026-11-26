@@ -25,7 +25,14 @@ import type {
   UnsupportedNodeTypeError,
 } from "~/data";
 import { ensureFlushFiber, makeLoomUnsafe } from "./loom";
-import { hydrateNode, makeHydrationReady, renderNode, seedStreamIdCounter } from "./render";
+import {
+  childNamespace,
+  ElementNamespace,
+  hydrateNode,
+  makeHydrationReady,
+  renderNode,
+  seedStreamIdCounter,
+} from "./render";
 
 /**
  * Unique brand for {@link WeftApp} values.
@@ -344,6 +351,8 @@ export const mount = <R, E>(
               appContext,
               Context.add(RenderContext, context),
               Context.add(Scope.Scope, rootScope),
+              // Children of an `<svg>` root start in the SVG namespace.
+              Context.add(ElementNamespace, childNamespace(root)),
             ),
           ),
           Effect.onError(() => Scope.close(rootScope, Exit.void)),
@@ -424,6 +433,7 @@ export function hydrate<R, E>(
           appContext,
           Context.add(RenderContext, hydrateContext),
           Context.add(Scope.Scope, rootScope),
+          Context.add(ElementNamespace, childNamespace(root)),
         ),
       ),
       Effect.tapError(() => Scope.close(rootScope, Exit.void)),

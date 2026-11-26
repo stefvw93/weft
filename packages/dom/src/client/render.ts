@@ -68,18 +68,27 @@ const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 /**
  * Namespace new elements are created in. `<svg>` always starts the SVG
- * namespace; its descendants inherit it, except below `<foreignObject>`, which
- * switches back to HTML (mirroring the HTML parser). Carried through the render
+ * namespace; its descendants inherit it, except below the HTML integration
+ * points `<foreignObject>`, `<desc>` and `<title>`, which switch back to HTML
+ * (mirroring the HTML parser). Carried through the render
  * fiber's context so it reaches components, fragments, lists, and reactive
  * children (forked fibers inherit it).
  */
-const ElementNamespace = Context.Reference<"html" | "svg">("@weftui/dom/ElementNamespace", {
+export const ElementNamespace = Context.Reference<"html" | "svg">("@weftui/dom/ElementNamespace", {
   defaultValue: () => "html",
 });
 
+/** SVG elements whose children the HTML parser places back in the HTML namespace. */
+const SVG_HTML_INTEGRATION_POINTS: ReadonlySet<string> = new Set([
+  "foreignObject",
+  "desc",
+  "title",
+]);
+
 /** The namespace the children of `element` are created in. */
-function childNamespace(element: Element): "html" | "svg" {
-  return element.namespaceURI === SVG_NAMESPACE && element.localName !== "foreignObject"
+export function childNamespace(element: Element): "html" | "svg" {
+  return element.namespaceURI === SVG_NAMESPACE &&
+    !SVG_HTML_INTEGRATION_POINTS.has(element.localName)
     ? "svg"
     : "html";
 }
