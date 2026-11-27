@@ -6,6 +6,7 @@ import {
   Layer,
   ManagedRuntime,
   PubSub,
+  Scheduler,
   Scope,
   Stream,
   pipe,
@@ -33,6 +34,7 @@ import {
   renderNode,
   seedStreamIdCounter,
 } from "./render";
+import { withHostScheduler } from "./scheduler";
 
 /**
  * Unique brand for {@link WeftApp} values.
@@ -128,7 +130,8 @@ export interface WeftApp<in R = never, out E = never> {
    * The app's `ManagedRuntime`, for running app-level effects against the
    * shared layer outside any root, e.g.
    * `app.runtime.runFork(trackPageviews)` or
-   * `app.runtime.runPromise(Router.push("/about"))`.
+   * `app.runtime.runPromise(Router.push("/about"))`. Its fibers yield through an
+   * unclamped host scheduler unless the app layer provides a `Scheduler`.
    */
   readonly runtime: ManagedRuntime.ManagedRuntime<R, E>;
 }
@@ -190,12 +193,16 @@ function contextOf<R, E>(app: WeftApp<R, E>): Effect.Effect<Context.Context<R>, 
  * off the app scope and builds the {@link RootHandle} plus the per-root
  * `RenderContext`.
  */
-function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement) {
+function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement, appContext: Context.Context<R>) {
   return Effect.gen(function* () {
     const state = stateOf(app);
     const rootScope = yield* Scope.fork(state.appScope, "sequential");
-    // Idempotent: forks the app's single flush fiber on the first root only.
-    yield* ensureFlushFiber(state.loom, state.appScope);
+    // Idempotent: forks the app's single flush fiber on the first root only. It runs
+    // on the app's scheduler, not the caller's, like every other app fiber.
+    yield* pipe(
+      ensureFlushFiber(state.loom, state.appScope),
+      Effect.provideService(Scheduler.Scheduler, Context.get(appContext, Scheduler.Scheduler)),
+    );
 
     let unmounted = false;
     const handle: RootHandle = {
@@ -270,8 +277,9 @@ function makeImpl(
   layer?: Layer.Layer<any, any, never>,
   options?: { readonly memoMap?: Layer.MemoMap },
 ): WeftApp<any, any> {
+  // Every fiber the runtime runs yields through the host scheduler (scheduler.specs.md).
   const runtime: ManagedRuntime.ManagedRuntime<any, any> = ManagedRuntime.make(
-    (layer ?? Layer.empty) as Layer.Layer<any, any, never>,
+    withHostScheduler((layer ?? Layer.empty) as Layer.Layer<any, any, never>),
     options,
   );
   // Pure allocation on the current beta (no async, no services). If a future
@@ -330,7 +338,7 @@ export const mount = <R, E>(
 ): Effect.Effect<RootHandle, E | MountError> =>
   Effect.gen(function* () {
     const appContext = yield* contextOf(app);
-    const { context, handle, rootScope } = yield* setupRoot(app, root);
+    const { context, handle, rootScope } = yield* setupRoot(app, root, appContext);
 
     // Commits wait until the rendered nodes are attached: an inline paint owns its
     // region's state, and detached markers would swallow a commit (HD1).
@@ -409,7 +417,7 @@ export function hydrate<R, E>(
 ): Effect.Effect<RootHandle, E | HydrateError> {
   return Effect.gen(function* () {
     const appContext = yield* contextOf(app);
-    const { context, handle, rootScope } = yield* setupRoot(app, root);
+    const { context, handle, rootScope } = yield* setupRoot(app, root, appContext);
 
     // Interactivity barrier: each forked first-emission region registers before
     // its fork and settles once its first emission has hydrated; `hydrate`

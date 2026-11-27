@@ -28,7 +28,8 @@ Most of that time is idle. Effect's scheduler yields every 2048 operations throu
 `setTimeout(0)`, which browsers clamp to about 4 ms once nested. A `List.each` mount
 yielded about 160 times, and waited roughly 660 ms. With a `MessageChannel` yield
 instead, the mounts took about 58 ms (plain) and 200 ms (`List.each`). This change
-does not address yielding.
+does not address yielding: [`./scheduler.specs.md`](./scheduler.specs.md) does, with
+that `MessageChannel` yield for every app fiber.
 
 ## Acceptance Criteria
 

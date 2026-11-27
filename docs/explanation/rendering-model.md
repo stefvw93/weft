@@ -60,6 +60,12 @@ One exception applies to a region's very first value. A woven source can deliver
 
 When it does, that value paints inline during the mount pass, not on a later Loom commit. It is already in the DOM when `mount` resolves. Loom commits pause until the mount pass finishes. Every later emission, and any source that does not deliver synchronously, still commits through the Loom exactly as described above.
 
+Long work, such as mounting thousands of rows or a handler that walks a large list, still yields to the browser between chunks. Every fiber an app runs yields through message tasks rather than timers. Browser timer clamping therefore does not slow it down.
+
+The trade-off is busy loops. A loop on `Effect.yieldNow` with no sleep used to be capped by the 4 ms clamp, at about 250 iterations a second. It now spins a core, in a visible tab too. Browsers throttle timers in hidden tabs but not message tasks, so it also keeps full speed in the background. Sources that poll should sleep.
+
+An app layer that provides an Effect `Scheduler` replaces this behavior for the whole app.
+
 None of this changes what you write. You still thread a `Stream`, `Effect`, or `Subscribable` through a prop or child; the Loom is an implementation detail of how those emissions reach the DOM. Code that must observe every intermediate value, not just the settled one, should consume the stream directly instead of relying on what lands in the DOM (see [Reactive Primitives](./reactive-primitives.md#latest-value-wins-conflation)).
 
 ## One tree, two sides, hydrate in place

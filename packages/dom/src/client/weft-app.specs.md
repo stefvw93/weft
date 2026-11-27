@@ -160,7 +160,9 @@ recipe lives in the JSDoc instead.
       around the `mount`/`hydrate` call do **not** reach components, handlers, or
       stream subscriptions; only the app layer's services do. No ambient-scope
       auto-unmount registration occurs (the dom.specs.md AC26/AC27 ambient-scope
-      amendment is removed).
+      amendment is removed). _(Amended by [`./scheduler.specs.md`](./scheduler.specs.md):
+      the app runtime also carries Weft's host `Scheduler`, unless the app layer
+      provides one. A caller's `Scheduler` no longer reaches the flush fiber.)_
 - [x] **WA18 (mount-failure cleanup):** When rendering fails inside
       `mount`/`hydrate`, the root scope is closed before the error surfaces; the
       app runtime and other roots are untouched; the root element remains
