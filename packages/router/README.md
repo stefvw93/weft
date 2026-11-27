@@ -12,7 +12,7 @@ Three entry points mirror `@weftui/dom`: `@weftui/router` (authoring + universal
 npm install @weftui/core @weftui/dom @weftui/router effect
 ```
 
-Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.5`, and the peer range is `^4.1.5`.
+Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.6`, and the peer range is `^4.1.5`.
 
 `@weftui/router` builds on `effect/rpc`, `effect/http` and `effect/http-api`. Effect marks those modules unstable, so a newer Effect release can break the router.
 

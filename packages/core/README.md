@@ -12,7 +12,7 @@ This package is renderer-agnostic. Pair it with [`@weftui/dom`](https://weftui.d
 npm install @weftui/core effect
 ```
 
-Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.5`, and the peer range is `^4.1.5`.
+Weft runs on stable Effect 4. This release is built and tested against `effect@4.1.6`, and the peer range is `^4.1.5`.
 
 `Boundary.rpc` builds on `effect/rpc`, which Effect marks unstable, so a newer Effect release can break it.
 
