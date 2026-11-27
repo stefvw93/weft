@@ -34,7 +34,7 @@ import {
   renderNode,
   seedStreamIdCounter,
 } from "./render";
-import { withRenderScheduler } from "./scheduler";
+import { withHostScheduler } from "./scheduler";
 
 /**
  * Unique brand for {@link WeftApp} values.
@@ -130,7 +130,8 @@ export interface WeftApp<in R = never, out E = never> {
    * The app's `ManagedRuntime`, for running app-level effects against the
    * shared layer outside any root, e.g.
    * `app.runtime.runFork(trackPageviews)` or
-   * `app.runtime.runPromise(Router.push("/about"))`.
+   * `app.runtime.runPromise(Router.push("/about"))`. Its fibers yield through an
+   * unclamped host scheduler unless the app layer provides a `Scheduler`.
    */
   readonly runtime: ManagedRuntime.ManagedRuntime<R, E>;
 }
@@ -189,29 +190,19 @@ function contextOf<R, E>(app: WeftApp<R, E>): Effect.Effect<Context.Context<R>, 
 
 /**
  * Shared root setup for {@link mount} and {@link hydrate}: forks a root scope
- * off the app scope and builds the {@link RootHandle}, the per-root
- * `RenderContext`, and the app context to render under (scheduler.specs.md).
+ * off the app scope and builds the {@link RootHandle} plus the per-root
+ * `RenderContext`.
  */
 function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement, appContext: Context.Context<R>) {
   return Effect.gen(function* () {
     const state = stateOf(app);
     const rootScope = yield* Scope.fork(state.appScope, "sequential");
-    // Render fibers (the mount pass, its pumps, and the flush fiber that runs their
-    // commits) share one scheduler: unclamped yields in browsers (scheduler.ts).
-    const renderContext = withRenderScheduler(appContext);
-    // `getOrUndefined`, not `getOption`: a Reference's `getOption` yields its default,
-    // so only this tells an explicitly provided scheduler apart.
-    const renderScheduler = Context.getOrUndefined(renderContext, Scheduler.Scheduler);
-    const callerScheduler = Context.getOrUndefined(
-      yield* Effect.context<never>(),
-      Scheduler.Scheduler,
+    // Idempotent: forks the app's single flush fiber on the first root only. It runs
+    // on the app's scheduler, not the caller's, like every other app fiber.
+    yield* pipe(
+      ensureFlushFiber(state.loom, state.appScope),
+      Effect.provideService(Scheduler.Scheduler, Context.get(appContext, Scheduler.Scheduler)),
     );
-    // Idempotent: forks the app's single flush fiber on the first root only. It
-    // inherits a scheduler the caller provides, as before this override existed.
-    const startFlush = ensureFlushFiber(state.loom, state.appScope);
-    yield* renderScheduler === undefined || callerScheduler !== undefined
-      ? startFlush
-      : pipe(startFlush, Effect.provideService(Scheduler.Scheduler, renderScheduler));
 
     let unmounted = false;
     const handle: RootHandle = {
@@ -244,7 +235,7 @@ function setupRoot<R, E>(app: WeftApp<R, E>, root: HTMLElement, appContext: Cont
       reportUnhandled: (cause, region) => publishUnhandled(state, { cause, region, root: handle }),
     };
 
-    return { context, handle, rootScope, renderContext };
+    return { context, handle, rootScope };
   });
 }
 
@@ -286,8 +277,9 @@ function makeImpl(
   layer?: Layer.Layer<any, any, never>,
   options?: { readonly memoMap?: Layer.MemoMap },
 ): WeftApp<any, any> {
+  // Every fiber the runtime runs yields through the host scheduler (scheduler.specs.md).
   const runtime: ManagedRuntime.ManagedRuntime<any, any> = ManagedRuntime.make(
-    (layer ?? Layer.empty) as Layer.Layer<any, any, never>,
+    withHostScheduler((layer ?? Layer.empty) as Layer.Layer<any, any, never>),
     options,
   );
   // Pure allocation on the current beta (no async, no services). If a future
@@ -346,7 +338,7 @@ export const mount = <R, E>(
 ): Effect.Effect<RootHandle, E | MountError> =>
   Effect.gen(function* () {
     const appContext = yield* contextOf(app);
-    const { context, handle, rootScope, renderContext } = yield* setupRoot(app, root, appContext);
+    const { context, handle, rootScope } = yield* setupRoot(app, root, appContext);
 
     // Commits wait until the rendered nodes are attached: an inline paint owns its
     // region's state, and detached markers would swallow a commit (HD1).
@@ -364,7 +356,7 @@ export const mount = <R, E>(
           renderNode(node),
           Effect.setContext(
             pipe(
-              renderContext,
+              appContext,
               Context.add(RenderContext, context),
               Context.add(Scope.Scope, rootScope),
               // Children of an `<svg>` root start in the SVG namespace.
@@ -425,7 +417,7 @@ export function hydrate<R, E>(
 ): Effect.Effect<RootHandle, E | HydrateError> {
   return Effect.gen(function* () {
     const appContext = yield* contextOf(app);
-    const { context, handle, rootScope, renderContext } = yield* setupRoot(app, root, appContext);
+    const { context, handle, rootScope } = yield* setupRoot(app, root, appContext);
 
     // Interactivity barrier: each forked first-emission region registers before
     // its fork and settles once its first emission has hydrated; `hydrate`
@@ -446,7 +438,7 @@ export function hydrate<R, E>(
       hydrateNode(node, root.firstChild, "root"),
       Effect.setContext(
         pipe(
-          renderContext,
+          appContext,
           Context.add(RenderContext, hydrateContext),
           Context.add(Scope.Scope, rootScope),
           Context.add(ElementNamespace, childNamespace(root)),

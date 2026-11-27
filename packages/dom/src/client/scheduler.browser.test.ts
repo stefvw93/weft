@@ -10,6 +10,7 @@ import { makeMessageChannelSetImmediate } from "./scheduler";
 // host speed cannot flake them: Effect's default yields with one per yield.
 
 const YIELDS = 200;
+const ROUNDS = 50;
 
 /** Counts `setTimeout(_, 0)` calls from now until the test ends. */
 function countZeroDelayTimeouts(): () => number {
@@ -42,7 +43,7 @@ function track<R, E>(app: WeftApp.WeftApp<R, E>): WeftApp.WeftApp<R, E> {
 
 describe("makeMessageChannelSetImmediate", () => {
   it("RS1: runs tasks once each, FIFO, as separate tasks", async () => {
-    const setImmediate = makeMessageChannelSetImmediate(MessageChannel);
+    const setImmediate = makeMessageChannelSetImmediate(MessageChannel, false);
     const order: string[] = [];
     setImmediate(() => {
       order.push("a");
@@ -58,7 +59,7 @@ describe("makeMessageChannelSetImmediate", () => {
   });
 
   it("RS2: a cancelled task is skipped and later tasks still run in order", async () => {
-    const setImmediate = makeMessageChannelSetImmediate(MessageChannel);
+    const setImmediate = makeMessageChannelSetImmediate(MessageChannel, false);
     const order: string[] = [];
     setImmediate(() => order.push("a"));
     const cancel = setImmediate(() => order.push("b"));
@@ -122,29 +123,46 @@ describe("render fibers", () => {
     expect(dispatched).toBeGreaterThanOrEqual(10);
   });
 
-  it("RS10: a Scheduler provided around mount still drives the flush fiber", async () => {
+  it("RS11: an event handler that yields 200 times dispatches no timer yields", async () => {
     const container = makeContainer();
-    let dispatched = 0;
-    const counting = new Scheduler.MixedScheduler("async", (task) => {
-      dispatched++;
-      const timer = setTimeout(task, 0);
-      return () => clearTimeout(timer);
-    });
+    const app = track(WeftApp.make());
+    const onclick = (event: MouseEvent) => {
+      const target = event.currentTarget;
+      // Writes straight to the element: the handler fiber is under test, not a commit.
+      return pipe(
+        yieldTimes(YIELDS, "clicked"),
+        Effect.map((text) => {
+          if (target instanceof HTMLElement) target.textContent = text;
+        }),
+      );
+    };
+    await Effect.runPromise(
+      WeftApp.mount(app, h.div({}, [h.button({ id: "go", onclick })]), container),
+    );
+    const button = container.querySelector("#go");
+    if (!(button instanceof HTMLButtonElement)) throw new Error("button not rendered");
+
+    const zeroDelayTimeouts = countZeroDelayTimeouts();
+    button.click();
+    await vi.waitFor(() => expect(button.textContent).toBe("clicked"), { timeout: 5_000 });
+    expect(zeroDelayTimeouts()).toBeLessThan(YIELDS / 2);
+  });
+
+  it("RS12: commit rounds through the flush fiber dispatch no timer yields", async () => {
+    const container = makeContainer();
     const app = track(WeftApp.make());
     const count = await Effect.runPromise(SubscriptionRef.make(0));
     const handle = await Effect.runPromise(
-      pipe(
-        WeftApp.mount(app, h.div({}, [SubscriptionRef.changes(count)]), container),
-        Effect.provideService(Scheduler.Scheduler, counting),
-      ),
+      WeftApp.mount(app, h.div({}, [SubscriptionRef.changes(count)]), container),
     );
-    expect(container.textContent).toBe("0");
 
-    dispatched = 0;
-    await Effect.runPromise(SubscriptionRef.set(count, 1));
-    await Effect.runPromise(handle.awaitCommit);
-    expect(container.textContent).toBe("1");
-    expect(dispatched).toBeGreaterThan(0);
+    const zeroDelayTimeouts = countZeroDelayTimeouts();
+    for (let i = 1; i <= ROUNDS; i++) {
+      await Effect.runPromise(SubscriptionRef.set(count, i));
+      await Effect.runPromise(handle.awaitCommit);
+    }
+    expect(container.textContent).toBe(String(ROUNDS));
+    expect(zeroDelayTimeouts()).toBeLessThan(ROUNDS / 2);
   });
 });
 
